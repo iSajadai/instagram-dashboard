@@ -1,0 +1,162 @@
+/* The dashboard's own tokens (theme.css names) expressed in the Sepehr design (css/sepehr.css),
+   so every existing section, chart and panel page takes the new look in both themes.
+   Load after css/sepehr.css; set data-theme="dark" | "light" on <html>. */
+:root {
+  --font-anthropic-sans: "Vazirmatn Variable", Vazirmatn, Tahoma, sans-serif;
+  --font-anthropic-serif: "Vazirmatn Variable", Vazirmatn, Tahoma, sans-serif;
+  --cds-font-size-caption: 0.8rem;
+  --cds-font-size-body: 0.925rem;
+  --cds-font-size-heading: 1.1rem;
+  --cds-font-size-title: 1.6rem;
+  --cds-font-weight-medium: 700;
+  --cds-gap-xs: 0.35rem;
+  --cds-gap-sm: 0.6rem;
+  --cds-gap-md: 1rem;
+  --cds-gap-lg: 1.25rem;
+  --cds-gap-xl: 1.5rem;
+  --cds-pad-xs: 0.35rem;
+  --cds-pad-sm: 0.6rem;
+  --cds-pad-md: 0.9rem;
+  --cds-pad-lg: 1.25rem;
+  --cds-pad-xl: 1.6rem;
+  --cds-radius: 1.25rem;
+  --cds-dur-slow: 240ms;
+  /* chart series: copper, amber, sand, coral, then quieter tones */
+  --series-1: #c45c26;
+  --series-2: #e0a03a;
+  --series-3: #d4b48a;
+  --series-4: #d1433f;
+  --series-5: #9b6a43;
+  --series-6: #f0c27b;
+  --series-7: #8a7c6e;
+  --series-8: #6b2c14;
+}
+html[data-theme] {
+  --color-bg: var(--bg);
+  --color-panel: var(--surface);
+  --color-fg: var(--text);
+  --color-fg-muted: var(--text-secondary);
+  --color-border-line: var(--border);
+  --color-bad: var(--coral);
+  --color-warn: var(--amber);
+  --color-ok: var(--sand);
+  --cds-chart-grid: var(--chart-grid);
+  --cds-chart-axis: var(--border-strong);
+  --cds-chart-muted: var(--text-muted);
+  --cds-chart-reference: var(--text-muted);
+  --cds-surface-popover: var(--surface-2);
+  --cds-shadow-popover: var(--shadow-float);
+  --cds-border: var(--border-strong);
+  --cds-text-secondary: var(--text-secondary);
+}
+html[data-theme="light"] { --color-ok: var(--accent); }
+html[data-theme="light"] { --series-3: #b98a52; }
+
+body { background: var(--bg); color: var(--text); font-family: var(--font-anthropic-sans); }
+/* component display rules (buttons, nav items) must not un-hide elements the page hides */
+[hidden] { display: none !important; }
+.sj, .pn { font-family: var(--font-anthropic-sans); }
+
+/* cards and tiles look like ui-card */
+.sj-card, .sj-tile, .pn-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-card);
+}
+.sj-tile { transition: transform 280ms var(--ease), box-shadow 280ms var(--ease), border-color 280ms var(--ease); }
+.sj-tile:hover { transform: translateY(-3px); box-shadow: var(--shadow-float); border-color: var(--border-strong); }
+.sj-num { font-weight: 900; letter-spacing: -0.01em; }
+.sj-label { font-size: 0.85rem; color: var(--text-muted); }
+.sj-def { color: var(--text-muted); }
+.sj-h2 { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; }
+.sj-card h3, .pn-card h3 { font-size: 1rem; font-weight: 800; }
+.sj-title { font-weight: 900; }
+
+/* tables like the data-table */
+.sj-table th { color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-strong); }
+.sj-table td { border-bottom: 1px solid var(--border); }
+.sj-table tbody tr { transition: background 180ms var(--ease); }
+.sj-table tbody tr:hover { background: var(--row-hover); }
+.sj-table a, .sj-idea a, .sj-small a { color: var(--amber); }
+
+/* buttons, chips, segmented range */
+.sj-btn, .pn button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+  font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  padding: 0.5rem 0.95rem; border-radius: 0.8rem;
+  background: var(--input-bg); color: var(--text); border: 1px solid var(--border);
+  transition: transform 180ms var(--ease), background 180ms var(--ease), border-color 180ms var(--ease);
+}
+.sj-btn:hover, .pn button:hover { border-color: var(--border-strong); background: var(--surface-3); }
+.sj-btn:active, .pn button:active { transform: scale(0.97); }
+.sj-btn:focus-visible, .pn button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pn button.primary { background: linear-gradient(180deg, #db6a2e 0%, #c45c26 100%); color: #fff; border-color: transparent; box-shadow: 0 8px 18px rgba(196, 92, 38, 0.32); }
+.pn button.danger { color: var(--coral); border-color: var(--coral-soft); }
+.pn button:disabled, .sj-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+.sj-chip, .pn-chip { border-radius: 999px; padding: 0.15rem 0.65rem; font-size: 0.75rem; font-weight: 600; border: 0; background: var(--surface-3); color: var(--text-secondary); }
+.sj-chip.p { background: var(--accent-soft); color: var(--sand); }
+html[data-theme="light"] .sj-chip.p { color: var(--accent); }
+.sj-sev-مهم { background: var(--amber-soft); color: var(--amber); }
+.sj-sev-خوب { background: var(--accent-soft); color: var(--sand); }
+html[data-theme="light"] .sj-sev-خوب { color: var(--accent); }
+.pn-chip.ok { background: var(--accent-soft); color: var(--sand); }
+.pn-chip.bad { background: var(--coral-soft); color: var(--coral); }
+.pn-chip.off { background: var(--surface-3); color: var(--text-muted); }
+.sj-badge { border: 0; font-weight: 600; padding: 0.1rem 0.6rem; }
+.sj-badge.rising { background: var(--accent-soft); color: var(--amber); }
+.sj-badge.weak { background: var(--coral-soft); color: var(--coral); }
+.sj-badge.normal { background: var(--surface-3); color: var(--text-muted); }
+.sj-seg { border: 1px solid var(--border); background: var(--input-bg); border-radius: 0.9rem; padding: 0.2rem; gap: 0.15rem; }
+.sj-seg button { border-radius: 0.65rem; font-weight: 600; color: var(--text-muted); padding: 0.35rem 0.85rem; }
+.sj-seg button[aria-pressed=true] { background: var(--surface-3); color: var(--text); }
+.sj-delta.up { color: var(--sand); }
+html[data-theme="light"] .sj-delta.up { color: var(--accent); }
+.sj-delta.down { color: var(--coral); }
+.sj-stale { border-color: var(--amber); background: var(--amber-soft); color: var(--text); border-radius: 0.9rem; }
+.sj-stale a { color: var(--amber); }
+.sj-hook { border-inline-start: 3px solid var(--accent); }
+.sj-bar { background: var(--surface-3); }
+.sj-tip { border-radius: 0.85rem; background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+.sj-day { border-radius: 0.9rem; background: var(--surface-2); }
+.sj-day.today { border-color: var(--accent); }
+.sj-day .ev { border-color: var(--amber); }
+.sj-day .ev.plan { border-color: var(--accent); }
+.sj-step .bar { background: linear-gradient(270deg, #db6a2e, #e0a03a); opacity: 1; }
+.sj-out code, .pn pre { background: var(--surface-2); border: 1px solid var(--border); }
+.sj-form input, .sj-form select, .pn input, .pn select, .pn textarea {
+  background: var(--input-bg); color: var(--text); border: 1px solid var(--border); border-radius: 0.8rem;
+}
+.sj-form input:focus, .sj-form select:focus, .pn input:focus, .pn select:focus, .pn textarea:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+/* what Tailwind's reset removed */
+.sj-check { list-style: disc; }
+.sj-check li::marker { color: var(--accent); }
+.sj code, .pn code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; }
+
+/* skeletons while data loads */
+.dash-skeleton { color: transparent !important; position: relative; }
+.dash-skeleton::after {
+  content: ""; position: absolute; inset: 0.15em 0; border-radius: 0.5rem;
+  background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2));
+  background-size: 200% 100%; animation: sj-shimmer 1.4s linear infinite;
+}
+.sj-chart.dash-skeleton::after, .sj-heat.dash-skeleton::after { inset: 0; }
+@keyframes sj-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .dash-skeleton::after { animation: none; } .sj-tile:hover { transform: none; } }
+
+/* a form inside a panel card fills the card (it shares the page container's class) */
+.pn-card .pn { margin: 0; max-width: none; width: 100%; }
+
+/* shell additions */
+.sj-nav-user { display: flex; align-items: center; gap: 0.75rem; }
+.sj-main-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.sj-hero { padding: 1.6rem; overflow: hidden; }
+.sj-hero .sj-take { color: var(--text-secondary); font-size: 1rem; }
+.sj-hero .sj-take b { color: var(--text); }
+.sj-kpi-icon { width: 2.5rem; height: 2.5rem; border-radius: 0.8rem; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex-shrink: 0; }
+.sj-kpi-icon svg { width: 1.2rem; height: 1.2rem; }
+.sj-tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+section.sj-sec { scroll-margin-top: calc(var(--header-height) + 1rem); }

@@ -116,17 +116,11 @@ def dashboard(request: Request):
     u = current_user(request)
     if not u:
         return RedirectResponse("/login")
-    p = store.prefs(u)
+    # the page reads the user's name, page name and admin link from /api/me itself
     html = (config.ROOT / "index.html").read_text(encoding="utf-8")
-    name = p.get("page_name") or u["username"]
     blog = (store.user_secrets(u).get("connections", {}).get("metricool") or {}).get("blog_id", "")
-    nav = ('<nav class="sj-panelnav"><span>' + _esc(u["username"]) + '</span><a href="/settings">تنظیمات</a>'
-           + ('<a href="/admin">ادمین</a>' if u["is_admin"] else '') + '<a href="/logout">خروج</a></nav>')
-    html = (html.replace("<title>داشبورد اینستاگرام</title>", f"<title>داشبورد {_esc(name)}</title>")
-                .replace('<h1 class="sj-title">داشبورد اینستاگرام</h1>', nav + f'<h1 class="sj-title">داشبورد {_esc(name)}</h1>')
-                .replace("app.metricool.com/planner", f"app.metricool.com/planner?blogId={_esc(str(blog))}" if blog else "app.metricool.com/planner")
-                .replace("</style>", ".sj-panelnav{display:flex;gap:14px;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}"
-                                     ".sj-panelnav a{color:var(--color-fg)}</style>", 1))
+    if blog:
+        html = html.replace("app.metricool.com/planner", f"app.metricool.com/planner?blogId={_esc(str(blog))}")
     return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
@@ -142,10 +136,11 @@ def user_data(user=Depends(need_user)):
     return FileResponse(p, media_type="application/json", headers={"Cache-Control": "no-store"})
 
 
-@api.get("/assets/{name}", include_in_schema=False)
+@api.get("/assets/{name:path}", include_in_schema=False)
 def assets(name: str):
-    p = (config.ROOT / "assets" / name).resolve()
-    if p.parent != (config.ROOT / "assets").resolve() or not p.is_file():
+    root = (config.ROOT / "assets").resolve()
+    p = (root / name).resolve()
+    if not p.is_relative_to(root) or not p.is_file():  # resolve() first, so ../ can't step outside assets/
         raise HTTPException(404)
     return FileResponse(p, headers={"Cache-Control": "public, max-age=604800"})
 
