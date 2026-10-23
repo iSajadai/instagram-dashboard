@@ -7,10 +7,11 @@ import contextlib, json, re, threading, time
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
-from . import analysis, config, mcp_server, pipeline, store
+from . import ai, analysis, config, mcp_server, pipeline, store
 
 COOKIE = "sj_session"
 USERNAME = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
@@ -374,6 +375,124 @@ async def change_password(request: Request, user=Depends(need_user)):
         raise HTTPException(400, "رمز تازه باید دست‌کم ۸ حرف باشه")
     store.set_password(user["id"], b["new"])
     return login_response(user["id"], {"ok": True})
+
+
+# ---------- AI: chat with the dashboard, a reel's critique, hook/caption writing ----------
+
+def ai_call(fn):
+    try:
+        return fn()
+    except ai.AIError as e:
+        raise HTTPException(400, str(e))
+    except ValueError:
+        raise HTTPException(502, "جواب مدل قابل خوندن نبود؛ دوباره امتحان کن.")
+
+
+def page_context(user):
+    """What the AI knows about the page: its own description and the numbers, compact."""
+    d = user_json(user)
+    p = store.prefs(user)
+    return {
+        "page": p.get("page_name") or user["username"],
+        "about": p.get("page_profile") or "",
+        "last_7_days": analysis.overview(d, 7), "last_30_days": analysis.overview(d, 30), "all_time": analysis.overview(d, 0),
+        "reels_newest_first": analysis.reels_list(d, 30),
+        "daily_last_30": analysis.daily(d, 30),
+        "best_posting_times": analysis.best_times(d, 5),
+        "this_weeks_ideas": [{k: i.get(k) for k in ("priority", "title", "hook")} for i in d.get("ideas", [])],
+    }
+
+
+CHAT_SYSTEM = """You are the analytics assistant inside an Instagram creator's dashboard. Answer in Persian (conversational, clear),
+from the page's numbers below only; say so when the data can't answer a question rather than guessing. Be concrete: name reels by
+their caption start and date, give the numbers that support each point, and end with one practical next step when it helps.
+"multiple_of_median" compares a reel with the page's median views; view_rate_3s_pct is the share who stayed past 3 seconds.
+Keep answers short unless asked for detail. Dates are Tehran time.
+
+The page's data (JSON):
+{context}"""
+
+
+@api.post("/api/me/chat", include_in_schema=False, dependencies=[Depends(same_site)])
+async def chat(request: Request, user=Depends(need_user)):
+    b = await body(request)
+    msgs = [m for m in (b.get("messages") or []) if isinstance(m, dict) and m.get("role") in ("user", "assistant")]
+    msgs = [{"role": m["role"], "content": str(m.get("content") or "")[:4000]} for m in msgs][-12:]
+    if not msgs or msgs[-1]["role"] != "user":
+        raise HTTPException(400, "سؤالی فرستاده نشد")
+    system = CHAT_SYSTEM.format(context=json.dumps(page_context(user), ensure_ascii=False))
+    answer = await run_in_threadpool(lambda: ai_call(lambda: ai.ask(user, system, msgs, max_tokens=4000)))
+    return {"answer": answer}
+
+
+@api.get("/api/me/reel", include_in_schema=False)
+def my_reel(reel: str, user=Depends(need_user)):
+    d = user_json(user)
+    r = analysis.reel(d, reel)
+    if not r:
+        raise HTTPException(404, "این ریل تو داشبورد نیست")
+    critiques = analysis.load(config.user_dir(user["id"]) / "content" / "critiques.json") or {}
+    return {**r, "page_median_views": analysis.scored(d)[1], "critique": critiques.get(r["url"])}
+
+
+CRITIQUE_SCHEMA = {
+    "type": "object", "additionalProperties": False,
+    "required": ["verdict", "hook", "caption", "cover", "what_worked", "what_to_change", "next_reel"],
+    "properties": {k: {"type": "string"} for k in ("verdict", "hook", "caption", "cover", "what_worked", "what_to_change", "next_reel")},
+}
+
+
+@api.post("/api/me/reel-critique", include_in_schema=False, dependencies=[Depends(same_site)])
+async def reel_critique(request: Request, user=Depends(need_user)):
+    b = await body(request)
+    d = user_json(user)
+    r = analysis.reel(d, str(b.get("reel") or ""))
+    if not r:
+        raise HTTPException(404, "این ریل تو داشبورد نیست")
+    path = config.user_dir(user["id"]) / "content" / "critiques.json"
+    critiques = analysis.load(path) or {}
+    if r["url"] in critiques and not b.get("fresh"):
+        return critiques[r["url"]]
+    ctx = page_context(user)
+    system = ("You review one Instagram reel for its creator, in Persian (conversational). Use only the numbers given. "
+              "verdict: one sentence on how it did against the page median and why. hook: what the first line/second does and how to "
+              "sharpen it (give a rewritten hook). caption: same for the caption. cover: what the cover should show (you can't see it; "
+              "reason from the caption and numbers). what_worked / what_to_change: 2-4 short points each. next_reel: one concrete idea "
+              "for the next reel that builds on this one.\n\nPage: " + json.dumps({k: ctx[k] for k in ("page", "about", "last_30_days")}, ensure_ascii=False))
+    reel_data = {k: r.get(k) for k in ("published", "caption", "views", "reach", "multiple_of_median", "view_rate_3s_pct", "avg_watch_s",
+                                         "save_rate_pct", "shares_per_1k_reach", "follows", "likes", "comments", "view_curve")}
+    out = await run_in_threadpool(lambda: ai_call(lambda: ai.ask(
+        user, system, [{"role": "user", "content": "The reel:\n" + json.dumps(reel_data, ensure_ascii=False)}], schema=CRITIQUE_SCHEMA)))
+    out["at"] = time.time()
+    critiques[r["url"]] = out
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(critiques, ensure_ascii=False, indent=1), encoding="utf-8")
+    return out
+
+
+CAPTION_SCHEMA = {
+    "type": "object", "additionalProperties": False, "required": ["hooks", "caption", "hashtags", "cta"],
+    "properties": {"hooks": {"type": "array", "items": {"type": "string"}}, "caption": {"type": "string"},
+                   "hashtags": {"type": "array", "items": {"type": "string"}}, "cta": {"type": "string"}},
+}
+
+
+@api.post("/api/me/write-caption", include_in_schema=False, dependencies=[Depends(same_site)])
+async def write_caption(request: Request, user=Depends(need_user)):
+    b = await body(request)
+    topic = "\n".join(str(b.get(k) or "")[:1500] for k in ("title", "hook", "beats", "text") if b.get(k)).strip()
+    if not topic:
+        raise HTTPException(400, "موضوع ریل رو بنویس")
+    ctx = page_context(user)
+    best = sorted(ctx["reels_newest_first"], key=lambda r: r.get("multiple_of_median") or 0, reverse=True)[:5]
+    system = ("You write Instagram reel copy in Persian for this page, in its voice (conversational, natural, no clichés). "
+              "hooks: 3 different first spoken lines, each under 12 words, built to stop the scroll (a surprise, a promise or a "
+              "question). caption: the caption, its first 125 characters a complete hook on their own, with a 'save this' line when "
+              "it fits, no hashtags inside. hashtags: at most 5, relevant, without #. cta: one closing line for the video. Follow any "
+              "rule in the page description.\n\nPage: " + json.dumps({"page": ctx["page"], "about": ctx["about"]}, ensure_ascii=False) +
+              "\nIts best reels so far: " + json.dumps([{k: r.get(k) for k in ("caption", "multiple_of_median", "view_rate_3s_pct")} for r in best], ensure_ascii=False))
+    return await run_in_threadpool(lambda: ai_call(lambda: ai.ask(
+        user, system, [{"role": "user", "content": "The reel:\n" + topic}], schema=CAPTION_SCHEMA, max_tokens=3000)))
 
 
 # ---------- admin ----------

@@ -283,6 +283,47 @@ html .sj-seg button[aria-pressed=true] { background: var(--surface-3); color: va
 /* a form inside a panel card fills the card (it shares the page container's class) */
 .pn-card .pn { margin: 0; max-width: none; width: 100%; }
 
+/* ---------- tools: assistant chat, writer dialog, reel page ---------- */
+.sj-btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(0, 122, 255, 0.28); }
+.sj-btn-primary:hover { background: var(--accent-hover); }
+.sj-linkbtn { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; }
+.sj-error { color: var(--coral); margin: 0; }
+.sj-assist { grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); align-items: start; }
+.sj-chat { display: flex; flex-direction: column; gap: 0.75rem; }
+.sj-chat-log { display: flex; flex-direction: column; gap: 0.6rem; max-height: 28rem; min-height: 8rem; overflow-y: auto; padding: 0.25rem; }
+.sj-msg { max-width: 88%; padding: 0.7rem 0.95rem; border-radius: 18px; line-height: 1.85; font-size: 0.92rem; }
+.sj-msg p { margin: 0 0 0.5rem; } .sj-msg p:last-child { margin: 0; }
+.sj-msg ul { margin: 0.25rem 0; padding-inline-start: 1.1rem; list-style: disc; }
+.sj-msg.me { align-self: flex-start; background: var(--accent); color: #fff; border-end-start-radius: 6px; }
+.sj-msg.ai { align-self: flex-end; background: var(--surface-3); color: var(--text); border: 0.5px solid var(--border); border-end-end-radius: 6px; }
+.sj-typing { display: flex; gap: 0.3rem; padding: 0.85rem 1rem; }
+.sj-typing span { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--text-muted); animation: sj-dot 1.1s infinite ease-in-out; }
+.sj-typing span:nth-child(2) { animation-delay: 0.15s; } .sj-typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes sj-dot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.sj-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.sj-chip-btn { font: inherit; font-size: 0.8rem; cursor: pointer; padding: 0.35rem 0.8rem; border-radius: 999px; border: 0.5px solid var(--border); background: var(--input-bg); color: var(--text-secondary); }
+.sj-chip-btn:hover { color: var(--accent); border-color: var(--border-strong); }
+.sj-chat-form { display: flex; gap: 0.5rem; align-items: flex-end; }
+.sj-chat-form textarea, .sj-form textarea { flex: 1; font: inherit; resize: vertical; min-height: 2.8rem; padding: 0.65rem 0.85rem; border-radius: 14px; border: 0.5px solid var(--border); background: var(--input-bg); color: var(--text); }
+.sj-chat-form textarea:focus, .sj-form textarea:focus { outline: none; border-color: rgba(0, 122, 255, 0.35); box-shadow: 0 0 0 4px var(--accent-soft); }
+.sj-dialog { width: min(40rem, calc(100vw - 2rem)); max-height: min(85vh, 48rem); padding: 1.25rem 1.4rem; border: 1px solid var(--border); border-radius: 22px;
+  background: var(--surface-3); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); color: var(--text); box-shadow: var(--shadow-float); }
+html[data-theme="dark"] .sj-dialog { background: #1b2238; }
+.sj-dialog::backdrop { background: var(--overlay); backdrop-filter: blur(4px); }
+.sj-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
+.sj-dialog h4, .sj-crit h4 { margin: 0.9rem 0 0.35rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 700; }
+.sj-out-row { display: flex; gap: 0.75rem; align-items: flex-start; justify-content: space-between; padding: 0.6rem 0.75rem; border-radius: 14px; background: var(--surface-2); margin-bottom: 0.4rem; }
+.sj-out-row p { margin: 0; line-height: 1.85; }
+.sj-write { align-self: flex-start; }
+.sj-reel-head { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; justify-content: space-between; }
+.sj-reel-head h3 { font-size: 1.2rem; }
+#reel-body { display: flex; flex-direction: column; gap: var(--cds-gap-md); }
+.sj-mini .sj-num { font-size: 1.4rem; }
+.sj-crit { padding: 0.75rem 0.9rem; border-radius: 14px; background: var(--surface-2); margin-top: 0.6rem; line-height: 1.9; }
+.sj-crit h4 { margin-top: 0; color: var(--accent); }
+.sj-crit p { margin: 0; }
+#reels-table tbody tr { cursor: pointer; }
+
 /* pages: one header (title + range) above every page, a short fade when switching */
 .sj-pagehead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; }
 .sj-pagetitle { margin: 0; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }

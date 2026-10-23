@@ -61,6 +61,7 @@
     top: ['top', 'kpis'], goals: ['goals'], plan: ['plan'], reels: ['reels'], works: ['works'],
     growth: ['growth'], besttime: ['besttime'], experiments: ['experiments'], insights: ['insights', 'ideas'],
     competitors: ['competitors'], audience: ['audience'], checklist: ['checklist'],
+    assistant: ['assistant'], reel: ['reel'],  // reel takes the reel's shortcode: #/reel/DeuAledNcym
   };
   const links = new Map([...document.querySelectorAll('.sidebar .nav-item[data-sec]')].map((a) => [a.dataset.sec, a]));
   const sections = Object.values(PAGES).flat().map((id) => document.getElementById(id)).filter(Boolean);
@@ -68,7 +69,7 @@
   let baseTitle = document.title;
   let pageLabel = '';
   const setTitle = () => { document.title = pageLabel ? pageLabel + ' · ' + baseTitle : baseTitle; };
-  const show = (id) => {
+  const show = (id, param) => {
     if (!PAGES[id]) id = 'top';
     const want = new Set(PAGES[id]);
     sections.forEach((el) => {
@@ -83,15 +84,21 @@
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     const label = links.get(id) && links.get(id).querySelector('.sidebar-label');
-    pageLabel = label ? label.textContent : '';
+    // pages without a sidebar item (a single reel) name themselves with data-title
+    const own = document.getElementById(PAGES[id][0]);
+    pageLabel = label ? label.textContent : (own && own.dataset.title) || '';
     if (pageTitle) pageTitle.textContent = pageLabel;
     setTitle();
     window.scrollTo(0, 0);
     const dash = document.getElementById('dash-root');
     if (dash) { dash.classList.remove('sj-page-in'); void dash.offsetWidth; dash.classList.add('sj-page-in'); }
     window.dispatchEvent(new Event('resize'));  // charts on a hidden page were drawn without a width
+    window.dispatchEvent(new CustomEvent('sj:page', { detail: { page: id, param: param || '' } }));
   };
-  const route = () => { const m = location.hash.match(/^#\/?([a-z]+)$/); show(m ? m[1] : 'top'); };
+  const route = () => {
+    const m = location.hash.match(/^#\/?([a-z]+)(?:\/([A-Za-z0-9_-]+))?$/);
+    show(m ? m[1] : 'top', m ? m[2] : '');
+  };
   window.addEventListener('hashchange', route);
   route();
 
