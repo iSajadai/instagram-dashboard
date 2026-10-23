@@ -676,9 +676,13 @@
 
   const fmtInt = d3.format(',');
   const fmtPct = (x) => (x == null ? '—' : x + '%');
-  const fmtDate = (s) => (s ? d3.timeFormat('%Y-%m-%d')(new Date(s)) : '—');
-  const fmtSec = (x) => (x == null ? '—' : x + 's');
-  const fmtDur = (x) => (x == null ? '—' : x >= 3600 ? (Math.round(x / 360) / 10) + 'h' : Math.round(x / 60) + 'm');
+  // Jalali dates: 1405/08/01 in tables, «۲۹ مهر» on chart axes (shell.js turns the digits Persian)
+  const jNum = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const jShort = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', { day: 'numeric', month: 'long' });
+  const fmtDate = (s) => (s ? jNum.format(new Date(s)) : '—');
+  const fmtDay = (d) => jShort.format(d);
+  const fmtSec = (x) => (x == null ? '—' : Math.round(x * 10) / 10 + ' ث');
+  const fmtDur = (x) => (x == null ? '—' : x >= 3600 ? (Math.round(x / 360) / 10) + ' س' : Math.round(x / 60) + ' د');
   const fail = (el) => { el.replaceChildren(); const d = document.createElement('div'); d.className = 'sj-fail'; d.textContent = 'Failed to load'; el.append(d); };
 
   // headline tiles + takeaway
@@ -753,7 +757,7 @@
     ticks.forEach((t) => tg.append('line').attr('x1', 0).attr('x2', W).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', 'var(--cds-chart-grid)'));
     const tl = svg.append('g');
     let lw = 0;
-    ticks.forEach((t) => { const n = tl.append('text').attr('x', 0).attr('y', y(t) - 4).attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.format('~s')(t)); lw = Math.max(lw, n.node().getComputedTextLength()); });
+    ticks.forEach((t) => { const n = tl.append('text').attr('x', 0).attr('y', y(t) - 4).attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.format(',')(t)); lw = Math.max(lw, n.node().getComputedTextLength()); });
     m.l = Math.ceil(lw) + 8;
     const x = d3.scaleBand(rows.map((r) => r.url), [m.l, W - m.r]).padding(0.35);
     const bw = Math.min(32, x.bandwidth());
@@ -766,7 +770,7 @@
         tip.hidden = false;
         tip.replaceChildren();
         const a = document.createElement('div'); a.className = 'k'; a.textContent = fmtDate(r.published);
-        const b = document.createElement('div'); b.textContent = fmtInt(r.views) + ' views · ' + (r.multiple ?? '—') + '×';
+        const b = document.createElement('div'); b.textContent = fmtInt(r.views) + ' بازدید · ' + (r.multiple ?? '—') + '×';
         tip.append(a, b);
         const [px, py] = d3.pointer(ev, chart);
         const tw = tip.offsetWidth;
@@ -782,7 +786,7 @@
     const every = Math.max(1, Math.ceil(rows.length / Math.max(1, Math.floor((W - m.l) / 80))));
     svg.append('g').selectAll('text').data(rows.filter((_, i) => i % every === 0)).join('text')
       .attr('x', (r) => x(r.url) + x.bandwidth() / 2).attr('y', H - 8).attr('text-anchor', 'middle')
-      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((r) => d3.timeFormat('%b %-d')(new Date(r.published)));
+      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((r) => fmtDay(new Date(r.published)));
   });
 
   // net followers inline
@@ -810,7 +814,7 @@
     let lw = 0;
     ticks.forEach((t) => {
       svg.append('line').attr('x1', 0).attr('x2', W).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', 'var(--cds-chart-grid)');
-      const n = svg.append('text').attr('x', 0).attr('y', y(t) - 4).attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.format('~s')(t));
+      const n = svg.append('text').attr('x', 0).attr('y', y(t) - 4).attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.format(',')(t));
       lw = Math.max(lw, n.node().getComputedTextLength());
     });
     m.l = Math.ceil(lw) + 10;
@@ -830,7 +834,7 @@
       .attr('fill', 'var(--color-fg)').attr('font-size', 11).text(fmtInt(last.v));
     const xt = x.ticks(Math.max(2, Math.min(6, Math.floor((W - m.l) / 70))));
     svg.append('g').selectAll('text').data(xt).join('text').attr('x', (t) => x(t)).attr('y', H - 8).attr('text-anchor', 'middle')
-      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((t) => d3.timeFormat('%b %-d')(t));
+      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((t) => fmtDay(t));
   };
   const fChart = document.getElementById('followers-chart');
   const rChart = document.getElementById('reach-chart');
@@ -1276,7 +1280,7 @@
     let lw = 0;
     y.ticks(4).forEach((t) => {
       svg.append('line').attr('x1', 0).attr('x2', W).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', 'var(--cds-chart-grid)');
-      const n = svg.append('text').attr('x', 0).attr('y', y(t) - 4).attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.format('~s')(t));
+      const n = svg.append('text').attr('x', 0).attr('y', y(t) - 4).attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.format(',')(t));
       lw = Math.max(lw, n.node().getComputedTextLength());
     });
     m.l = Math.ceil(lw) + 10;
@@ -1284,7 +1288,7 @@
     const x = d3.scaleLinear([0, hMax], [m.l, W - m.r]);
     const step = hMax > 96 ? 24 : hMax > 48 ? 12 : 6;
     svg.append('g').selectAll('text').data(d3.range(0, hMax + 0.01, step)).join('text').attr('x', (h) => x(h)).attr('y', H - 8).attr('text-anchor', 'middle')
-      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((h) => (h % 24 === 0 && h ? h / 24 + 'd' : h + 'h'));
+      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).attr('direction', 'rtl').text((h) => (h % 24 === 0 && h ? h / 24 + ' روز' : h + 'س'));
     groups.forEach(([url, pts]) => {
       const c = dash.colors[pts[0].idx % dash.colors.length];
       svg.append('path').datum(pts).attr('fill', 'none').attr('stroke', c).attr('stroke-width', 2).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')

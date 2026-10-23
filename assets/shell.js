@@ -73,6 +73,36 @@
     links.forEach((_, id) => { const el = document.getElementById(id); if (el) io.observe(el); });
   }
 
+  // Persian digits everywhere in the dashboard, including what charts and tables draw later:
+  // 14,317 → ۱۴٬۳۱۷, 47.8% → ۴۷٫۸٪. Code, inputs and links' addresses keep Latin digits; CSV
+  // downloads come from the data, not the page, so they keep plain numbers.
+  const FA = '۰۱۲۳۴۵۶۷۸۹';
+  const SKIP = 'code, pre, input, textarea, script, style, [data-latin]';
+  const toFa = (t) => t
+    .replace(/(\d),(?=\d{3}\b)/g, '$1٬')
+    .replace(/(\d)\.(\d)/g, '$1٫$2')
+    .replace(/(\d)\s?%/g, '$1٪')
+    .replace(/\d/g, (d) => FA[d]);
+  const convert = (node) => {
+    if (node.nodeType === 3) {
+      const p = node.parentElement;
+      if (!p || p.closest(SKIP) || !/\d/.test(node.data)) return;
+      const t = toFa(node.data);
+      if (t !== node.data) node.data = t;  // unchanged text isn't touched, so the observer doesn't loop
+    } else if (node.nodeType === 1 && !node.matches(SKIP)) {
+      const walk = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) convert(n);
+    }
+  };
+  const dashRoot = document.getElementById('dash-root');
+  if (dashRoot) {
+    convert(dashRoot);
+    new MutationObserver((muts) => muts.forEach((m) => {
+      if (m.type === 'characterData') convert(m.target);
+      else m.addedNodes.forEach(convert);
+    })).observe(dashRoot, { childList: true, characterData: true, subtree: true });
+  }
+
   // signed-in user (panel only)
   const greet = () => { const h = new Date().getHours(); return h < 5 ? 'شب بخیر' : h < 12 ? 'صبح بخیر' : h < 17 ? 'روز بخیر' : 'عصر بخیر'; };
   fetch('/api/me', { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((me) => {
