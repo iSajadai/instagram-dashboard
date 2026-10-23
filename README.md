@@ -26,6 +26,27 @@ A self-hosted Instagram analytics dashboard with a multi-user panel, built for c
   score, a weekly plan built on the page's own best hours, viral research ranked by outlier multiple, comments, replies,
   DMs, repurposing and an audit of the page's own reels. Everything passes a Persian humanizer that keeps (and fixes)
   half-spaces. The same tools are in the MCP server, and as Claude skills in [`skills/`](skills).
+- **Any AI, including free ones.** Each user keeps a chain of AI providers tried in order: Claude or GPT with an API
+  key, free ones (Gemini with a Google account, OpenRouter's free models, Groq, Cerebras, Mistral, GitHub Models,
+  NVIDIA), their own [9router](https://github.com/decolua/9router) (for their own ChatGPT/Gemini subscriptions), Ollama,
+  or any OpenAI-compatible URL. Connecting tests the key, finds the models and picks one; when a provider fails or
+  runs out of free quota, the next one answers. Claude subscriptions can't be used this way (Anthropic's terms
+  allow them only in Claude Code and claude.ai), so Claude means an API key.
+- **Publish from the panel.** Upload a reel, make its 1080×1920 cover (a frame or a photo, Persian title, a guide
+  for the profile grid's crop), check the caption, and publish now or at a Tehran time through the Instagram API;
+  the queue shows each post until it's live. Before publishing, a critique: what's said in the first three seconds
+  (transcribed with the user's OpenAI or free Groq key, then scored), dead air with timestamps, an AI read of the
+  frames, and Persian SRT subtitles.
+- **Comments and DMs.** Reply under a comment, send its author the one private reply Instagram allows, or hide it;
+  "comment the keyword" automations send the DM by themselves (once per person, checked every 10 minutes).
+- **More reach data.** When followers are online by hour (Instagram), competitors through Business Discovery
+  (with each reel's views, feeding the viral research), and a Jalali content calendar with Iran's holidays and
+  occasions (official lunar dates for 1404–1405) that the weekly planner also reads.
+- **Link in bio and agencies.** A link page (`/l/<name>`) with views and clicks per link and UTM tags; for agencies,
+  the client's report with the agency's name and colour at a revocable public link, sent to the client's Telegram
+  or email on the 1st of each Jalali month.
+- **The dashboard in Telegram.** Link a chat with one tap, then ask about the page in plain Persian or use
+  `/stats`, `/reels`, `/ideas`, `/board` (cards move from buttons), `/queue`, `/pages`.
 - **Run it for others.** Optional subscriptions with Zarinpal, nightly backups (7 kept, downloadable by the admin),
   and `/healthz` for uptime monitors.
 
@@ -66,6 +87,12 @@ The first visit creates the **admin** account. Then:
 | **Metricool** | reels, posts, daily followers, best time to post, competitors | Metricool **Advanced** plan: API token, userId, blogId |
 | **Instagram API** | reels and posts, followers, daily account stats, 3-second view rate, demographics | a long-lived token from a Meta app ("Instagram API with Instagram login", scopes `instagram_business_basic`, `instagram_business_manage_insights`); refreshed automatically |
 | **Buffer** | reel and post numbers, including follows per reel | Instagram connected as a channel in Buffer + a Buffer API key |
+| **Facebook** (optional) | competitors' followers and reels with views (Business Discovery) | an Instagram professional account linked to a Facebook Page; a token with `instagram_basic`, `instagram_manage_insights`, `pages_read_engagement` |
+
+Publishing, replies and private replies need the Instagram token to also have `instagram_business_content_publish`,
+`instagram_business_manage_comments` and `instagram_business_manage_messages`, and the panel to have a public
+`https://` address (Instagram fetches the video from it). Uploads go up to 100MB; put the `location /api/me/ig/upload`
+block from [`deploy/nginx-panel.conf`](deploy/nginx-panel.conf) in front of the panel.
 
 Sources combine: the freshest number wins, history is kept beyond the sources' own windows.
 Data refreshes every 6 hours; AI ideas are written Saturdays at 08:30 Tehran time.

@@ -14,6 +14,7 @@ CONNECTIONS = {
                   "script": "fetch_metricool.py"},
     "buffer": {"label": "Buffer", "fields": {"api_key": "API key"}, "script": "fetch_buffer.py"},
     "instagram": {"label": "Instagram API", "fields": {"token": "Long-lived access token"}, "script": "fetch_instagram.py"},
+    "facebook": {"label": "Facebook (رقبا با Business Discovery)", "fields": {"token": "Access token (Facebook Login)"}, "script": "fetch_discovery.py"},
 }
 
 DEFAULT_GOALS = [
@@ -127,6 +128,8 @@ def source_env(name, vals):
         return {"SAJADAI_BUFFER_KEY": vals.get("api_key", "")}
     if name == "instagram":
         return {"SAJADAI_IG_TOKEN": vals.get("token", "")}
+    if name == "facebook":
+        return {"SAJADAI_FB_TOKEN": vals.get("token", "")}
     return {}
 
 
@@ -250,6 +253,14 @@ def test_connection(name, vals):
             if not n:
                 return False, "کلید درسته، ولی هیچ اینستاگرامی تو Buffer وصل نیست. تو Buffer از Channels ← Connect اینستاگرام رو وصل کن."
             return True, f"وصل شد: {n} حساب اینستاگرام تو Buffer"
+        if name == "facebook":
+            pages = _get("https://graph.facebook.com/v24.0/me/accounts?" + urllib.parse.urlencode(
+                {"fields": "name,instagram_business_account{username}", "limit": 50, "access_token": vals["token"]})).get("data", [])
+            linked = [p for p in pages if p.get("instagram_business_account")]
+            if not linked:
+                return False, "توکن درسته، ولی هیچ صفحهٔ فیسبوکی با اینستاگرام حرفه‌ای بهش وصل نیست. تو Meta Business اینستاگرام رو به یه صفحهٔ فیسبوک وصل کن."
+            ig = linked[0]["instagram_business_account"]
+            return True, f"وصل شد: صفحهٔ «{linked[0].get('name')}» با اینستاگرام @{ig.get('username')}. رقبا رو تو صفحهٔ «رقبا» اضافه کن."
         if name == "instagram":
             me = _get("https://graph.instagram.com/v26.0/me?" + urllib.parse.urlencode({"fields": "username,followers_count", "access_token": vals["token"]}))
             me = me["data"][0] if isinstance(me.get("data"), list) and me["data"] else me
@@ -279,6 +290,10 @@ def due_jobs(now=None):
             out.append((u["id"], "notify"))
         if t.weekday() == 5 and (t.hour, t.minute) >= (8, 30) and s.get("content_week") != week_key() and ai_config(u) and conns:
             out.append((u["id"], "content"))
+        if store.prefs(u).get("agency_auto"):
+            from . import agency
+            if agency.due(u, t):
+                out.append((u["id"], "agency"))
         if "instagram" in conns:
             content = config.user_dir(u["id"]) / "content"
             if (content / "ig_queue.json").exists() and '"scheduled"' in _peek(content / "ig_queue.json") + _peek(content / "ig_queue.json", "processing"):
@@ -307,6 +322,16 @@ def ig_queue(uid):
             ops.tell_user(user, "⚠️ ریل منتشر نشد", item.get("note") or "", "publish")
 
 
+def agency_report(uid):
+    from . import agency, ops
+    user = store.get_user(uid)
+    agency.mark_sent(user)  # once a month even if a channel fails; the owner hears about failures
+    data = json.loads((config.user_dir(uid) / "data" / "data.json").read_text(encoding="utf-8"))
+    res = agency.send(user, data)
+    if not all(ok for _, ok, _ in res):
+        ops.tell_user(user, "⚠️ گزارش ماهانهٔ مشتری کامل نرفت", " · ".join(m for _, _, m in res))
+
+
 def ig_auto(uid):
     from . import ig
     store.update_status(uid, igauto_at=time.time())
@@ -332,6 +357,8 @@ def scheduler_loop(stop: threading.Event):
                     ig_queue(uid)
                 elif job == "igauto":
                     ig_auto(uid)
+                elif job == "agency":
+                    agency_report(uid)
             except Exception as e:  # one user's failure mustn't stop the others
                 store.update_status(uid, **{f"{job}_log": f"error: {e}"})
                 ops.alert_admins(f"⚠️ خطا در کار زمان‌بندی‌شدهٔ «{job}»", f"کاربر {uid}: {e}"[:800])

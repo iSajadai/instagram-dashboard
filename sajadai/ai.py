@@ -10,7 +10,7 @@ limit, the next one answers. Without a chain the panel's shared key is used, whe
 
 Claude subscriptions (Pro/Max) can't be signed in to directly: Anthropic's terms allow those tokens only
 in Claude Code and claude.ai, so Claude here means an API key."""
-import ipaddress, json, re, socket, threading, time, urllib.parse
+import base64, ipaddress, json, re, socket, threading, time, urllib.parse
 
 from . import billing, pipeline, store
 
@@ -82,9 +82,10 @@ def _rate(user_id):
         _calls[user_id] = recent
 
 
-def ask(user, system, messages, schema=None, max_tokens=8000, effort="medium"):
+def ask(user, system, messages, schema=None, max_tokens=8000, effort="medium", images=None):
     """messages: [{"role": "user"|"assistant", "content": str}]. Returns text, or a dict when schema is given.
-    Tries the user's providers in order and returns the first good answer."""
+    images: JPEG bytes sent with the last message (a reel's frames). Tries the user's providers in order
+    and returns the first good answer."""
     cfg = pipeline.ai_config(user)
     if not cfg:
         if (store.setting("ai", {}) or {}).get("key") and not billing.may_use_panel_ai(user):
@@ -94,12 +95,27 @@ def ask(user, system, messages, schema=None, max_tokens=8000, effort="medium"):
     errors = []
     for c in cfg["chain"]:
         try:
-            return call(c, system, messages, schema, max_tokens, effort)
+            return call(c, system, with_images(c, messages, images) if images else messages, schema, max_tokens, effort)
         except AIError as e:
             errors.append(f"{PROVIDERS.get(c['provider'], {}).get('label', c['provider'])}: {e}")
     if len(errors) == 1:
         raise AIError(errors[0].split(": ", 1)[1])
     raise AIError("هیچ‌کدوم از سرویس‌ها جواب ندادن. " + " | ".join(errors))
+
+
+def with_images(c, messages, images):
+    """The last user message with the pictures attached, in the form this provider takes."""
+    kind = PROVIDERS.get(c["provider"], {}).get("kind", "compat")
+    b64 = [base64.b64encode(i).decode() for i in images]
+    *head, last = messages
+    text = last["content"]
+    if kind == "anthropic":
+        parts = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": d}} for d in b64] + [{"type": "text", "text": text}]
+    elif kind == "openai":
+        parts = [{"type": "input_image", "image_url": "data:image/jpeg;base64," + d} for d in b64] + [{"type": "input_text", "text": text}]
+    else:
+        parts = [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + d}} for d in b64] + [{"type": "text", "text": text}]
+    return head + [{"role": last["role"], "content": parts}]
 
 
 def call(c, system, messages, schema=None, max_tokens=8000, effort="medium"):

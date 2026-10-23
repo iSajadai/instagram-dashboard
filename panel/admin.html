@@ -32,8 +32,17 @@
       <label>آدرس سرویس (برای 9router، Ollama یا سفارشی)<input id="ai_base_url" dir="ltr" placeholder="http://9router:20128/v1"></label>
     </div>
     <label>کلید API هوش مصنوعی<input id="ai_key" dir="ltr" autocomplete="off"></label>
-    <label>توکن ربات تلگرام (از @BotFather)<input id="telegram_bot" dir="ltr" autocomplete="off"></label>
+    <label>توکن ربات تلگرام (از @BotFather؛ یه ربات مخصوص همین پنل، چون پنل خودش پیام‌های ربات رو می‌خونه)<input id="telegram_bot" dir="ltr" autocomplete="off"></label>
     <label>آدرس عمومی پنل<input id="public_url" dir="ltr" placeholder="https://dash.example.com"></label>
+    <details><summary>ایمیل پنل (SMTP) برای گزارش ماهانهٔ مشتری‌های آژانس‌ها</summary>
+      <div class="pn-grid">
+        <label>سرور SMTP<input id="smtp_host" dir="ltr" placeholder="smtp.example.com"></label>
+        <label>پورت<input id="smtp_port" dir="ltr" inputmode="numeric" placeholder="587"></label>
+        <label>نام کاربری<input id="smtp_user" dir="ltr" autocomplete="off"></label>
+        <label>رمز<input id="smtp_password" type="password" dir="ltr" autocomplete="new-password"></label>
+      </div>
+      <label>فرستنده<input id="smtp_from" dir="ltr" placeholder="report@example.com"></label>
+    </details>
     <label>حداکثر پیج برای هر حساب (با پیج خودش)<input id="max_pages" type="number" min="1" max="100" dir="ltr" style="max-width:8rem"></label>
     <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="allow_signup"> هر کسی بتونه خودش ثبت‌نام کنه</label>
     <div class="pn-row"><button class="primary" id="save" type="button">ذخیره</button><span class="pn-msg" id="save-msg"></span></div>
@@ -93,6 +102,7 @@
     $('ai_provider').replaceChildren(...Object.entries(st.providers).map(([k, v]) => pn.el('option', { value: k }, v)));
     $('ai_provider').value = st.settings.ai_provider;
     ['ai_model', 'ai_key', 'ai_base_url', 'telegram_bot', 'public_url'].forEach((k) => { $(k).value = st.settings[k] || ''; });
+    ['host', 'port', 'user', 'password', 'from'].forEach((k) => { $('smtp_' + k).value = (st.settings.smtp || {})[k] || ''; });
     $('allow_signup').checked = st.settings.allow_signup;
     $('max_pages').value = st.settings.max_pages;
     drawOps();
@@ -155,6 +165,7 @@
   $('save').addEventListener('click', (e) => pn.run(e.currentTarget, $('save-msg'), async () => {
     await pn.api('POST', '/api/admin/settings', { ai_provider: $('ai_provider').value, ai_model: $('ai_model').value.trim(), ai_key: $('ai_key').value.trim(), ai_base_url: $('ai_base_url').value.trim(),
       telegram_bot: $('telegram_bot').value.trim(), public_url: $('public_url').value.trim(), allow_signup: $('allow_signup').checked,
+      smtp: Object.fromEntries(['host', 'port', 'user', 'password', 'from'].map((k) => [k, $('smtp_' + k).value.trim()])),
       max_pages: Number($('max_pages').value) || 5 });
     await load(); return { ok: true, message: 'ذخیره شد ✓' };
   }));

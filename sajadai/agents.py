@@ -223,10 +223,25 @@ The 26 formulas:
 """
 
 
+def competitor_rows(user):
+    """Swipe rows from the competitors on the dashboard (Business Discovery gives each reel's views):
+    account, followers, the account's median views, this reel's views, the caption's first line as the hook."""
+    d = analysis.load(config.user_dir(user["id"]) / "data" / "data.json") or {}
+    comp = {c["screen_name"].lower(): c for c in d.get("competitors", []) if c.get("screen_name")}
+    rows = []
+    for r in d.get("competitor_reels", []):
+        c = comp.get(str(r.get("competitor") or "").lower(), {})
+        hook = re.split(r"[\n.!?؟]", str(r.get("text") or "").strip())[0][:200]
+        if r.get("views") and c.get("median_views") and hook:
+            rows.append({"account": r["competitor"], "followers": c.get("followers") or 0, "median": c["median_views"],
+                         "views": r["views"], "hook": hook})
+    return rows
+
+
 def run_viral(user, inp):
-    rows = viral.read_rows(inp.get("rows"))
+    rows = viral.read_rows(inp.get("rows")) if str(inp.get("rows") or "").strip() else competitor_rows(user)
     if len(rows) < 3:
-        raise InputError("دست‌کم ۳ ردیف لازمه: حساب، فالوئر، میانهٔ بازدید، بازدید این ریل، هوک (با Tab یا ویرگول جدا)")
+        raise InputError("دست‌کم ۳ ردیف لازمه: حساب، فالوئر، میانهٔ بازدید، بازدید این ریل، هوک (با Tab یا ویرگول جدا). یا خالی بذار تا از ریل‌های رقبای صفحهٔ «رقبا» استفاده بشه (اتصال Facebook).")
     s = viral.swipe(rows)
     brief = {k: s[k] for k in ("n", "accounts", "over_index", "hook_words", "hook_score", "confidence")}
     brief["ranked"] = [{k: r[k] for k in ("account", "multiple", "formula_id", "hook_score", "hook")} for r in s["ranked"][:40]]

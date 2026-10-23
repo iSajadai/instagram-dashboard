@@ -29,7 +29,7 @@ Each reel gets a topic: content/reel_topics.json ({reel url: topic id}) wins, ot
 topic in content/topics.json with a keyword in the caption, otherwise "other".
 content/experiments.json (hook/cover A/B tests) is passed through to the page as it is.
 
-The panel (sajadai/pipeline.py) sets SAJADAI_STATE to each user's folder: raw/
+Standalone servers (no Metricool, no Claude routines; deploy/standalone.md) set SAJADAI_STATE: raw/
 and data/ then live there, and scripts/fetch_instagram.py writes raw/ig.json from Instagram's own
 API. Whatever raw/ig.json has wins over the Metricool files for the reels, days, posts and audience
 it covers; older history stays. scripts/fetch_buffer.py writes raw/buffer.json (Buffer's daily post
@@ -123,7 +123,7 @@ def scheduled_posts():
 
 def user_file(name, default):
     """A file the user edits (goals, topics, experiments): theirs in $SAJADAI_STATE/content when the
-    panel saved one, else the repo's defaults."""
+    panel saved one, else the repo's (Sajadai's own, or the defaults for a fresh install)."""
     v = load(os.path.join(GENERATED, name), None)
     return v if v is not None else load(os.path.join(CONTENT, name), default)
 
@@ -298,13 +298,25 @@ def main():
     best_time = [{"day_of_week": int(d["dayOfWeek"]), "hour": int(h["hourOfDay"]), "value": num(h["value"])}
                  for d in bt.get("data", []) for h in d.get("bestTimesByHour", [])]
 
-    competitors = [{"screen_name": str(at(r, 0) or ""), "display_name": at(r, 1) or "", "followers": num(at(r, 2)),
-                    "posts": num(at(r, 3)), "reels": num(at(r, 4)), "likes": num(at(r, 5)), "engagement": num(at(r, 6))}
-                   for r in rows_of("competitors")]
-    competitor_reels = [{"competitor": str(at(r, 0) or ""), "text": at(r, 1) or "", "url": str(at(r, 2) or ""),
-                         "published": at(r, 3), "likes": num(at(r, 4)), "comments": num(at(r, 5)),
-                         "interactions": num(at(r, 6)), "engagement": num(at(r, 7))}
-                        for r in rows_of("competitor_reels")]
+    # Metricool's competitors, then the ones looked up with Business Discovery (which add views)
+    competitors, seen = [], set()
+    for r in rows_of("competitors") + rows_of("bd_competitors"):
+        name = str(at(r, 0) or "")
+        if name.lower() in seen:
+            continue
+        seen.add(name.lower())
+        competitors.append({"screen_name": name, "display_name": at(r, 1) or "", "followers": num(at(r, 2)), "posts": num(at(r, 3)),
+                            "reels": num(at(r, 4)), "likes": num(at(r, 5)), "engagement": num(at(r, 6)), "median_views": num(at(r, 7))})
+    urls = set()
+    competitor_reels = []
+    for r in rows_of("competitor_reels") + rows_of("bd_competitor_reels"):
+        url = str(at(r, 2) or "")
+        if url and url in urls:
+            continue
+        urls.add(url)
+        competitor_reels.append({"competitor": str(at(r, 0) or ""), "text": at(r, 1) or "", "url": url,
+                                 "published": at(r, 3), "likes": num(at(r, 4)), "comments": num(at(r, 5)),
+                                 "interactions": num(at(r, 6)), "engagement": num(at(r, 7)), "views": num(at(r, 8))})
     stories = [{"published": ts(at(r, 0)), "type": at(r, 1) or "", "permalink": str(at(r, 2) or ""),
                 "reach": num(at(r, 3)), "impressions": num(at(r, 4)), "exits": num(at(r, 5)),
                 "replies": num(at(r, 6)), "taps_back": num(at(r, 7)), "taps_forward": num(at(r, 8))}

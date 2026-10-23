@@ -12,7 +12,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
-from . import agents, ai, analysis, billing, calendar_fa, config, ig, mcp_server, ops, pages, pipeline, publish, store
+from . import agency, agents, ai, analysis, billing, bio, calendar_fa, config, critique, ig, tgbot, mcp_server, ops, pages, pipeline, publish, store
 from .fa import beats as fa_beats, caption as fa_caption, hooks as fa_hooks, human as fa_human, text as fa_text, viral as fa_viral
 AI = ai  # the module, for functions with a local named ai
 
@@ -32,6 +32,7 @@ async def lifespan(_):
     stop = threading.Event()
     if config.SCHEDULER:
         threading.Thread(target=pipeline.scheduler_loop, args=(stop,), daemon=True, name="scheduler").start()
+        threading.Thread(target=tgbot.loop, args=(stop,), daemon=True, name="telegram-bot").start()
     async with mcp.session_manager.run():
         yield
     stop.set()
@@ -273,13 +274,103 @@ def media_kit(slug: str):
     return HTMLResponse(versioned(pages.kit(user_json(u), p, u["username"])), headers={"Cache-Control": "public, max-age=600"})
 
 
+@api.get("/l/{slug}", include_in_schema=False)
+def bio_page(slug: str, request: Request):
+    slug = slug.lower()
+    uid = bio.owner(slug) if bio.SLUG.match(slug) else None
+    if not uid:
+        return HTMLResponse("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>پیدا نشد</title><p style='font-family:sans-serif;text-align:center;margin-top:20vh' dir=rtl>این صفحه وجود نداره یا خاموش شده.</p>", 404)
+    bio.count(uid, "view", request.headers.get("user-agent", ""))
+    return HTMLResponse(bio.render(bio.load(uid), slug), headers={"Cache-Control": "no-cache"})
+
+
+@api.get("/l/{slug}/{link_id}", include_in_schema=False)
+def bio_click(slug: str, link_id: str, request: Request):
+    uid = bio.owner(slug.lower()) if bio.SLUG.match(slug.lower()) else None
+    b = bio.load(uid) if uid else {}
+    link = next((l for l in b.get("links", []) if l["id"] == link_id), None)
+    if not link:
+        return RedirectResponse("/l/" + slug.lower() if uid else "/", 302)
+    bio.count(uid, link_id, request.headers.get("user-agent", ""))
+    return RedirectResponse(bio.target(b, link), 302, headers={"Cache-Control": "no-store", "Referrer-Policy": "origin"})
+
+
+@api.get("/api/me/bio", include_in_schema=False)
+def my_bio(user=Depends(need_user)):
+    b = bio.load(user["id"])
+    return {**b, "stats": bio.stats(user["id"]), "url": (pipeline.public_url() or "") + "/l/" + b["slug"] if b.get("enabled") and b.get("slug") else None,
+            "suggest": {"slug": (store.prefs(user).get("kit_slug") or ""), "handle": store.prefs(user).get("kit_handle") or "",
+                        "title": store.prefs(user).get("page_name") or user["username"]}}
+
+
+@api.post("/api/me/bio", include_in_schema=False, dependencies=[Depends(same_site)])
+async def save_bio(request: Request, user=Depends(need_editor)):
+    try:
+        b = bio.clean(await body(request), user["id"])
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    bio.save(user["id"], b)
+    return {"ok": True, **b, "url": (pipeline.public_url() or "") + "/l/" + b["slug"] if b["enabled"] else None}
+
+
 @api.get("/report", include_in_schema=False)
 def printable_report(request: Request, days: int = 7):
     u = current_user(request)
     if not u:
         return RedirectResponse("/login")
     days = days if days in (7, 30, 90) else 7
-    return HTMLResponse(versioned(pages.report(user_json(u), store.prefs(u), u["username"], days)), headers={"Cache-Control": "no-store"})
+    return HTMLResponse(versioned(pages.report(user_json(u), store.prefs(u), u["username"], days, brand=agency.brand(u))), headers={"Cache-Control": "no-store"})
+
+
+@api.get("/r/{token}", include_in_schema=False)
+def client_report(token: str):
+    """The report for an agency's client: no account, a revocable link, the agency's name and colour."""
+    u = agency.owner_of(token)
+    if not u:
+        return HTMLResponse("<!doctype html><meta charset=utf-8><title>پیدا نشد</title><p style='font-family:sans-serif;text-align:center;margin-top:20vh' dir=rtl>این گزارش وجود نداره یا لینکش عوض شده.</p>", 404)
+    s = agency.settings(u)
+    return HTMLResponse(versioned(pages.report(user_json(u), store.prefs(u), u["username"], s["days"], brand=agency.brand(u), public=True)),
+                        headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"})
+
+
+@api.get("/api/me/agency", include_in_schema=False)
+def my_agency(user=Depends(need_owner)):
+    return {**agency.settings(user), "link": agency.link(user), "telegram_ready": bool(store.setting("telegram_bot")),
+            "smtp_ready": bool((store.setting("smtp", {}) or {}).get("host"))}
+
+
+@api.post("/api/me/agency", include_in_schema=False, dependencies=[Depends(same_site)])
+async def save_agency(request: Request, user=Depends(need_owner)):
+    b = await body(request)
+    try:
+        vals = agency.clean(b)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, str(e))
+    p = store.prefs(user)
+    p.update(vals)
+    store.set_prefs(user["id"], p)
+    if b.get("link") and not p.get("agency_token"):
+        agency.new_token(user)
+    return {"ok": True, **agency.settings(user), "link": agency.link(user)}
+
+
+@api.post("/api/me/agency/link", include_in_schema=False, dependencies=[Depends(same_site)])
+async def agency_link(request: Request, user=Depends(need_owner)):
+    """A new client link (the old one stops working), or none."""
+    b = await body(request)
+    if b.get("off"):
+        p = store.prefs(user)
+        p.pop("agency_token", None)
+        store.set_prefs(user["id"], p)
+        return {"ok": True, "link": None}
+    agency.new_token(user)
+    return {"ok": True, "link": agency.link(user)}
+
+
+@api.post("/api/me/agency/send", include_in_schema=False, dependencies=[Depends(same_site)])
+async def agency_send(user=Depends(need_owner)):
+    res = await run_in_threadpool(lambda: agency.send(user, user_json(user)))
+    return {"ok": any(ok for _, ok, _ in res), "message": " · ".join(m for _, _, m in res), "link": agency.link(user)}
 
 
 @api.post("/api/me/kit", include_in_schema=False, dependencies=[Depends(same_site)])
@@ -504,6 +595,19 @@ async def save_prefs(request: Request, user=Depends(need_owner)):
         raise HTTPException(400, "chat id تلگرام باید عدد باشه")
     store.set_prefs(user["id"], p)
     return {"ok": True}
+
+
+@api.post("/api/me/telegram/link", include_in_schema=False, dependencies=[Depends(same_site)])
+async def telegram_link(user=Depends(need_owner)):
+    """A one-tap link that connects the user's Telegram to this page through the panel's bot."""
+    token = store.setting("telegram_bot")
+    if not token:
+        raise HTTPException(400, "ربات تلگرام پنل تنظیم نشده؛ ادمین از «پنل مدیریت» توکنش رو بذاره.")
+    try:
+        name = await run_in_threadpool(lambda: tgbot.bot_name(token))
+    except Exception:
+        raise HTTPException(502, "به تلگرام وصل نشدیم؛ توکن ربات رو چک کن.")
+    return {"url": f"https://t.me/{name}?start={tgbot.link_code(user)}", "bot": name}
 
 
 @api.post("/api/me/connections/{name}", include_in_schema=False, dependencies=[Depends(same_site)])
@@ -842,6 +946,25 @@ def ig_queue_cancel(qid: str, user=Depends(need_editor)):
     return {"ok": True}
 
 
+@api.post("/api/me/ig/critique", include_in_schema=False, dependencies=[Depends(same_site)])
+async def ig_critique(request: Request, user=Depends(need_editor)):
+    """Start a critique of an uploaded reel; poll GET /api/me/ig/critique/{job}."""
+    b = await body(request)
+    if not ig.media_path(str(b.get("video") or "")):
+        raise HTTPException(400, "اول ویدیو رو آپلود کن")
+    if not pipeline.ai_config(user):
+        raise HTTPException(400, "هوش مصنوعی وصل نیست؛ از «تنظیمات ← هوش مصنوعی» یه سرویس وصل کن.")
+    return {"job": critique.start(user, b["video"], str(b.get("transcript") or "")[:20000])}
+
+
+@api.get("/api/me/ig/critique/{job}", include_in_schema=False)
+def ig_critique_status(job: str, user=Depends(need_editor)):
+    s = critique.status(user, job)
+    if not s:
+        raise HTTPException(404, "این نقد پیدا نشد؛ دوباره شروع کن")
+    return s
+
+
 @api.post("/api/me/comments/reply", include_in_schema=False, dependencies=[Depends(same_site)])
 async def comment_reply(request: Request, user=Depends(need_editor)):
     """Answer a comment publicly, send its author the one private reply Instagram allows, or hide it."""
@@ -868,6 +991,35 @@ async def comment_reply(request: Request, user=Depends(need_editor)):
     if raw:
         raw_path.write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
     return {"ok": True, "message": "جواب گذاشته شد ✓"}
+
+
+@api.get("/api/me/competitors/handles", include_in_schema=False)
+def competitor_handles(user=Depends(need_user)):
+    raw = analysis.load(config.user_dir(user["id"]) / "raw" / "bd_competitors.json") or {}
+    return {"handles": load_content(user, "competitor_handles.json", []), "problems": raw.get("problems", []),
+            "connected": "facebook" in store.user_secrets(user).get("connections", {})}
+
+
+@api.post("/api/me/competitors/handles", include_in_schema=False, dependencies=[Depends(same_site)])
+async def save_competitor_handles(request: Request, user=Depends(need_editor)):
+    """The accounts to follow with Business Discovery (up to 20 Instagram usernames)."""
+    b = await body(request)
+    hs = []
+    for h in b.get("handles") or []:
+        h = str(h).strip().lstrip("@").lower()
+        m = re.match(r"^(?:https?://(?:www\.)?instagram\.com/)?([a-z0-9._]{1,30})/?$", h)
+        if not m:
+            raise HTTPException(400, f"«{h[:40]}» آیدی اینستاگرام نیست")
+        if m.group(1) not in hs:
+            hs.append(m.group(1))
+    if len(hs) > 20:
+        raise HTTPException(400, "حداکثر ۲۰ رقیب")
+    save_content(user, "competitor_handles.json", hs, reshape=False)
+    started = False
+    if hs and "facebook" in store.user_secrets(user).get("connections", {}):
+        threading.Thread(target=lambda: pipeline.refresh(user["id"]), daemon=True).start()
+        started = True
+    return {"ok": True, "handles": hs, "message": "ذخیره شد؛ آمارشون تا یکی دو دقیقهٔ دیگه میاد." if started else "ذخیره شد. برای آمار، اتصال Facebook رو تو تنظیمات وصل کن."}
 
 
 AUTO_KEYS = ("media_id", "label", "keyword", "message", "public_reply", "active")
@@ -1370,6 +1522,8 @@ def admin_state(admin=Depends(need_admin)):
     return {
         "settings": {"ai_provider": ai.get("provider", "anthropic"), "ai_model": ai.get("model", ""), "ai_key": mask(ai.get("key")) if ai.get("key") else "",
                      "ai_base_url": ai.get("base_url", ""),
+                     "smtp": {**{k: v for k, v in (store.setting("smtp", {}) or {}).items() if k != "password"},
+                              "password": mask((store.setting("smtp", {}) or {}).get("password")) if (store.setting("smtp", {}) or {}).get("password") else ""},
                      "telegram_bot": mask(store.setting("telegram_bot")) if store.setting("telegram_bot") else "",
                      "allow_signup": bool(store.setting("allow_signup", False)), "public_url": store.setting("public_url") or config.PUBLIC_URL,
                      "max_pages": max_pages()},
@@ -1403,6 +1557,14 @@ async def admin_settings(request: Request, admin=Depends(need_admin)):
     if b.get("ai_key") is not None and not str(b["ai_key"]).startswith("•"):
         ai["key"] = str(b["ai_key"]).strip()
     store.set_setting("ai", ai)
+    if isinstance(b.get("smtp"), dict):
+        old = store.setting("smtp", {}) or {}
+        s = {k: str(b["smtp"].get(k) or "").strip()[:200] for k in ("host", "port", "user", "password", "from")}
+        if s["password"].startswith("•"):
+            s["password"] = old.get("password", "")
+        if s["port"] and not s["port"].isdigit():
+            raise HTTPException(400, "پورت SMTP باید عدد باشه")
+        store.set_setting("smtp", s)
     if b.get("telegram_bot") is not None and not str(b["telegram_bot"]).startswith("•"):
         store.set_setting("telegram_bot", str(b["telegram_bot"]).strip())
     if "allow_signup" in b:

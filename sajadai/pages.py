@@ -146,8 +146,9 @@ def kit(d, prefs, username):
     return template("kit.html").replace("__TITLE__", escape(f"مدیاکیت {name}")).replace("<!--BODY-->", body)
 
 
-def report(d, prefs, username, days=7):
-    """The printable report for the last `days` days against the `days` before them."""
+def report(d, prefs, username, days=7, brand=None, public=False):
+    """The printable report for the last `days` days against the `days` before them. brand: an agency's
+    {"agency", "color", "client"} for a client's copy; public: opened from the client's link (no sign-in)."""
     t = today()
     start, end = t - timedelta(days=days - 1), t
     cur = period(d, start.isoformat(), end.isoformat())
@@ -164,7 +165,10 @@ def report(d, prefs, username, days=7):
     times_html = "".join(f"<li>{escape(x['day'])} ساعت {x['hour_tehran'].translate(FA)}</li>" for x in times)
     ins_html = "".join(f"<li>{escape(i.get('action') or i.get('title') or '')}</li>" for i in ins)
     ideas_html = "".join(f"<li><b>{escape(i.get('title') or '')}</b> — {escape(i.get('hook') or '')}</li>" for i in ideas)
-    body = f"""
+    name = (brand or {}).get("client") or name
+    brand_html = (f"<style>:root{{--accent:{brand['color']};--brand:{brand['color']}}} .rep-head{{border-top:6px solid var(--brand);padding-top:16px}}</style>"
+                  f"<p class='brand-line'>{escape(brand['agency'])}</p>") if brand else ""
+    body = f"""{brand_html}
       <header class="rep-head">
         <div><h1>گزارش {"هفتگی" if days == 7 else f"{fa(days)} روزه"} {escape(name)}</h1>
           <p class="muted">{jdate(start.isoformat())} تا {jdate(end.isoformat())}، در مقایسه با {fa(days)} روز قبلش</p></div>
@@ -185,5 +189,5 @@ def report(d, prefs, username, days=7):
         {f'<div><h2>نکته‌های تحلیل</h2><ul>{ins_html}</ul></div>' if ins else ""}
       </section>
       {f'<section><h2>ایده‌های هفتهٔ بعد</h2><ol>{ideas_html}</ol></section>' if ideas else ""}
-      <footer>ساخته‌شده با داشبورد اینستاگرام · {jdate(t.isoformat())}</footer>"""
+      <footer>{("تهیه‌شده توسط " + escape(brand["agency"])) if brand else "ساخته‌شده با داشبورد اینستاگرام"} · {jdate(t.isoformat())}</footer>"""
     return template("report.html").replace("__TITLE__", escape(f"گزارش {name}")).replace("<!--BODY-->", body)

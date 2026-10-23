@@ -146,6 +146,7 @@
     form.elements.reel.value = it.reel || '';
     $('board-delete').hidden = !id;
     $('board-to-buffer').hidden = !id;
+    $('board-to-publish').hidden = !id || !window.sjPublish;
     $('board-form-msg').textContent = '';
     dlg.showModal();
     (askReel ? form.elements.reel : form.elements.title).focus();
@@ -175,6 +176,12 @@
       dlg.close(); draw();
       try { await save(); } catch (e) { return; }  // Buffer remembers the card by id, so it has to be saved first
       sendToBuffer(it);
+    });
+    $('board-to-publish').addEventListener('click', () => {
+      const it = apply();
+      if (!it) return;
+      dlg.close(); draw(); save().catch(() => {});
+      window.sjPublish.open({ id: it.id, hook: it.hook, notes: it.notes, text: it.title });
     });
     $('board-delete').addEventListener('click', () => {
       if (!confirm('این کارت پاک بشه؟')) return;

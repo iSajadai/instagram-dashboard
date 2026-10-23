@@ -64,3 +64,4 @@ footer { text-align: center; font-size: 0.78rem; color: var(--muted); }
 h2, h3 { line-height: 1.25; }
 td, .tile .num { font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: 1ms !important; animation-duration: 1ms !important; } }
+.brand-line { margin: 0 0 4px; font-weight: 700; color: var(--brand, var(--accent)); }
