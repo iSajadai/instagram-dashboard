@@ -103,7 +103,18 @@
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'sj-btn sj-write'; b.textContent = 'نوشتن کپشن';
     b.addEventListener('click', () => write({ title: f('title'), hook: f('hook'), beats: f('beats') }, b, 'نوشتن کپشن'));
-    card.append(b);
+    const toBoard = document.createElement('button');
+    toBoard.type = 'button'; toBoard.className = 'sj-btn sj-write'; toBoard.textContent = 'به بُرد تولید';
+    toBoard.addEventListener('click', async () => {
+      if (!window.sjBoard) return;
+      busy(toBoard, true, 'به بُرد تولید');
+      try { await window.sjBoard.add({ title: f('title'), hook: f('hook'), notes: f('beats') }); toBoard.textContent = 'اضافه شد ✓'; }
+      catch (e) { toBoard.textContent = 'اضافه نشد'; }
+      toBoard.disabled = false;
+      setTimeout(() => { toBoard.textContent = 'به بُرد تولید'; }, 2500);
+    });
+    const row = document.createElement('div'); row.className = 'sj-row-btns'; row.append(b, toBoard);
+    card.append(row);
   });
   if (ideas) new MutationObserver(addWriterButtons).observe(ideas, { childList: true });
 
@@ -154,7 +165,10 @@
     body.innerHTML = `
       <div class="sj-card sj-reel-head">
         <div><p class="sj-small">${esc(date)}</p><h3>${esc(first || 'ریل')}</h3>
-          <p class="sj-note">${esc((r.caption || '').split('\n').slice(1).join(' ').slice(0, 400))}</p></div>
+          <p class="sj-note">${esc((r.caption || '').split('\n').slice(1).join(' ').slice(0, 400))}</p>
+          <label class="sj-small sj-topic-pick">موضوع: <select id="reel-topic">
+            ${(r.topics || []).concat([{ id: 'other', label: 'سایر' }]).map((t) => `<option value="${esc(t.id)}">${esc(t.label)}</option>`).join('')}
+          </select> <span id="reel-topic-msg">${r.topic_manual ? 'دستی' : 'از روی کپشن'}</span></label></div>
         <a class="sj-btn" href="${/^https:\/\/(www\.)?instagram\.com\//.test(r.url) ? esc(r.url) : '#'}" target="_blank" rel="noopener">باز کردن در اینستاگرام</a>
       </div>
       <div class="sj-tiles">
@@ -172,6 +186,14 @@
       </div>`;
     curve($('reel-curve'), r.view_curve || []);
     drawCritique(r.critique);
+    const pick = $('reel-topic');
+    pick.value = r.topic || 'other';
+    pick.addEventListener('change', async () => {
+      pick.disabled = true;
+      try { await api('POST', '/api/me/reel-topic', { reel: r.url, topic: pick.value }); $('reel-topic-msg').textContent = 'دستی · ذخیره شد ✓'; }
+      catch (err) { $('reel-topic-msg').textContent = err.message; }
+      pick.disabled = false;
+    });
     $('reel-crit-btn').addEventListener('click', async (e) => {
       const b = e.currentTarget, label = b.textContent;
       busy(b, true, label);

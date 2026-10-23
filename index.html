@@ -68,6 +68,7 @@
 .sj-delta.down { color: var(--color-bad); }
 .sj-goal { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
 .sj-goal-num { font-variant-numeric: tabular-nums; font-size: var(--cds-font-size-body); }
+.sj-goal-spark svg { display: block; width: 100%; height: auto; max-height: 110px; direction: ltr; }
 .sj-bar { height: 8px; border-radius: 999px; background: var(--color-border-line); overflow: hidden; }
 .sj-bar > i { display: block; height: 100%; border-radius: inherit; }
 .sj-thumb { width: 36px; height: 64px; object-fit: cover; border-radius: 6px; display: block; background: var(--color-border-line); }
@@ -103,7 +104,7 @@
 </head>
 <body>
 <a class="skip-link" href="#main">پرش به محتوا</a>
-<svg xmlns="http://www.w3.org/2000/svg" class="hidden" aria-hidden="true"><symbol id="i-grid" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="2.2"/><rect x="13" y="3" width="8" height="8" rx="2.2" opacity=".42"/><rect x="3" y="13" width="8" height="8" rx="2.2" opacity=".42"/><rect x="13" y="13" width="8" height="8" rx="2.2"/></symbol><symbol id="i-users" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="8" r="3.3"/><path d="M3.2 20.2c.45-3.7 2.8-6 5.8-6s5.35 2.3 5.8 6H3.2Z"/><circle cx="16.8" cy="8.7" r="2.5" opacity=".45"/><path d="M14.6 20.2c.3-2.5 1.8-4 4-4.1 2.3.1 3.8 1.7 4.2 4.1h-8.2Z" opacity=".45"/></symbol><symbol id="i-chart" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="13" width="4" height="8" rx="1.4" opacity=".4"/><rect x="10" y="8" width="4" height="13" rx="1.4"/><rect x="16" y="4" width="4" height="17" rx="1.4" opacity=".7"/></symbol><symbol id="i-settings" viewBox="0 0 24 24" fill="currentColor"><path d="M4.2 7.2h9.2a2.3 2.3 0 1 0 0-2.4H4.2a1.2 1.2 0 1 0 0 2.4Zm15.6 4.8H10.6a2.3 2.3 0 1 0 0 2.4h9.2a1.2 1.2 0 1 0 0-2.4ZM13.4 19.2H4.2a1.2 1.2 0 1 0 0 2.4h9.2a2.3 2.3 0 1 0 0-2.4Z"/></symbol><symbol id="i-sun" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6a1.2 1.2 0 0 1 1.2 1.2v1.2a1.2 1.2 0 1 1-2.4 0V3.8A1.2 1.2 0 0 1 12 2.6Zm0 15.2a1.2 1.2 0 0 1 1.2 1.2v1.2a1.2 1.2 0 1 1-2.4 0v-1.2A1.2 1.2 0 0 1 12 17.8ZM3.8 12A1.2 1.2 0 0 1 5 10.8h1.2a1.2 1.2 0 1 1 0 2.4H5A1.2 1.2 0 0 1 3.8 12Zm15.2 0a1.2 1.2 0 0 1 1.2-1.2H21.4a1.2 1.2 0 1 1 0 2.4h-1.2A1.2 1.2 0 0 1 19 12Z"/></symbol><symbol id="i-menu" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5.2" width="16" height="2.4" rx="1.2"/><rect x="4" y="10.8" width="12.5" height="2.4" rx="1.2"/><rect x="4" y="16.4" width="16" height="2.4" rx="1.2"/></symbol><symbol id="i-panel" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5 3.6h14A2.4 2.4 0 0 1 21.4 6v12A2.4 2.4 0 0 1 19 20.4H5A2.4 2.4 0 0 1 2.6 18V6A2.4 2.4 0 0 1 5 3.6Zm5.1 1.8H5A.6.6 0 0 0 4.4 6v12a.6.6 0 0 0 .6.6h5.1V5.4Z"/></symbol><symbol id="i-logout" viewBox="0 0 24 24" fill="currentColor"><path d="M11.2 4.4H7.1A2.5 2.5 0 0 0 4.6 6.9v10.2a2.5 2.5 0 0 0 2.5 2.5h4.1a1.2 1.2 0 1 1 0 2.4H7.1A4.9 4.9 0 0 1 2.2 17.1V6.9A4.9 4.9 0 0 1 7.1 2H11.2a1.2 1.2 0 1 1 0 2.4Z" opacity=".55"/><path d="M10.4 12a1.2 1.2 0 0 1 1.2-1.2h6.15l-1.7-1.7a1.2 1.2 0 1 1 1.7-1.7l3.75 3.75a1.2 1.2 0 0 1 0 1.7l-3.75 3.75a1.2 1.2 0 1 1-1.7-1.7l1.7-1.7H11.6A1.2 1.2 0 0 1 10.4 12Z"/></symbol><symbol id="i-trend" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 16.2 8.2 11l3.3 3.3 5.2-6.4h-2.4a1.15 1.15 0 1 1 0-2.3h5.2A1.2 1.2 0 0 1 20.8 7v5.2a1.15 1.15 0 1 1-2.3 0V9.4l-6.1 7.5a1.2 1.2 0 0 1-1.85.08L8.2 13.8l-3.5 3.8a1.15 1.15 0 1 1-1.7-1.55Z"/></symbol><symbol id="i-send" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 10.6 20.1 3.4a1.15 1.15 0 0 1 1.5 1.5l-7.2 16.7a1.2 1.2 0 0 1-2.25.05L9.7 14.3 3.35 11.8a1.15 1.15 0 0 1 .05-2.2Z"/></symbol><symbol id="i-shield" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6 4.6 5.4v6.1c0 4.7 3.1 8.5 7.4 9.9 4.3-1.4 7.4-5.2 7.4-9.9V5.4L12 2.6Z"/></symbol><symbol id="i-film" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Zm4 5.6v6.8a.8.8 0 0 0 1.2.7l5.4-3.4a.8.8 0 0 0 0-1.4l-5.4-3.4a.8.8 0 0 0-1.2.7Z"/></symbol><symbol id="i-target" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9" opacity=".35"/><circle cx="12" cy="12" r="5.6" opacity=".6"/><circle cx="12" cy="12" r="2.4"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="18" height="16" rx="3" opacity=".45"/><rect x="3" y="5" width="18" height="5" rx="2.5"/><rect x="7" y="2.6" width="2.2" height="5" rx="1.1"/><rect x="14.8" y="2.6" width="2.2" height="5" rx="1.1"/><rect x="7" y="13" width="3" height="3" rx=".8"/></symbol><symbol id="i-bulb" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8a6.6 6.6 0 0 0-4 11.85c.6.46.95 1.17.95 1.92v.43h6.1v-.43c0-.75.35-1.46.95-1.92A6.6 6.6 0 0 0 12 2.8Z"/><rect x="9" y="18.2" width="6" height="2.2" rx="1.1" opacity=".55"/></symbol><symbol id="i-flask" viewBox="0 0 24 24" fill="currentColor"><path d="M9 2.8h6a1 1 0 0 1 0 2h-.6v4.4l5.1 8.6A2.3 2.3 0 0 1 17.5 21h-11a2.3 2.3 0 0 1-2-3.2l5.1-8.6V4.8H9a1 1 0 1 1 0-2Z" opacity=".45"/><path d="M7.4 14.2h9.2l1.9 3.6a1 1 0 0 1-.9 1.5H6.4a1 1 0 0 1-.9-1.5l1.9-3.6Z"/></symbol><symbol id="i-clock" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9.2" opacity=".4"/><path d="M12 6.4a1.1 1.1 0 0 1 1.1 1.1v4.05l2.75 2.75a1.1 1.1 0 1 1-1.55 1.55l-3.07-3.07A1.1 1.1 0 0 1 10.9 12V7.5A1.1 1.1 0 0 1 12 6.4Z"/></symbol><symbol id="i-check" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="5" opacity=".4"/><path d="M16.6 8.4a1.1 1.1 0 0 1 0 1.55l-5.3 5.3a1.1 1.1 0 0 1-1.55 0L7.4 12.9a1.1 1.1 0 1 1 1.55-1.55l1.57 1.57 4.53-4.52a1.1 1.1 0 0 1 1.55 0Z"/></symbol><symbol id="i-trophy" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v5.5a5 5 0 0 1-10 0V3Z"/><path d="M5 4.6h2v3H5.6A1.6 1.6 0 0 1 4 6v-.4A1 1 0 0 1 5 4.6Zm14 0h-2v3h1.4A1.6 1.6 0 0 0 20 6v-.4a1 1 0 0 0-1-1Z" opacity=".5"/><rect x="10.8" y="13" width="2.4" height="4.5" opacity=".6"/><rect x="7.5" y="17.4" width="9" height="3" rx="1.3"/></symbol><symbol id="i-eye" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5c-5 0-8.6 4.1-9.6 6.4a1.5 1.5 0 0 0 0 1.2C3.4 14.9 7 19 12 19s8.6-4.1 9.6-6.4a1.5 1.5 0 0 0 0-1.2C20.6 9.1 17 5 12 5Z" opacity=".45"/><circle cx="12" cy="12" r="3.4"/></symbol><symbol id="i-timer" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="13" r="8" opacity=".4"/><rect x="9.5" y="2.4" width="5" height="2.2" rx="1.1"/><path d="M12 8.6a1.1 1.1 0 0 1 1.1 1.1V13a1.1 1.1 0 0 1-2.2 0V9.7A1.1 1.1 0 0 1 12 8.6Z"/></symbol><symbol id="i-bookmark" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2.8h10a2 2 0 0 1 2 2v15.5a.9.9 0 0 1-1.4.75L12 17.4l-5.6 3.65A.9.9 0 0 1 5 20.3V4.8a2 2 0 0 1 2-2Z"/></symbol><symbol id="i-globe" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9.2" opacity=".4"/><path d="M12 2.8c2.3 2.5 3.5 5.6 3.5 9.2s-1.2 6.7-3.5 9.2c-2.3-2.5-3.5-5.6-3.5-9.2S9.7 5.3 12 2.8Z"/><rect x="2.8" y="10.9" width="18.4" height="2.2" rx="1.1" opacity=".7"/></symbol><symbol id="i-userplus" viewBox="0 0 24 24" fill="currentColor"><circle cx="9.5" cy="8" r="3.4"/><path d="M3.4 20.2c.5-3.8 3-6.1 6.1-6.1s5.6 2.3 6.1 6.1H3.4Z"/><path d="M18.2 7.4a1 1 0 0 1 1 1v1.4h1.4a1 1 0 1 1 0 2h-1.4v1.4a1 1 0 1 1-2 0v-1.4h-1.4a1 1 0 1 1 0-2h1.4V8.4a1 1 0 0 1 1-1Z" opacity=".6"/></symbol><symbol id="i-heart" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.4s-8.4-4.9-8.4-11a4.7 4.7 0 0 1 8.4-2.9 4.7 4.7 0 0 1 8.4 2.9c0 6.1-8.4 11-8.4 11Z"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.2a7.8 7.8 0 0 1 6.7 3.8V5.6a1.1 1.1 0 1 1 2.2 0V11a1.1 1.1 0 0 1-1.1 1.1h-5.4a1.1 1.1 0 1 1 0-2.2h2.9A5.6 5.6 0 1 0 17.6 14a1.1 1.1 0 1 1 2.1.6A7.8 7.8 0 1 1 12 4.2Z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2A8.8 8.8 0 0 0 4.4 16.4L3 20.6a.9.9 0 0 0 1.1 1.1l4.1-1.3A8.8 8.8 0 1 0 12 3.2Z"/></symbol><symbol id="i-pen" viewBox="0 0 24 24" fill="currentColor"><path d="M15.6 3.9a2.4 2.4 0 0 1 3.4 0l1.1 1.1a2.4 2.4 0 0 1 0 3.4L9.5 19l-4.9 1.3a.8.8 0 0 1-1-1L5 14.5 15.6 3.9Z"/></symbol><symbol id="i-link" viewBox="0 0 24 24" fill="currentColor"><path d="M10.6 13.4a1.1 1.1 0 0 1 0-1.6l3.2-3.2a1.1 1.1 0 1 1 1.6 1.6l-3.2 3.2a1.1 1.1 0 0 1-1.6 0Z"/><path d="M8.3 10.4 6.6 12a3.3 3.3 0 0 0 4.7 4.7l1.6-1.7" opacity=".5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="m15.7 13.6 1.7-1.6a3.3 3.3 0 1 0-4.7-4.7l-1.6 1.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol></svg>
+<svg xmlns="http://www.w3.org/2000/svg" class="hidden" aria-hidden="true"><symbol id="i-grid" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="2.2"/><rect x="13" y="3" width="8" height="8" rx="2.2" opacity=".42"/><rect x="3" y="13" width="8" height="8" rx="2.2" opacity=".42"/><rect x="13" y="13" width="8" height="8" rx="2.2"/></symbol><symbol id="i-users" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="8" r="3.3"/><path d="M3.2 20.2c.45-3.7 2.8-6 5.8-6s5.35 2.3 5.8 6H3.2Z"/><circle cx="16.8" cy="8.7" r="2.5" opacity=".45"/><path d="M14.6 20.2c.3-2.5 1.8-4 4-4.1 2.3.1 3.8 1.7 4.2 4.1h-8.2Z" opacity=".45"/></symbol><symbol id="i-chart" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="13" width="4" height="8" rx="1.4" opacity=".4"/><rect x="10" y="8" width="4" height="13" rx="1.4"/><rect x="16" y="4" width="4" height="17" rx="1.4" opacity=".7"/></symbol><symbol id="i-settings" viewBox="0 0 24 24" fill="currentColor"><path d="M4.2 7.2h9.2a2.3 2.3 0 1 0 0-2.4H4.2a1.2 1.2 0 1 0 0 2.4Zm15.6 4.8H10.6a2.3 2.3 0 1 0 0 2.4h9.2a1.2 1.2 0 1 0 0-2.4ZM13.4 19.2H4.2a1.2 1.2 0 1 0 0 2.4h9.2a2.3 2.3 0 1 0 0-2.4Z"/></symbol><symbol id="i-sun" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.6a1.2 1.2 0 0 1 1.2 1.2v1.2a1.2 1.2 0 1 1-2.4 0V3.8A1.2 1.2 0 0 1 12 2.6Zm0 15.2a1.2 1.2 0 0 1 1.2 1.2v1.2a1.2 1.2 0 1 1-2.4 0v-1.2A1.2 1.2 0 0 1 12 17.8ZM3.8 12A1.2 1.2 0 0 1 5 10.8h1.2a1.2 1.2 0 1 1 0 2.4H5A1.2 1.2 0 0 1 3.8 12Zm15.2 0a1.2 1.2 0 0 1 1.2-1.2H21.4a1.2 1.2 0 1 1 0 2.4h-1.2A1.2 1.2 0 0 1 19 12Z"/></symbol><symbol id="i-menu" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5.2" width="16" height="2.4" rx="1.2"/><rect x="4" y="10.8" width="12.5" height="2.4" rx="1.2"/><rect x="4" y="16.4" width="16" height="2.4" rx="1.2"/></symbol><symbol id="i-panel" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5 3.6h14A2.4 2.4 0 0 1 21.4 6v12A2.4 2.4 0 0 1 19 20.4H5A2.4 2.4 0 0 1 2.6 18V6A2.4 2.4 0 0 1 5 3.6Zm5.1 1.8H5A.6.6 0 0 0 4.4 6v12a.6.6 0 0 0 .6.6h5.1V5.4Z"/></symbol><symbol id="i-logout" viewBox="0 0 24 24" fill="currentColor"><path d="M11.2 4.4H7.1A2.5 2.5 0 0 0 4.6 6.9v10.2a2.5 2.5 0 0 0 2.5 2.5h4.1a1.2 1.2 0 1 1 0 2.4H7.1A4.9 4.9 0 0 1 2.2 17.1V6.9A4.9 4.9 0 0 1 7.1 2H11.2a1.2 1.2 0 1 1 0 2.4Z" opacity=".55"/><path d="M10.4 12a1.2 1.2 0 0 1 1.2-1.2h6.15l-1.7-1.7a1.2 1.2 0 1 1 1.7-1.7l3.75 3.75a1.2 1.2 0 0 1 0 1.7l-3.75 3.75a1.2 1.2 0 1 1-1.7-1.7l1.7-1.7H11.6A1.2 1.2 0 0 1 10.4 12Z"/></symbol><symbol id="i-trend" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 16.2 8.2 11l3.3 3.3 5.2-6.4h-2.4a1.15 1.15 0 1 1 0-2.3h5.2A1.2 1.2 0 0 1 20.8 7v5.2a1.15 1.15 0 1 1-2.3 0V9.4l-6.1 7.5a1.2 1.2 0 0 1-1.85.08L8.2 13.8l-3.5 3.8a1.15 1.15 0 1 1-1.7-1.55Z"/></symbol><symbol id="i-send" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 10.6 20.1 3.4a1.15 1.15 0 0 1 1.5 1.5l-7.2 16.7a1.2 1.2 0 0 1-2.25.05L9.7 14.3 3.35 11.8a1.15 1.15 0 0 1 .05-2.2Z"/></symbol><symbol id="i-shield" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6 4.6 5.4v6.1c0 4.7 3.1 8.5 7.4 9.9 4.3-1.4 7.4-5.2 7.4-9.9V5.4L12 2.6Z"/></symbol><symbol id="i-film" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Zm4 5.6v6.8a.8.8 0 0 0 1.2.7l5.4-3.4a.8.8 0 0 0 0-1.4l-5.4-3.4a.8.8 0 0 0-1.2.7Z"/></symbol><symbol id="i-target" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9" opacity=".35"/><circle cx="12" cy="12" r="5.6" opacity=".6"/><circle cx="12" cy="12" r="2.4"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="5" width="18" height="16" rx="3" opacity=".45"/><rect x="3" y="5" width="18" height="5" rx="2.5"/><rect x="7" y="2.6" width="2.2" height="5" rx="1.1"/><rect x="14.8" y="2.6" width="2.2" height="5" rx="1.1"/><rect x="7" y="13" width="3" height="3" rx=".8"/></symbol><symbol id="i-bulb" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8a6.6 6.6 0 0 0-4 11.85c.6.46.95 1.17.95 1.92v.43h6.1v-.43c0-.75.35-1.46.95-1.92A6.6 6.6 0 0 0 12 2.8Z"/><rect x="9" y="18.2" width="6" height="2.2" rx="1.1" opacity=".55"/></symbol><symbol id="i-flask" viewBox="0 0 24 24" fill="currentColor"><path d="M9 2.8h6a1 1 0 0 1 0 2h-.6v4.4l5.1 8.6A2.3 2.3 0 0 1 17.5 21h-11a2.3 2.3 0 0 1-2-3.2l5.1-8.6V4.8H9a1 1 0 1 1 0-2Z" opacity=".45"/><path d="M7.4 14.2h9.2l1.9 3.6a1 1 0 0 1-.9 1.5H6.4a1 1 0 0 1-.9-1.5l1.9-3.6Z"/></symbol><symbol id="i-clock" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9.2" opacity=".4"/><path d="M12 6.4a1.1 1.1 0 0 1 1.1 1.1v4.05l2.75 2.75a1.1 1.1 0 1 1-1.55 1.55l-3.07-3.07A1.1 1.1 0 0 1 10.9 12V7.5A1.1 1.1 0 0 1 12 6.4Z"/></symbol><symbol id="i-check" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="5" opacity=".4"/><path d="M16.6 8.4a1.1 1.1 0 0 1 0 1.55l-5.3 5.3a1.1 1.1 0 0 1-1.55 0L7.4 12.9a1.1 1.1 0 1 1 1.55-1.55l1.57 1.57 4.53-4.52a1.1 1.1 0 0 1 1.55 0Z"/></symbol><symbol id="i-trophy" viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v5.5a5 5 0 0 1-10 0V3Z"/><path d="M5 4.6h2v3H5.6A1.6 1.6 0 0 1 4 6v-.4A1 1 0 0 1 5 4.6Zm14 0h-2v3h1.4A1.6 1.6 0 0 0 20 6v-.4a1 1 0 0 0-1-1Z" opacity=".5"/><rect x="10.8" y="13" width="2.4" height="4.5" opacity=".6"/><rect x="7.5" y="17.4" width="9" height="3" rx="1.3"/></symbol><symbol id="i-eye" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5c-5 0-8.6 4.1-9.6 6.4a1.5 1.5 0 0 0 0 1.2C3.4 14.9 7 19 12 19s8.6-4.1 9.6-6.4a1.5 1.5 0 0 0 0-1.2C20.6 9.1 17 5 12 5Z" opacity=".45"/><circle cx="12" cy="12" r="3.4"/></symbol><symbol id="i-timer" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="13" r="8" opacity=".4"/><rect x="9.5" y="2.4" width="5" height="2.2" rx="1.1"/><path d="M12 8.6a1.1 1.1 0 0 1 1.1 1.1V13a1.1 1.1 0 0 1-2.2 0V9.7A1.1 1.1 0 0 1 12 8.6Z"/></symbol><symbol id="i-bookmark" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2.8h10a2 2 0 0 1 2 2v15.5a.9.9 0 0 1-1.4.75L12 17.4l-5.6 3.65A.9.9 0 0 1 5 20.3V4.8a2 2 0 0 1 2-2Z"/></symbol><symbol id="i-globe" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9.2" opacity=".4"/><path d="M12 2.8c2.3 2.5 3.5 5.6 3.5 9.2s-1.2 6.7-3.5 9.2c-2.3-2.5-3.5-5.6-3.5-9.2S9.7 5.3 12 2.8Z"/><rect x="2.8" y="10.9" width="18.4" height="2.2" rx="1.1" opacity=".7"/></symbol><symbol id="i-userplus" viewBox="0 0 24 24" fill="currentColor"><circle cx="9.5" cy="8" r="3.4"/><path d="M3.4 20.2c.5-3.8 3-6.1 6.1-6.1s5.6 2.3 6.1 6.1H3.4Z"/><path d="M18.2 7.4a1 1 0 0 1 1 1v1.4h1.4a1 1 0 1 1 0 2h-1.4v1.4a1 1 0 1 1-2 0v-1.4h-1.4a1 1 0 1 1 0-2h1.4V8.4a1 1 0 0 1 1-1Z" opacity=".6"/></symbol><symbol id="i-heart" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.4s-8.4-4.9-8.4-11a4.7 4.7 0 0 1 8.4-2.9 4.7 4.7 0 0 1 8.4 2.9c0 6.1-8.4 11-8.4 11Z"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.2a7.8 7.8 0 0 1 6.7 3.8V5.6a1.1 1.1 0 1 1 2.2 0V11a1.1 1.1 0 0 1-1.1 1.1h-5.4a1.1 1.1 0 1 1 0-2.2h2.9A5.6 5.6 0 1 0 17.6 14a1.1 1.1 0 1 1 2.1.6A7.8 7.8 0 1 1 12 4.2Z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2A8.8 8.8 0 0 0 4.4 16.4L3 20.6a.9.9 0 0 0 1.1 1.1l4.1-1.3A8.8 8.8 0 1 0 12 3.2Z"/></symbol><symbol id="i-pen" viewBox="0 0 24 24" fill="currentColor"><path d="M15.6 3.9a2.4 2.4 0 0 1 3.4 0l1.1 1.1a2.4 2.4 0 0 1 0 3.4L9.5 19l-4.9 1.3a.8.8 0 0 1-1-1L5 14.5 15.6 3.9Z"/></symbol><symbol id="i-link" viewBox="0 0 24 24" fill="currentColor"><path d="M10.6 13.4a1.1 1.1 0 0 1 0-1.6l3.2-3.2a1.1 1.1 0 1 1 1.6 1.6l-3.2 3.2a1.1 1.1 0 0 1-1.6 0Z"/><path d="M8.3 10.4 6.6 12a3.3 3.3 0 0 0 4.7 4.7l1.6-1.7" opacity=".5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="m15.7 13.6 1.7-1.6a3.3 3.3 0 1 0-4.7-4.7l-1.6 1.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol><symbol id="i-board" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3.5" width="5.2" height="17" rx="1.8"/><rect x="9.4" y="3.5" width="5.2" height="11" rx="1.8" opacity=".6"/><rect x="15.8" y="3.5" width="5.2" height="7" rx="1.8" opacity=".35"/></symbol></svg>
 <div class="ambient" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span></div>
 <div class="app-shell">
   <!-- inside the shell, so the sidebar (z 40) stacks above it; outside, the shell's own stacking context put the overlay on top -->
@@ -117,7 +118,7 @@
       </div>
       <button class="icon-btn lg:hidden shrink-0 !bg-white/5 !border-white/10 !text-white" type="button" data-close-sidebar aria-label="بستن منو"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
-    <nav class="flex-1 overflow-y-auto px-3 space-y-1" aria-label="بخش‌ها"><p class="sidebar-section-title text-[0.7rem] text-[#8A7C6E] px-3 pt-2 pb-2">اصلی</p><a class="nav-item is-active" href="#/top" data-sec="top"><svg class="nav-icon"><use href="#i-grid"></use></svg><span class="sidebar-label">نمای کلی</span></a><a class="nav-item" href="#/goals" data-sec="goals"><svg class="nav-icon"><use href="#i-target"></use></svg><span class="sidebar-label">هدف‌ها</span></a><a class="nav-item" href="#/plan" data-sec="plan"><svg class="nav-icon"><use href="#i-calendar"></use></svg><span class="sidebar-label">برنامهٔ انتشار</span></a><a class="nav-item" href="#/reels" data-sec="reels"><svg class="nav-icon"><use href="#i-film"></use></svg><span class="sidebar-label">ریل‌ها</span></a><a class="nav-item" href="#/works" data-sec="works"><svg class="nav-icon"><use href="#i-trend"></use></svg><span class="sidebar-label">چی جواب می‌ده</span></a><p class="sidebar-section-title text-[0.7rem] text-[#8A7C6E] px-3 pt-2 pb-2">تحلیل</p><a class="nav-item" href="#/growth" data-sec="growth"><svg class="nav-icon"><use href="#i-chart"></use></svg><span class="sidebar-label">رشد پیج</span></a><a class="nav-item" href="#/besttime" data-sec="besttime"><svg class="nav-icon"><use href="#i-clock"></use></svg><span class="sidebar-label">بهترین ساعت</span></a><a class="nav-item" href="#/experiments" data-sec="experiments"><svg class="nav-icon"><use href="#i-flask"></use></svg><span class="sidebar-label">آزمایش‌ها</span></a><a class="nav-item" href="#/insights" data-sec="insights"><svg class="nav-icon"><use href="#i-bulb"></use></svg><span class="sidebar-label">تحلیل و ایده‌ها</span></a><a class="nav-item" href="#/competitors" data-sec="competitors"><svg class="nav-icon"><use href="#i-trophy"></use></svg><span class="sidebar-label">رقبا</span></a><a class="nav-item" href="#/audience" data-sec="audience"><svg class="nav-icon"><use href="#i-users"></use></svg><span class="sidebar-label">مخاطب‌ها</span></a><a class="nav-item" href="#/checklist" data-sec="checklist"><svg class="nav-icon"><use href="#i-check"></use></svg><span class="sidebar-label">چک‌لیست</span></a><p class="sidebar-section-title text-[0.7rem] text-[#8A7C6E] px-3 pt-5 pb-2" data-panel-only hidden>ابزارها</p><a class="nav-item" href="#/assistant" data-sec="assistant" data-panel-only hidden><svg class="nav-icon"><use href="#i-chat"></use></svg><span class="sidebar-label">دستیار</span></a><p class="sidebar-section-title text-[0.7rem] text-[#8A7C6E] px-3 pt-5 pb-2" data-panel-only hidden>حساب</p><a class="nav-item" href="/settings" data-panel-only hidden><svg class="nav-icon"><use href="#i-settings"></use></svg><span class="sidebar-label">تنظیمات و اتصال‌ها</span></a><a class="nav-item" href="/admin" data-admin-only hidden><svg class="nav-icon"><use href="#i-shield"></use></svg><span class="sidebar-label">مدیریت پنل</span></a></nav>
+    <nav class="flex-1 overflow-y-auto px-3 space-y-1" aria-label="بخش‌ها"><p class="sidebar-section-title text-[0.7rem] text-[#8A7C6E] px-3 pt-2 pb-2">اصلی</p><a class="nav-item is-active" href="#/top" data-sec="top"><svg class="nav-icon"><use href="#i-grid"></use></svg><span class="sidebar-label">نمای کلی</span></a><a class="nav-item" href="#/goals" data-sec="goals"><svg class="nav-icon"><use href="#i-target"></use></svg><span class="sidebar-label">هدف‌ها</span></a><a class="nav-item" href="#/plan" data-sec="plan"><svg class="nav-icon"><use href="#i-calendar"></use></svg><span class="sidebar-label">برنامهٔ انتشار</span></a><a class="nav-item" href="#/reels" data-sec="reels"><svg class="nav-icon"><use href="#i-film"></use></svg><span class="sidebar-label">ریل‌ها</span></a><a class="nav-item" href="#/works" data-sec="works"><svg class="nav-icon"><use href="#i-trend"></use></svg><span class="sidebar-label">چی جواب می‌ده</span></a><p class="sidebar-section-title text-[0.7rem] text-[#8A7C6E] px-3 pt-2 pb-2">تحلیل</p><a class="nav-item" href="#/growth" data-sec="growth"><svg class="nav-icon"><use href="#i-chart"></use></svg><span class="sidebar-label">رشد پیج</span></a><a class="nav-item" href="#/besttime" data-sec="besttime"><svg class="nav-icon"><use href="#i-clock"></use></svg><span class="sidebar-label">بهترین ساعت</span></a><a class="nav-item" href="#/experiments" data-sec="experiments"><svg class="nav-icon"><use href="#i-flask"></use></svg><span class="sidebar-label">آزمایش‌ها</span></a><a class="nav-item" href="#/insights" data-sec="insights"><svg class="nav-icon"><use href="#i-bulb"></use></svg><span class="sidebar-label">تحلیل و ایده‌ها</span></a><a class="nav-item" href="#/competitors" data-sec="competitors"><svg class="nav-icon"><use href="#i-trophy"></use></svg><span class="sidebar-label">رقبا</span></a><a class="nav-item" href="#/audience" data-sec="audience"><svg class="nav-icon"><use href="#i-users"></use></svg><span class="sidebar-label">مخاطب‌ها</span></a><a class="nav-item" href="#/checklist" data-sec="checklist"><svg class="nav-icon"><use href="#i-check"></use></svg><span class="sidebar-label">چک‌لیست</span></a><p class="sidebar-section-title text-[0.7rem] text-[#8A7C6E] px-3 pt-5 pb-2" data-panel-only hidden>ابزارها</p><a class="nav-item" href="#/assistant" data-sec="assistant" data-panel-only hidden><svg class="nav-icon"><use href="#i-chat"></use></svg><span class="sidebar-label">دستیار</span></a><a class="nav-item" href="#/board" data-sec="board" data-panel-only hidden><svg class="nav-icon"><use href="#i-board"></use></svg><span class="sidebar-label">بُرد تولید</span></a><p class="sidebar-section-title text-[0.7rem] text-[#8A7C6E] px-3 pt-5 pb-2" data-panel-only hidden>حساب</p><a class="nav-item" href="/settings" data-panel-only hidden><svg class="nav-icon"><use href="#i-settings"></use></svg><span class="sidebar-label">تنظیمات و اتصال‌ها</span></a><a class="nav-item" href="/admin" data-admin-only hidden><svg class="nav-icon"><use href="#i-shield"></use></svg><span class="sidebar-label">مدیریت پنل</span></a></nav>
     <div class="px-3 pb-5 mt-auto" data-panel-only hidden>
       <div class="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/5 p-3">
         <div class="avatar" style="background: linear-gradient(135deg, #C45C26, #3A2A22)" data-user-initials>…</div>
@@ -288,7 +289,7 @@
     <div class="sj-grid2">
       <div class="sj-card" id="topics-card">
         <h3>بر اساس موضوع</h3>
-        <p class="sj-note">موضوع هر ریل از کلمه‌های کپشنش حدس زده می‌شه (<code>content/topics.json</code>). اگه اشتباه بود، تو <code>content/reel_topics.json</code> لینک ریل رو به موضوع درست وصل کن.</p>
+        <p class="sj-note">موضوع هر ریل از کلمه‌های کپشنش حدس زده می‌شه؛ موضوع‌ها و کلمه‌هاشون تو «تنظیمات ← موضوع‌ها» هستن. اگه یه ریل اشتباه دسته‌بندی شد، تو صفحهٔ همون ریل موضوع درستش رو انتخاب کن (بدون پنل: <code>content/topics.json</code> و <code>content/reel_topics.json</code>).</p>
         <div class="sj-tablewrap">
           <table class="sj-table" id="topics-table" data-source="topic_stats" data-row-key="topic">
             <thead><tr>
@@ -322,7 +323,7 @@
 
   <section class="sj-sec" id="experiments">
     <h2 class="sj-h2">دفترچهٔ آزمایش</h2>
-    <p class="sj-note">دو هوک یا دو کاور رو روی دو ریل امتحان کن و اینجا ثبتش کن. آزمایش‌ها تو <code>content/experiments.json</code> هستن (مثل هدف‌ها، Claude بهش دست نمی‌زنه). برای هر کدوم فرضیه، معیار (<code>multiple</code>، <code>view_rate</code>، <code>save_rate</code>، <code>shares_per_1k</code> یا <code>avg_watch</code>) و لینک دو ریل رو بنویس؛ نتیجه خودش حساب می‌شه، وقتی هر دو ریل دست‌کم ۴۸ ساعته منتشر شده باشن.</p>
+    <p class="sj-note">دو هوک یا دو کاور رو روی دو ریل امتحان کن و از «تنظیمات ← آزمایش‌ها» ثبتش کن (بدون پنل: فایل <code>content/experiments.json</code>). برای هر کدوم فرضیه، معیار و لینک دو ریل رو بنویس؛ نتیجه خودش حساب می‌شه، وقتی هر دو ریل دست‌کم ۴۸ ساعته منتشر شده باشن.</p>
     <div class="sj-insights" id="exp-list" data-source="experiment_results"></div>
   </section>
 
@@ -515,6 +516,28 @@
       </div>
     </div>
   </section>
+
+  <section class="sj-sec" id="board">
+    <h2 class="sj-h2">بُرد تولید</h2>
+    <p class="sj-note">هر ریل از ایده تا انتشار. کارت‌ها رو بین ستون‌ها بکش (روی گوشی با فلش‌ها جابه‌جا کن). وقتی ریل منتشر شد، کارت رو به ریلش وصل کن تا بازدیدش همین‌جا دیده بشه. از کارت هر ایده هم با «به بُرد تولید» کارت بساز.</p>
+    <div class="sj-board" id="board-cols"><p class="sj-note">در حال بارگذاری…</p></div>
+    <p class="sj-small" id="board-msg" role="status"></p>
+  </section>
+
+  <dialog class="sj-dialog" id="board-dialog" aria-labelledby="board-dialog-title">
+    <div class="sj-dialog-head"><h3 id="board-dialog-title">کارت</h3><button type="button" class="sj-btn" data-close>بستن</button></div>
+    <form class="sj-form" id="board-form" style="grid-template-columns:1fr">
+      <label>عنوان<input name="title" maxlength="200" required></label>
+      <label>هوک (جملهٔ اول)<input name="hook" maxlength="500"></label>
+      <label>سناریو و یادداشت<textarea name="notes" rows="5" maxlength="3000"></textarea></label>
+      <div class="sj-form">
+        <label>مرحله<select name="stage"></select></label>
+        <label>تاریخ انتشار<input name="due" type="date" dir="ltr"></label>
+      </div>
+      <label>ریل منتشرشده<select name="reel"></select></label>
+      <div class="sj-row-btns" style="display:flex"><button class="sj-btn sj-btn-primary" type="submit">ذخیره</button><button class="sj-btn" type="button" id="board-delete">حذف کارت</button><span class="sj-small" id="board-form-msg" role="status"></span></div>
+    </form>
+  </dialog>
 
   <section class="sj-sec" id="reel" data-title="ریل">
     <p class="sj-small"><a href="#/reels">→ همهٔ ریل‌ها</a></p>
@@ -724,6 +747,8 @@
   const jShort = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', { day: 'numeric', month: 'long' });
   const fmtDate = (s) => (s ? jNum.format(new Date(s)) : '—');
   const fmtDay = (d) => jShort.format(d);
+  const jLong = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' });
+  const fmtLong = (day) => jLong.format(new Date(day + 'T12:00:00Z'));
   const fmtSec = (x) => (x == null ? '—' : Math.round(x * 10) / 10 + ' ث');
   const fmtDur = (x) => (x == null ? '—' : x >= 3600 ? (Math.round(x / 360) / 10) + ' س' : Math.round(x / 60) + ' د');
   const fail = (el) => { el.replaceChildren(); const d = document.createElement('div'); d.className = 'sj-fail'; d.textContent = 'Failed to load'; el.append(d); };
@@ -1204,16 +1229,55 @@
           left = dayDiff(today, g.deadline);
           need = left > 0 ? Math.max(0, (g.target - cur) / left) : null;
         }
+        let trend = null, eta = null, atDeadline = null, history = [];
         if (g.metric === 'followers' && last) {
           const first = fols.find((d) => d.day >= daysAgo(7));
           if (first && first.day < last.day) pace = (last.followers - first.followers) / dayDiff(first.day, last.day);
+          // forecast: least-squares line through the last 30 days, so one odd day doesn't swing it
+          history = fols.filter((d) => d.day >= daysAgo(30)).map((d) => ({ day: d.day, v: d.followers }));
+          const span = history.length ? dayDiff(history[0].day, history[history.length - 1].day) : 0;
+          if (history.length >= 3 && span >= 2) {
+            const xs = history.map((d) => dayDiff(history[0].day, d.day)), ys = history.map((d) => d.v);
+            const mx = d3.mean(xs), my = d3.mean(ys);
+            const sxx = d3.sum(xs, (x) => (x - mx) ** 2);
+            if (sxx > 0) trend = d3.sum(xs, (x, i) => (x - mx) * (ys[i] - my)) / sxx;
+          }
+          if (trend != null && cur < g.target && trend > 0.05) {
+            const days = Math.ceil((g.target - cur) / trend);
+            if (days <= 3650) eta = tehDay(new Date(Date.parse(last.day + 'T12:00:00Z') + days * 864e5));
+          }
+          if (trend != null && g.deadline && left > 0) atDeadline = Math.round(cur + trend * dayDiff(last.day, g.deadline));
         }
-        return { id: g.id, label: g.label, why: g.why || '', metric: g.metric, target: g.target, deadline: g.deadline || null, current: cur, pct, days_left: left, need_per_day: need, pace_per_day: pace };
+        return { id: g.id, label: g.label, why: g.why || '', metric: g.metric, target: g.target, deadline: g.deadline || null, current: cur, pct, days_left: left, need_per_day: need, pace_per_day: pace,
+          trend_per_day: trend, trend_days: history.length ? dayDiff(history[0].day, history[history.length - 1].day) : 0, eta_day: eta, at_deadline: atDeadline, history };
       });
     },
   });
   const goalsEl = document.getElementById('goals-list');
   const r1 = (x) => (Math.round(x * 10) / 10).toString();
+  // 30 days of followers, the trend line carried forward to the deadline (or 30 days), and the target
+  const goalSpark = (g) => {
+    const wrap = document.createElement('div'); wrap.className = 'sj-goal-spark';
+    const W = 320, H = 90, pad = 6;
+    const h0 = g.history[0], hN = g.history[g.history.length - 1];
+    let end = g.deadline && g.days_left > 0 ? g.deadline : tehDay(new Date(Date.parse(hN.day + 'T12:00:00Z') + 30 * 864e5));
+    if (g.eta_day && g.eta_day < end && g.eta_day > hN.day) end = g.eta_day;  // stop where the line meets the goal
+    const t = (day) => Date.parse(day + 'T12:00:00Z');
+    const proj = hN.v + g.trend_per_day * dayDiff(hN.day, end);
+    const x = d3.scaleLinear().domain([t(h0.day), t(end)]).range([pad, W - pad]);
+    const lo = d3.min(g.history, (d) => d.v), hi = Math.max(d3.max(g.history, (d) => d.v), proj, g.target);
+    const y = d3.scaleLinear().domain([Math.min(lo, proj), hi]).nice().range([H - pad, pad]);
+    const svg = d3.select(wrap).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img')
+      .attr('aria-label', 'فالوئرهای ۳۰ روز اخیر و ادامهٔ روند تا ' + fmtLong(end));
+    svg.append('line').attr('x1', pad).attr('x2', W - pad).attr('y1', y(g.target)).attr('y2', y(g.target))
+      .attr('stroke', 'var(--color-ok)').attr('stroke-dasharray', '2 4').attr('stroke-width', 1.5);
+    svg.append('path').datum(g.history).attr('fill', 'none').attr('stroke', dash.colors[0]).attr('stroke-width', 2.2)
+      .attr('d', d3.line().x((d) => x(t(d.day))).y((d) => y(d.v)));
+    svg.append('line').attr('x1', x(t(hN.day))).attr('y1', y(hN.v)).attr('x2', x(t(end))).attr('y2', y(proj))
+      .attr('stroke', dash.colors[0]).attr('stroke-dasharray', '5 5').attr('stroke-width', 2).attr('opacity', 0.6);
+    svg.append('circle').attr('cx', x(t(hN.day))).attr('cy', y(hN.v)).attr('r', 3.5).attr('fill', dash.colors[0]);
+    return wrap;
+  };
   dash.onData(() => {
     const d = dash.data('goal_progress');
     if (d.status === 'error') { fail(goalsEl); return; }
@@ -1233,8 +1297,18 @@
         if (g.days_left <= 0) lines.push('مهلت تموم شده.');
         else lines.push(g.days_left + ' روز مونده؛ روزی ' + r1(g.need_per_day) + ' لازمه' + (g.pace_per_day != null ? '، سرعت ۷ روز اخیر روزی ' + r1(g.pace_per_day) + '.' : '.'));
       }
+      if (g.pct < 100 && g.trend_per_day != null) {
+        if (g.trend_per_day <= 0.05) lines.push('پیش‌بینی: با روند ' + g.trend_days + ' روز اخیر فالوئر زیاد نمی‌شه؛ این‌طوری به هدف نمی‌رسی.');
+        else {
+          let t = 'پیش‌بینی: با روند ' + g.trend_days + ' روز اخیر (روزی ' + r1(g.trend_per_day) + ') ';
+          t += g.eta_day ? 'حدود ' + fmtLong(g.eta_day) + ' به هدف می‌رسی' : 'بیشتر از ده سال طول می‌کشه';
+          if (g.at_deadline != null) t += g.at_deadline >= g.target ? '؛ یعنی قبل از مهلت ✓' : '؛ تا مهلت به حدود ' + fmtInt(g.at_deadline) + ' می‌رسی';
+          lines.push(t + '.');
+        }
+      }
       if (g.why) lines.push(g.why);
       lines.forEach((t) => { const p = document.createElement('p'); p.className = 'sj-small'; p.textContent = t; card.append(p); });
+      if (g.trend_per_day != null) card.append(goalSpark(g));
       goalsEl.append(card);
     });
   });
@@ -1584,7 +1658,7 @@
         return p;
       };
       const res = document.createElement('p'); res.className = 'sj-small'; res.style.color = 'var(--color-fg)';
-      res.textContent = { waiting: 'منتظر ریل: لینک هر دو ریل رو تو فایل بنویس (ریل باید تو جدول ریل‌ها باشه).', early: 'هنوز زوده: صبر کن هر دو ریل ۴۸ ساعته بشن.', nodata: 'Metricool برای این معیار عدد نداده.',
+      res.textContent = { waiting: 'منتظر ریل: لینک هر دو ریل رو تو تنظیمات بنویس (ریل باید تو جدول ریل‌ها باشه).', early: 'هنوز زوده: صبر کن هر دو ریل ۴۸ ساعته بشن.', nodata: 'Metricool برای این معیار عدد نداده.',
         done: e.winner === 'tie' ? 'نتیجه: تقریباً برابر (کمتر از ۱۰٪ اختلاف).' : 'نتیجه: ' + (e.winner === 'a' ? 'A' : 'B') + ' برد' + (e.diff != null ? '، ' + e.diff + '٪ بهتر.' : '.') }[e.status];
       card.append(h, hyp, side('A', e.a_label, e.a_url, e.a_value, e.winner === 'a'), side('B', e.b_label, e.b_url, e.b_value, e.winner === 'b'), res);
       if (e.notes) { const n = document.createElement('p'); n.className = 'sj-small'; n.textContent = e.notes; card.append(n); }
@@ -1628,6 +1702,7 @@
     ['day', 'followers', 'gained', 'lost', 'reels', 'reels_views', 'reels_reach', 'reels_shares', 'views', 'reach', 'engaged']));
 })();
 </script>
+<script src="assets/board.js"></script>
 <script src="assets/tools.js"></script>
 <script src="assets/shell.js"></script>
 </body>

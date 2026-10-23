@@ -71,6 +71,21 @@
     <div class="pn-row"><button id="add-goal" type="button">+ هدف</button><button class="primary" id="save-goals" type="button">ذخیرهٔ هدف‌ها</button><span class="pn-msg" id="goals-msg"></span></div>
   </section>
 
+  <section class="pn-card" id="experiments-card">
+    <h2>آزمایش‌ها</h2>
+    <p class="pn-note">دو هوک یا دو کاور رو روی دو ریل امتحان کن. لینک هر دو ریل رو بذار؛ وقتی هر دو ۴۸ ساعته شدن، برنده تو صفحهٔ «آزمایش‌ها»ی داشبورد معلوم می‌شه.</p>
+    <div id="exps" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div class="pn-row"><button id="add-exp" type="button">+ آزمایش</button><button class="primary" id="save-exps" type="button">ذخیرهٔ آزمایش‌ها</button><span class="pn-msg" id="exps-msg"></span></div>
+  </section>
+
+  <section class="pn-card" id="topics-settings">
+    <h2>موضوع‌ها</h2>
+    <p class="pn-note">موضوع هر ریل از کلمه‌های کپشنش حدس زده می‌شه: اولین موضوعی که یکی از کلمه‌هاش تو کپشن باشه. کلمه‌ها رو با ویرگول جدا کن. اگه یه ریل اشتباه دسته‌بندی شد، تو صفحهٔ همون ریل تو داشبورد موضوع درستش رو انتخاب کن.</p>
+    <div class="pn-wrap"><table><thead><tr><th>موضوع</th><th>کلمه‌ها</th><th></th></tr></thead><tbody id="topics"></tbody></table></div>
+    <p class="pn-note" id="topic-fixes"></p>
+    <div class="pn-row"><button id="add-topic" type="button">+ موضوع</button><button class="primary" id="save-topics" type="button">ذخیرهٔ موضوع‌ها</button><span class="pn-msg" id="topics-msg"></span></div>
+  </section>
+
   <section class="pn-card" id="ai-connect">
     <h2>اتصال به Claude و ChatGPT</h2>
     <p class="pn-note">با یه توکن، Claude یا ChatGPT خودت می‌تونه آمار این داشبورد رو بخونه و ازش تحلیل و ایده بده (فقط خواندن؛ چیزی منتشر نمی‌کنه). توکن فقط یه بار نشون داده می‌شه؛ ساختن توکن تازه، قبلی رو باطل می‌کنه.</p>
@@ -160,7 +175,54 @@
     $('token-chip').className = 'pn-chip ' + (me.has_token ? 'ok' : 'off');
 
     const tb = $('goals'); tb.replaceChildren(); (me.goals || []).forEach(addGoal);
+    $('exps').replaceChildren(); (me.experiments || []).forEach(addExp);
+    $('topics').replaceChildren(); (me.topics || []).forEach(addTopic);
+    const nFix = Object.keys(me.reel_topics || {}).length;
+    $('topic-fixes').textContent = nFix ? nFix + ' ریل موضوعش دستی تعیین شده. ریلی که موضوعش حذف بشه برمی‌گرده به حدس از کپشن.' : '';
   }
+
+  const METRICS = [['multiple', 'چند برابر میانهٔ بازدید'], ['view_rate', 'ماندن بعد از ۳ ثانیه'], ['save_rate', 'نرخ ذخیره'], ['shares_per_1k', 'اشتراک در هر ۱۰۰۰ نفر'], ['avg_watch', 'میانگین تماشا']];
+  function addExp(x) {
+    x = x || { title: '', hypothesis: '', metric: 'view_rate', a: {}, b: {}, notes: '' };
+    const inp = (k, v, attrs) => pn.el('input', { value: v || '', 'data-k': k, ...attrs });
+    const sel = pn.el('select', { 'data-k': 'metric' }, ...METRICS.map(([v, t]) => pn.el('option', { value: v }, t)));
+    sel.value = x.metric;
+    const side = (k, s) => pn.el('div', { class: 'pn-grid' },
+      pn.el('label', {}, 'ریل ' + k.toUpperCase() + ' — چی فرق داشت', inp(k + '.label', (s || {}).label, { maxlength: '200' })),
+      pn.el('label', {}, 'لینک ریل ' + k.toUpperCase(), inp(k + '.url', (s || {}).url, { dir: 'ltr', placeholder: 'https://www.instagram.com/reel/…' })));
+    const box = pn.el('div', { class: 'pn-exp', style: 'display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--color-border-line);padding-top:12px' },
+      pn.el('div', { class: 'pn-grid' }, pn.el('label', {}, 'عنوان', inp('title', x.title, { maxlength: '120' })), pn.el('label', {}, 'معیار', sel)),
+      pn.el('label', {}, 'فرضیه', inp('hypothesis', x.hypothesis, { maxlength: '500', placeholder: 'مثلاً: هوک سؤالی بیننده‌های بیشتری رو از ۳ ثانیهٔ اول رد می‌کنه' })),
+      side('a', x.a), side('b', x.b),
+      pn.el('label', {}, 'یادداشت', inp('notes', x.notes, { maxlength: '1000' })),
+      pn.el('div', { class: 'pn-row' }, pn.el('button', { type: 'button', class: 'danger', onclick: () => box.remove() }, 'حذف این آزمایش')));
+    box.dataset.id = x.id || '';
+    $('exps').append(box);
+  }
+  function addTopic(t) {
+    t = t || { label: '', keywords: [] };
+    const tr = pn.el('tr', {},
+      pn.el('td', {}, pn.el('input', { value: t.label, maxlength: '60', 'data-k': 'label', style: 'width:10rem' })),
+      pn.el('td', { style: 'width:100%' }, pn.el('input', { value: (t.keywords || []).join('، '), 'data-k': 'keywords', placeholder: 'ابزار، اپلیکیشن، افزونه' })),
+      pn.el('td', {}, pn.el('button', { type: 'button', class: 'danger', onclick: () => tr.remove() }, 'حذف')));
+    tr.dataset.id = t.id || '';
+    $('topics').append(tr);
+  }
+  $('add-exp').addEventListener('click', () => addExp());
+  $('add-topic').addEventListener('click', () => addTopic());
+  $('save-exps').addEventListener('click', (e) => pn.run(e.currentTarget, $('exps-msg'), () => pn.api('POST', '/api/me/experiments', {
+    experiments: [...$('exps').children].map((box) => {
+      const v = (k) => box.querySelector('[data-k="' + k + '"]').value.trim();
+      return { id: box.dataset.id, title: v('title'), hypothesis: v('hypothesis'), metric: v('metric'), notes: v('notes'),
+        a: { label: v('a.label'), url: v('a.url') }, b: { label: v('b.label'), url: v('b.url') } };
+    }) }).then(async (r) => { await load(); return r; })));
+  $('save-topics').addEventListener('click', (e) => pn.run(e.currentTarget, $('topics-msg'), () => {
+    const topics = [...$('topics').children].map((tr) => ({ id: tr.dataset.id, label: tr.querySelector('[data-k=label]').value.trim(), keywords: tr.querySelector('[data-k=keywords]').value }));
+    const ids = new Set(topics.map((t) => t.id).filter(Boolean));
+    // fixes that point at a removed topic go back to guessing from the caption
+    const fixes = Object.fromEntries(Object.entries(me.reel_topics || {}).filter(([, id]) => id === 'other' || ids.has(id)));
+    return pn.api('POST', '/api/me/topics', { topics, reel_topics: fixes }).then(async (r) => { await load(); return r; });
+  }));
 
   function addGoal(g) {
     g = g || { label: '', metric: 'followers', target: '', deadline: '' };

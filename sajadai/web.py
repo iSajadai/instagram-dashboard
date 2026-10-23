@@ -254,7 +254,10 @@ def me(user=Depends(need_user)):
         "telegram_ready": bool(store.setting("telegram_bot")),
         "has_token": bool(user["api_token"]),
         "urls": {"base": base, "mcp": (base or "") + "/mcp", "api": (base or "") + "/api/v1", "openapi": (base or "") + "/openapi.json"},
-        "goals": analysis.load(config.user_dir(user["id"]) / "content" / "goals.json") or [],
+        "goals": load_content(user, "goals.json", []),
+        "experiments": load_content(user, "experiments.json", []),
+        "topics": load_content(user, "topics.json", []),
+        "reel_topics": load_content(user, "reel_topics.json", {}),
         "status": {k: v for k, v in store.status(user).items()},
     }
 
@@ -336,10 +339,131 @@ async def save_goals(request: Request, user=Depends(need_user)):
             raise HTTPException(400, f"هدف {i + 1}: مهلت باید YYYY-MM-DD باشه")
         clean.append({"id": f"g{i + 1}", "label": str(g.get("label") or "")[:80], "metric": g["metric"],
                       "target": int(target) if target.is_integer() else target, "deadline": dl, "why": str(g.get("why") or "")[:300]})
-    d = pipeline.ensure_user_dir(user["id"])
-    (d / "content" / "goals.json").write_text(json.dumps(clean, ensure_ascii=False, indent=1), encoding="utf-8")
-    pipeline.run_script(user["id"], "shape.py", {})
+    save_content(user, "goals.json", clean)
     return {"ok": True}
+
+
+def save_content(user, name, data, reshape=True):
+    """Write one of the user's content files; reshape so the dashboard picks it up."""
+    d = pipeline.ensure_user_dir(user["id"])
+    (d / "content" / name).write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    if reshape:
+        pipeline.run_script(user["id"], "shape.py", {})
+
+
+def load_content(user, name, default):
+    v = analysis.load(config.user_dir(user["id"]) / "content" / name)  # {} when missing or broken
+    return v if isinstance(v, type(default)) else default
+
+
+REEL_URL = re.compile(r"^https://(www\.)?instagram\.com/(reel|reels|p)/[A-Za-z0-9_-]+/?(\?.*)?$")
+EXP_METRICS = ("multiple", "view_rate", "save_rate", "shares_per_1k", "avg_watch")
+
+
+def slug(text, taken, fallback="t"):
+    s = re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-")[:30] or fallback
+    out, n = s, 2
+    while out in taken:
+        out, n = f"{s}-{n}", n + 1
+    taken.add(out)
+    return out
+
+
+@api.post("/api/me/experiments", include_in_schema=False, dependencies=[Depends(same_site)])
+async def save_experiments(request: Request, user=Depends(need_user)):
+    b = await body(request)
+    exps = b.get("experiments")
+    if not isinstance(exps, list) or len(exps) > 50:
+        raise HTTPException(400, "آزمایش‌ها باید یه فهرست باشن")
+    clean, taken = [], set()
+    for i, e in enumerate(exps):
+        if not isinstance(e, dict) or not str(e.get("title") or "").strip():
+            raise HTTPException(400, f"آزمایش {i + 1}: عنوان لازمه")
+        if e.get("metric") not in EXP_METRICS:
+            raise HTTPException(400, f"آزمایش {i + 1}: معیار نامعتبره")
+        sides = {}
+        for k in ("a", "b"):
+            s = e.get(k) if isinstance(e.get(k), dict) else {}
+            url = str(s.get("url") or "").strip()
+            if url and not REEL_URL.match(url):
+                raise HTTPException(400, f"آزمایش {i + 1}: لینک ریل {k.upper()} باید لینک اینستاگرام باشه")
+            sides[k] = {"label": str(s.get("label") or "")[:200], "url": url}
+        clean.append({"id": slug(e.get("id") or e["title"], taken, "exp"), "title": str(e["title"]).strip()[:120],
+                      "hypothesis": str(e.get("hypothesis") or "")[:500], "metric": e["metric"], **sides,
+                      "notes": str(e.get("notes") or "")[:1000]})
+    save_content(user, "experiments.json", clean)
+    return {"ok": True}
+
+
+@api.post("/api/me/topics", include_in_schema=False, dependencies=[Depends(same_site)])
+async def save_topics(request: Request, user=Depends(need_user)):
+    """Topics ({label, keywords}) and the manual reel → topic fixes ({reel url: topic id})."""
+    b = await body(request)
+    topics, manual = b.get("topics"), b.get("reel_topics") or {}
+    if not isinstance(topics, list) or len(topics) > 40 or not isinstance(manual, dict) or len(manual) > 2000:
+        raise HTTPException(400, "موضوع‌ها نامعتبرن")
+    clean, taken = [], {"other"}
+    for i, t in enumerate(topics):
+        label = str((t or {}).get("label") or "").strip()[:60] if isinstance(t, dict) else ""
+        if not label:
+            raise HTTPException(400, f"موضوع {i + 1}: اسم لازمه")
+        kws = t.get("keywords") or []
+        if isinstance(kws, str):
+            kws = re.split(r"[,،\n]", kws)
+        kws = [str(k).strip()[:60] for k in kws if str(k).strip()][:40]
+        tid = str(t.get("id") or "")
+        if re.match(r"^[a-z0-9-]{1,40}$", tid) and tid not in taken:
+            taken.add(tid)  # an existing topic keeps its id, so reel fixes pointing at it still work
+        else:
+            tid = slug(label, taken, "topic")
+        clean.append({"id": tid, "label": label, "keywords": kws})
+    ids = {t["id"] for t in clean} | {"other"}
+    fixes = {}
+    for url, tid in manual.items():
+        if not REEL_URL.match(str(url)) or tid not in ids:
+            raise HTTPException(400, "یه موضوع دستی به ریل یا موضوع ناموجود اشاره می‌کنه")
+        fixes[url] = tid
+    save_content(user, "topics.json", clean, reshape=False)
+    save_content(user, "reel_topics.json", fixes)
+    return {"ok": True}
+
+
+BOARD_STAGES = ("idea", "script", "filmed", "published")
+
+
+@api.get("/api/me/board", include_in_schema=False)
+def get_board(user=Depends(need_user)):
+    return {"items": load_content(user, "board.json", [])}
+
+
+@api.post("/api/me/board", include_in_schema=False, dependencies=[Depends(same_site)])
+async def save_board(request: Request, user=Depends(need_user)):
+    """The whole production board: each card is a reel on its way from idea to published."""
+    b = await body(request)
+    items = b.get("items")
+    if not isinstance(items, list) or len(items) > 300:
+        raise HTTPException(400, "بُرد نامعتبره")
+    clean, seen = [], set()
+    for i, it in enumerate(items):
+        if not isinstance(it, dict) or not str(it.get("title") or "").strip():
+            raise HTTPException(400, f"کارت {i + 1}: عنوان لازمه")
+        if it.get("stage") not in BOARD_STAGES:
+            raise HTTPException(400, f"کارت {i + 1}: مرحله نامعتبره")
+        cid = str(it.get("id") or "")
+        if not re.match(r"^[A-Za-z0-9_-]{1,40}$", cid) or cid in seen:
+            cid = f"c{int(time.time() * 1000)}{i}"
+        seen.add(cid)
+        reel = str(it.get("reel") or "").strip()
+        if reel and not REEL_URL.match(reel):
+            raise HTTPException(400, f"کارت {i + 1}: لینک ریل باید لینک اینستاگرام باشه")
+        due = it.get("due") or None
+        if due and not re.match(r"^\d{4}-\d{2}-\d{2}$", str(due)):
+            raise HTTPException(400, f"کارت {i + 1}: تاریخ باید YYYY-MM-DD باشه")
+        clean.append({"id": cid, "title": str(it["title"]).strip()[:200], "hook": str(it.get("hook") or "")[:500],
+                      "notes": str(it.get("notes") or "")[:3000], "stage": it["stage"], "reel": reel, "due": due,
+                      "created": int(it.get("created") or time.time()), "moved": int(it.get("moved") or time.time())})
+    save_content(user, "board.json", clean, reshape=False)
+    return {"ok": True, "items": clean}
 
 
 def background(fn, user_id):
@@ -432,7 +556,27 @@ def my_reel(reel: str, user=Depends(need_user)):
     if not r:
         raise HTTPException(404, "این ریل تو داشبورد نیست")
     critiques = analysis.load(config.user_dir(user["id"]) / "content" / "critiques.json") or {}
-    return {**r, "page_median_views": analysis.scored(d)[1], "critique": critiques.get(r["url"])}
+    return {**r, "page_median_views": analysis.scored(d)[1], "critique": critiques.get(r["url"]),
+            "topics": [{"id": t["id"], "label": t["label"]} for t in load_content(user, "topics.json", [])],
+            "topic_manual": r["url"] in load_content(user, "reel_topics.json", {})}
+
+
+@api.post("/api/me/reel-topic", include_in_schema=False, dependencies=[Depends(same_site)])
+async def set_reel_topic(request: Request, user=Depends(need_user)):
+    """Fix one reel's topic by hand ("" goes back to guessing from the caption)."""
+    b = await body(request)
+    url, tid = str(b.get("reel") or ""), str(b.get("topic") or "")
+    if not REEL_URL.match(url):
+        raise HTTPException(400, "لینک ریل نامعتبره")
+    if tid and tid != "other" and tid not in {t["id"] for t in load_content(user, "topics.json", [])}:
+        raise HTTPException(400, "این موضوع وجود نداره")
+    fixes = load_content(user, "reel_topics.json", {})
+    if tid:
+        fixes[url] = tid
+    else:
+        fixes.pop(url, None)
+    save_content(user, "reel_topics.json", fixes)
+    return {"ok": True}
 
 
 CRITIQUE_SCHEMA = {

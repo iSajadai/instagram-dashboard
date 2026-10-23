@@ -61,7 +61,7 @@
     top: ['top', 'kpis'], goals: ['goals'], plan: ['plan'], reels: ['reels'], works: ['works'],
     growth: ['growth'], besttime: ['besttime'], experiments: ['experiments'], insights: ['insights', 'ideas'],
     competitors: ['competitors'], audience: ['audience'], checklist: ['checklist'],
-    assistant: ['assistant'], reel: ['reel'],  // reel takes the reel's shortcode: #/reel/DeuAledNcym
+    assistant: ['assistant'], board: ['board'], reel: ['reel'],  // reel takes the reel's shortcode: #/reel/DeuAledNcym
   };
   const links = new Map([...document.querySelectorAll('.sidebar .nav-item[data-sec]')].map((a) => [a.dataset.sec, a]));
   const sections = Object.values(PAGES).flat().map((id) => document.getElementById(id)).filter(Boolean);
@@ -145,6 +145,7 @@
     document.querySelectorAll('[data-user-name]').forEach((el) => { el.textContent = me.username; });
     document.querySelectorAll('[data-user-initials]').forEach((el) => { el.textContent = me.username.slice(0, 2).toUpperCase(); });
     document.querySelectorAll('[data-user-role]').forEach((el) => { el.textContent = me.is_admin ? 'ادمین پنل' : 'کاربر'; });
+    root.classList.add('sj-panel');  // panel-only buttons drawn later (idea cards) show through CSS
     document.querySelectorAll('[data-panel-only]').forEach((el) => { el.hidden = false; });
     if (me.is_admin) document.querySelectorAll('[data-admin-only]').forEach((el) => { el.hidden = false; });
   }).catch(() => { /* served without the panel */ });
