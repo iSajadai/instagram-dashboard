@@ -1,5 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="9" fill="#C45C26"/>
-  <path d="M6.8 25c0-8.4 4.5-13.6 9.2-13.6S25.2 16.6 25.2 25h-3.4c0-5.4-2.7-9.1-5.8-9.1S10.2 19.6 10.2 25H6.8Z" fill="#F6F0E8"/>
-  <circle cx="16" cy="9.8" r="2.9" fill="#E0A03A"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <defs>
+    <linearGradient id="glass-fav" x1="4" y1="4" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A84FF"/>
+      <stop offset="1" stop-color="#5856D6"/>
+    </linearGradient>
+  </defs>
+  <rect width="40" height="40" rx="12" fill="url(#glass-fav)"/>
+  <path d="M10 27.5 8.6 15.2l6.1 4.6L20 11l5.3 8.8 6.1-4.6L30 27.5H10Z" fill="#fff"/>
 </svg>
