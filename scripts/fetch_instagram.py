@@ -268,6 +268,39 @@ def main():
     reels = sum(1 for m in out["media"] if m.get("media_product_type") == "REELS")
     print(f"{out['fetched_at']} ig.json: @{me.get('username')}, {me.get('followers_count')} followers, "
           f"{len(out['media'])} media ({reels} reels), {len(out['daily'])} days")
+    try:  # the numbers are saved already; comments are extra and mustn't fail the refresh
+        print(fetch_comments(out["media"], me.get("username"), tok, now))
+    except Exception as e:  # noqa: BLE001
+        print(f"comments skipped: {e}", file=sys.stderr)
+
+
+COMMENTS_OUT = os.path.join(STATE, "raw", "ig_comments.json")
+COMMENT_DAYS, COMMENT_POSTS = 30, 25
+
+
+def fetch_comments(media, username, tok, now):
+    """Comments (with replies) on the posts of the last 30 days, for the panel's comment page. Needs the
+    instagram_business_manage_comments permission on the token; without it the reason is saved instead."""
+    recent = [m for m in media if m.get("timestamp") and m.get("comments_count") and m.get("media_product_type") != "STORY"
+              and (now - datetime.fromisoformat(m["timestamp"].replace("+0000", "+00:00"))).days <= COMMENT_DAYS][:COMMENT_POSTS]
+    out = {"fetched_at": now.isoformat(timespec="seconds"), "username": username, "error": None, "posts": []}
+    for m in recent:
+        try:
+            r = get(f"{m['id']}/comments", tok, fields="id,text,timestamp,username,like_count,replies{id,text,timestamp,username}", limit=50)
+        except ApiError as e:
+            if e.status in (400, 403) or e.code in (10, 200):
+                out["error"] = "permission"  # the token wasn't made with instagram_business_manage_comments
+                break
+            print(f"comments {m['id']}: {e}", file=sys.stderr)
+            continue
+        comments = [{"id": c["id"], "text": c.get("text", ""), "at": c.get("timestamp"), "user": c.get("username"), "likes": c.get("like_count"),
+                     "replies": [{"text": x.get("text", ""), "user": x.get("username"), "at": x.get("timestamp")} for x in (c.get("replies") or {}).get("data", [])]}
+                    for c in r.get("data", [])]
+        out["posts"].append({"url": m.get("permalink"), "caption": (m.get("caption") or "")[:300], "published": m.get("timestamp"), "comments": comments})
+    save(COMMENTS_OUT, out)
+    if out["error"]:
+        return "ig_comments.json: no permission to read comments (instagram_business_manage_comments)"
+    return f"ig_comments.json: {sum(len(p['comments']) for p in out['posts'])} comments on {len(out['posts'])} posts"
 
 
 if __name__ == "__main__":

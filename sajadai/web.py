@@ -4,6 +4,7 @@ Claude/ChatGPT token), the admin page, a read-only JSON API for ChatGPT Actions,
 Run: uvicorn sajadai.web:app --host 0.0.0.0 --port 8000   (or `python -m sajadai serve`, or docker compose up)
 """
 import contextlib, json, re, threading, time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -11,7 +12,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
-from . import ai, analysis, config, mcp_server, pipeline, store
+from . import ai, analysis, config, mcp_server, pipeline, publish, store
 
 COOKIE = "sj_session"
 USERNAME = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
@@ -461,9 +462,82 @@ async def save_board(request: Request, user=Depends(need_user)):
             raise HTTPException(400, f"کارت {i + 1}: تاریخ باید YYYY-MM-DD باشه")
         clean.append({"id": cid, "title": str(it["title"]).strip()[:200], "hook": str(it.get("hook") or "")[:500],
                       "notes": str(it.get("notes") or "")[:3000], "stage": it["stage"], "reel": reel, "due": due,
-                      "created": int(it.get("created") or time.time()), "moved": int(it.get("moved") or time.time())})
+                      "created": int(it.get("created") or time.time()), "moved": int(it.get("moved") or time.time()),
+                      "buffer": clean_sent(it.get("buffer"))})
     save_content(user, "board.json", clean, reshape=False)
     return {"ok": True, "items": clean}
+
+
+def clean_sent(v):
+    """What a card was sent to Buffer as ({kind, id, at, due_at}), kept as the server wrote it."""
+    if not isinstance(v, dict) or v.get("kind") not in ("idea", "post", "draft"):
+        return None
+    return {"kind": v["kind"], "id": str(v.get("id") or "")[:64], "at": int(v.get("at") or 0), "due_at": str(v.get("due_at") or "")[:40] or None}
+
+
+def buffer_key(user):
+    k = store.user_secrets(user).get("connections", {}).get("buffer", {}).get("api_key")
+    if not k:
+        raise HTTPException(400, "اول Buffer رو تو تنظیمات وصل کن")
+    return k
+
+
+def buffer_call(fn, *args):
+    try:
+        return fn(*args)
+    except publish.PublishError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.get("/api/me/buffer/channels", include_in_schema=False)
+async def buffer_channels(user=Depends(need_user)):
+    k = buffer_key(user)
+    chans = [c for c in await run_in_threadpool(buffer_call, publish.channels, k) if not c["disconnected"]]
+    if not chans:
+        raise HTTPException(400, "تو Buffer هیچ اینستاگرامی وصل نیست (Channels ← Connect ← Instagram)")
+    return {"channels": chans}
+
+
+@api.post("/api/me/buffer/send", include_in_schema=False, dependencies=[Depends(same_site)])
+async def buffer_send(request: Request, user=Depends(need_user)):
+    """Send a board card to Buffer: as an idea, or as a reel scheduled for a Tehran time (needs a video URL)."""
+    b = await body(request)
+    k = buffer_key(user)
+    kind, chan = b.get("kind"), str(b.get("channel") or "")
+    title, text = str(b.get("title") or "").strip()[:200], str(b.get("text") or "").strip()[:2200]
+    chans = {c["id"]: c for c in await run_in_threadpool(buffer_call, publish.channels, k)}
+    if chan not in chans:
+        raise HTTPException(400, "کانال Buffer رو انتخاب کن")
+    when = str(b.get("when") or "")  # "YYYY-MM-DDTHH:MM", Tehran time
+    due_at = None
+    if when:
+        if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$", when):
+            raise HTTPException(400, "زمان نامعتبره")
+        due_at = when + ":00+03:30"  # Iran has had no daylight saving since 2022
+    if kind == "idea":
+        if not title and not text:
+            raise HTTPException(400, "عنوان یا متن لازمه")
+        res = await run_in_threadpool(buffer_call, publish.send_idea, k, chans[chan]["organization"], title or text[:80], text, due_at)
+    elif kind == "reel":
+        video = str(b.get("video_url") or "").strip()
+        if not re.match(r"^https://\S+$", video):
+            raise HTTPException(400, "برای ریل، لینک مستقیم و عمومی ویدیو (https) لازمه")
+        if not due_at or datetime.fromisoformat(due_at) <= datetime.now(timezone.utc):
+            raise HTTPException(400, "زمان انتشار باید در آینده باشه")
+        if not text:
+            raise HTTPException(400, "کپشن لازمه")
+        res = await run_in_threadpool(buffer_call, publish.schedule_reel, k, chan, text, video, due_at, bool(b.get("draft")), str(b.get("first_comment") or "")[:2200])
+    else:
+        raise HTTPException(400, "نوع ارسال نامعتبره")
+    sent = {**res, "at": int(time.time()), "due_at": res.get("due_at") or due_at}
+    card = str(b.get("card") or "")
+    if card:  # remember it on the board card
+        items = load_content(user, "board.json", [])
+        for it in items:
+            if it.get("id") == card:
+                it["buffer"] = clean_sent(sent)
+        save_content(user, "board.json", items, reshape=False)
+    return {"ok": True, "sent": clean_sent(sent)}
 
 
 def background(fn, user_id):
@@ -637,6 +711,65 @@ async def write_caption(request: Request, user=Depends(need_user)):
               "\nIts best reels so far: " + json.dumps([{k: r.get(k) for k in ("caption", "multiple_of_median", "view_rate_3s_pct")} for r in best], ensure_ascii=False))
     return await run_in_threadpool(lambda: ai_call(lambda: ai.ask(
         user, system, [{"role": "user", "content": "The reel:\n" + topic}], schema=CAPTION_SCHEMA, max_tokens=3000)))
+
+
+# ---------- comments ----------
+
+def comments_data(user):
+    """raw/ig_comments.json (from the Instagram connection), each comment marked answered when the page replied."""
+    raw = analysis.load(config.user_dir(user["id"]) / "raw" / "ig_comments.json")
+    if not raw:
+        return {"fetched_at": None, "error": "none", "posts": []}
+    me = (raw.get("username") or "").lower()
+    posts = []
+    for p in raw.get("posts", []):
+        cs = [{**c, "answered": any((r.get("user") or "").lower() == me for r in c.get("replies", []))}
+              for c in p.get("comments", []) if (c.get("user") or "").lower() != me]
+        if cs:
+            posts.append({**p, "comments": cs, "unanswered": sum(not c["answered"] for c in cs)})
+    return {"fetched_at": raw.get("fetched_at"), "error": raw.get("error"), "username": raw.get("username"), "posts": posts}
+
+
+@api.get("/api/me/comments", include_in_schema=False)
+def my_comments(user=Depends(need_user)):
+    d = comments_data(user)
+    d["analysis"] = load_content(user, "comment_insights.json", {}) or None
+    return d
+
+
+COMMENTS_SCHEMA = {
+    "type": "object", "additionalProperties": False, "required": ["summary", "mood", "themes", "questions", "ideas"],
+    "properties": {
+        "summary": {"type": "string"}, "mood": {"type": "string"},
+        "themes": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["theme", "detail"],
+                                              "properties": {"theme": {"type": "string"}, "detail": {"type": "string"}}}},
+        "questions": {"type": "array", "items": {"type": "object", "additionalProperties": False, "required": ["question", "reel_url", "reply"],
+                                                 "properties": {"question": {"type": "string"}, "reel_url": {"type": "string"}, "reply": {"type": "string"}}}},
+        "ideas": {"type": "array", "items": {"type": "string"}},
+    },
+}
+
+
+@api.post("/api/me/comments/analyze", include_in_schema=False, dependencies=[Depends(same_site)])
+async def analyze_comments(user=Depends(need_user)):
+    d = comments_data(user)
+    if not d["posts"]:
+        raise HTTPException(400, "هنوز کامنتی گرفته نشده" if d["error"] != "permission" else "توکن اینستاگرام اجازهٔ خوندن کامنت‌ها رو نداره")
+    page = store.prefs(user)
+    posts = [{"reel_url": p["url"], "caption": p["caption"][:200],
+              "comments": [{"text": c["text"][:400], "likes": c.get("likes"), "answered": c["answered"]} for c in p["comments"][:40]]}
+             for p in d["posts"]]
+    system = ("You read the comments on an Instagram creator's recent reels and report in Persian (conversational, clear). summary: "
+              "2-3 sentences on what the audience is saying. mood: one short line on the overall tone. themes: up to 5 recurring "
+              "topics, each with a sentence of detail. questions: up to 8 real questions people asked, prefer unanswered ones, each "
+              "with the reel it was on and a short friendly reply in the page's voice. ideas: up to 5 reel ideas the comments ask "
+              "for. Use only what is in the comments; don't invent.\n\nPage: " +
+              json.dumps({"page": page.get("page_name"), "about": page.get("page_profile")}, ensure_ascii=False))
+    out = await run_in_threadpool(lambda: ai_call(lambda: ai.ask(
+        user, system, [{"role": "user", "content": json.dumps(posts, ensure_ascii=False)}], schema=COMMENTS_SCHEMA, max_tokens=4000)))
+    out = {**out, "created": int(time.time()), "comments": sum(len(p["comments"]) for p in d["posts"])}
+    save_content(user, "comment_insights.json", out, reshape=False)
+    return out
 
 
 # ---------- admin ----------

@@ -122,7 +122,7 @@
   const HELP = {
     metricool: 'API متریکول فقط تو پلن Advanced هست. توکن: Metricool ← Account settings ← API. userId و blogId تو همون صفحه و تو آدرس برند (blogId=…) هستن. رقبا و بهترین ساعت انتشار فقط از این منبع میاد.',
     buffer: 'تو Buffer اول اینستاگرام رو از Channels ← Connect وصل کن، بعد از Settings ← API یه کلید بساز. Buffer برای هر ریل «فالو از ریل» هم می‌ده، ولی تعداد فالوئر و آمار روزانه نداره.',
-    instagram: 'توکن بلندمدت از developers.facebook.com (اپ ← Instagram ← API setup with Instagram login ← Generate token)، با دسترسی instagram_business_basic و instagram_business_manage_insights. خودکار تمدید می‌شه. تعداد فالوئر، آمار روزانه و «ماندن ۳ ثانیه» رو این می‌ده.',
+    instagram: 'توکن بلندمدت از developers.facebook.com (اپ ← Instagram ← API setup with Instagram login ← Generate token)، با دسترسی instagram_business_basic و instagram_business_manage_insights (و برای صفحهٔ کامنت‌ها instagram_business_manage_comments). خودکار تمدید می‌شه. تعداد فالوئر، آمار روزانه و «ماندن ۳ ثانیه» رو این می‌ده.',
   };
   let me;
   const load = async () => { me = await pn.api('GET', '/api/me'); render(); };

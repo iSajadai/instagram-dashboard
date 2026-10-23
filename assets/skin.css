@@ -352,6 +352,27 @@ html.sj-panel .sj-row-btns { display: flex; }
 .sj-topic-pick { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.4rem; }
 .sj-topic-pick select { font: inherit; padding: 0.2rem 0.5rem; border-radius: 10px; border: 0.5px solid var(--border); background: var(--input-bg); color: var(--text); }
 @media (max-width: 767px) { .sj-board { grid-template-columns: repeat(4, 80vw); scroll-snap-type: x mandatory; } .sj-col { scroll-snap-align: start; } }
+.sj-chip-buffer { color: var(--violet) !important; }
+.sj-cpost { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.9rem 0; border-top: 0.5px solid var(--border); }
+.sj-cpost:first-child { border-top: 0; padding-top: 0.25rem; }
+.sj-cpost-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.sj-cpost-head a { font-weight: 700; color: var(--text); margin-inline-end: auto; }
+.sj-comment { padding: 0.6rem 0.8rem; border-radius: 14px; background: var(--surface-2); border-inline-start: 3px solid transparent; }
+.sj-comment.open { border-inline-start-color: var(--amber); }
+.sj-comment p { margin: 0.25rem 0 0; line-height: 1.85; white-space: pre-line; }
+.sj-comment-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.sj-comment-top .sj-chip { margin-inline-start: auto; }
+.sj-ok { color: var(--good) !important; background: var(--good-soft) !important; }
+.sj-crit ul { margin: 0.25rem 0 0; padding-inline-start: 1.1rem; list-style: disc; }
+.sj-crit li { margin-bottom: 0.25rem; }
+#comments-ai .sj-out-row p { margin: 0; }
+.sj-kind { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.sj-kind label { flex-direction: row !important; align-items: center; gap: 0.4rem !important; padding: 0.45rem 0.85rem; border-radius: 999px; border: 0.5px solid var(--border);
+  background: var(--input-bg); color: var(--text-secondary) !important; cursor: pointer; font-size: 0.85rem !important; }
+.sj-kind label:has(input:checked) { background: var(--accent-soft); color: var(--accent) !important; border-color: var(--border-strong); }
+.sj-kind input { accent-color: var(--accent); }
+.sj-check { flex-direction: row !important; align-items: flex-start; gap: 0.5rem !important; line-height: 1.7; }
+.sj-check input { margin-top: 0.3rem; accent-color: var(--accent); }
 
 /* pages: one header (title + range) above every page, a short fade when switching */
 .sj-pagehead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; }

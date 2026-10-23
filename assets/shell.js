@@ -61,7 +61,7 @@
     top: ['top', 'kpis'], goals: ['goals'], plan: ['plan'], reels: ['reels'], works: ['works'],
     growth: ['growth'], besttime: ['besttime'], experiments: ['experiments'], insights: ['insights', 'ideas'],
     competitors: ['competitors'], audience: ['audience'], checklist: ['checklist'],
-    assistant: ['assistant'], board: ['board'], reel: ['reel'],  // reel takes the reel's shortcode: #/reel/DeuAledNcym
+    assistant: ['assistant'], board: ['board'], comments: ['comments'], reel: ['reel'],  // reel takes the reel's shortcode: #/reel/DeuAledNcym
   };
   const links = new Map([...document.querySelectorAll('.sidebar .nav-item[data-sec]')].map((a) => [a.dataset.sec, a]));
   const sections = Object.values(PAGES).flat().map((id) => document.getElementById(id)).filter(Boolean);
