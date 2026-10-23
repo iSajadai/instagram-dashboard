@@ -226,7 +226,7 @@ body { background: var(--bg-gradient) fixed, var(--bg); color: var(--text); font
 .sj-btn:hover, .pn button:hover { background: rgba(0, 122, 255, 0.2); }
 .sj-btn:active, .pn button:active { transform: scale(0.97); }
 .sj-btn:focus-visible, .pn button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.pn button.primary { background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3); }
+.pn button.primary { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3); }
 .pn button.primary:hover { background: var(--accent-hover); }
 .pn button.danger { background: var(--coral-soft); color: var(--coral); }
 .pn button:disabled, .sj-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
