@@ -34,6 +34,29 @@
   </section>
 
   <section class="pn-card">
+    <h2>پشتیبان‌گیری و سلامت</h2>
+    <p class="pn-note">هر شب ساعت ۳:۳۰ تهران یه نسخه از کل داده‌ها (دیتابیس، فایل‌های هر کاربر و کلید رمزنگاری) ساخته می‌شه و ۷ تای آخر نگه داشته می‌شن. فایل‌ها کلید رمزنگاری رو هم دارن؛ جای امن نگهشون دار. برای پایش از بیرون (مثلاً UptimeRobot) آدرس <code dir="ltr">/healthz</code> رو بده.</p>
+    <p id="ops-last"></p>
+    <div class="pn-wrap"><table><thead><tr><th>فایل</th><th>حجم</th><th></th></tr></thead><tbody id="backups"></tbody></table></div>
+    <div class="pn-row"><button class="primary" id="backup-now" type="button">پشتیبان الان</button><span class="pn-msg" id="backup-msg"></span></div>
+  </section>
+
+  <section class="pn-card">
+    <h2>اشتراک و پرداخت (زرین‌پال)</h2>
+    <p class="pn-note">خاموش باشه همه همه‌چیز دارن. روشن که بشه، پلن رایگان فقط تعداد پیج محدود داره و از کلید هوش مصنوعی مشترک پنل استفاده نمی‌کنه (با کلید خودشون همه‌چیز کار می‌کنه)؛ پلن‌های پولی پیج بیشتر و هوش مصنوعی پنل رو می‌دن. قیمت‌ها به تومان.</p>
+    <label class="pn-check"><input type="checkbox" id="bill-enabled"> اشتراک روشن باشه</label>
+    <div class="pn-grid">
+      <label>مرچنت کد زرین‌پال<input id="bill-merchant" dir="ltr" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></label>
+      <label>تعداد پیج پلن رایگان<input id="bill-free" type="number" min="1" max="50" dir="ltr"></label>
+    </div>
+    <label class="pn-check"><input type="checkbox" id="bill-sandbox"> حالت آزمایشی (sandbox زرین‌پال؛ پول واقعی جابه‌جا نمی‌شه)</label>
+    <div class="pn-wrap"><table><thead><tr><th>اسم پلن</th><th>قیمت (تومان)</th><th>روز</th><th>پیج</th><th>هوش مصنوعی</th><th></th></tr></thead><tbody id="plans"></tbody></table></div>
+    <div class="pn-row"><button id="add-plan" type="button">+ پلن</button><button class="primary" id="save-billing" type="button">ذخیره</button><span class="pn-msg" id="billing-msg"></span></div>
+    <h3>آخرین پرداخت‌ها</h3>
+    <div class="pn-wrap"><table><thead><tr><th>کاربر</th><th>پلن</th><th>مبلغ</th><th>وضعیت</th><th>کد پیگیری</th><th>زمان</th></tr></thead><tbody id="payments"></tbody></table></div>
+  </section>
+
+  <section class="pn-card">
     <h2>کاربرها</h2>
     <div class="pn-wrap"><table>
       <thead><tr><th>کاربر</th><th>اتصال‌ها</th><th>آخرین داده</th><th>ایده‌ها</th><th></th></tr></thead>
@@ -62,6 +85,7 @@
     ['ai_model', 'ai_key', 'telegram_bot', 'public_url'].forEach((k) => { $(k).value = st.settings[k] || ''; });
     $('allow_signup').checked = st.settings.allow_signup;
     $('max_pages').value = st.settings.max_pages;
+    drawOps();
     $('users').replaceChildren(...st.users.map((u) => {
       const msg = pn.el('span', { class: 'pn-msg' });
       const reset = pn.el('button', { type: 'button', onclick: (e) => {
@@ -84,6 +108,40 @@
         pn.el('td', {}, pn.el('div', { class: 'pn-row' }, reset, del, msg)));
     }));
   };
+  const STATUS = { paid: 'پرداخت‌شده', pending: 'در انتظار', verifying: 'در حال بررسی', failed: 'ناموفق', canceled: 'لغوشده' };
+  function addPlan(p) {
+    p = p || { name: '', price: '', days: 31, max_pages: 3, ai: true };
+    const inp = (k, v, attrs) => pn.el('input', { value: v ?? '', 'data-k': k, dir: 'ltr', ...attrs });
+    const ai = pn.el('input', { type: 'checkbox', 'data-k': 'ai' }); ai.checked = !!p.ai;
+    const tr = pn.el('tr', {}, pn.el('td', {}, pn.el('input', { value: p.name, 'data-k': 'name', maxlength: '60' })),
+      pn.el('td', {}, inp('price', p.price, { type: 'number', min: '1000', style: 'width:8rem' })), pn.el('td', {}, inp('days', p.days, { type: 'number', min: '1', style: 'width:5rem' })),
+      pn.el('td', {}, inp('max_pages', p.max_pages, { type: 'number', min: '1', style: 'width:4rem' })), pn.el('td', {}, ai),
+      pn.el('td', {}, pn.el('button', { type: 'button', class: 'danger', onclick: () => tr.remove() }, 'حذف')));
+    tr.dataset.id = p.id || '';
+    $('plans').append(tr);
+  }
+  function drawOps() {
+    const o = st.ops || {};
+    $('ops-last').replaceChildren('آخرین پشتیبان: ', o.backup_at ? pn.el('span', { class: 'pn-chip ' + (o.backup_ok ? 'ok' : 'bad') }, pn.when(o.backup_at)) : pn.el('span', { class: 'pn-chip off' }, 'هنوز نه'), ' ', o.backup_msg || '');
+    $('backups').replaceChildren(...(o.backups || []).map((b) => pn.el('tr', {}, pn.el('td', { dir: 'ltr' }, b.name), pn.el('td', {}, Math.round(b.size_kb).toLocaleString('fa-IR') + ' KB'),
+      pn.el('td', {}, pn.el('a', { href: '/api/admin/backups/' + encodeURIComponent(b.name), download: b.name }, 'دانلود')))));
+    const c = st.billing;
+    $('bill-enabled').checked = c.enabled; $('bill-sandbox').checked = c.sandbox; $('bill-merchant').value = c.merchant || ''; $('bill-free').value = c.free_pages;
+    $('plans').replaceChildren(); c.plans.forEach(addPlan);
+    $('payments').replaceChildren(...st.payments.map((p) => pn.el('tr', {}, pn.el('td', {}, p.username || '—'), pn.el('td', {}, p.plan_id),
+      pn.el('td', {}, Number(p.amount).toLocaleString('fa-IR')), pn.el('td', {}, STATUS[p.status] || p.status), pn.el('td', { dir: 'ltr' }, p.ref_id || '—'), pn.el('td', {}, pn.when(p.created_at)))));
+  }
+  $('add-plan').addEventListener('click', () => addPlan());
+  $('backup-now').addEventListener('click', (e) => pn.run(e.currentTarget, $('backup-msg'), async () => { const r = await pn.api('POST', '/api/admin/backup'); await load(); return r; }));
+  $('save-billing').addEventListener('click', (e) => pn.run(e.currentTarget, $('billing-msg'), async () => {
+    const plans = [...$('plans').children].map((tr) => {
+      const v = (k) => tr.querySelector('[data-k="' + k + '"]');
+      return { id: tr.dataset.id, name: v('name').value.trim(), price: Number(v('price').value), days: Number(v('days').value), max_pages: Number(v('max_pages').value), ai: v('ai').checked };
+    });
+    await pn.api('POST', '/api/admin/billing', { enabled: $('bill-enabled').checked, sandbox: $('bill-sandbox').checked, merchant: $('bill-merchant').value.trim(),
+      free_pages: Number($('bill-free').value) || 1, plans });
+    await load(); return { ok: true, message: 'ذخیره شد ✓' };
+  }));
   $('save').addEventListener('click', (e) => pn.run(e.currentTarget, $('save-msg'), async () => {
     await pn.api('POST', '/api/admin/settings', { ai_provider: $('ai_provider').value, ai_model: $('ai_model').value.trim(), ai_key: $('ai_key').value.trim(),
       telegram_bot: $('telegram_bot').value.trim(), public_url: $('public_url').value.trim(), allow_signup: $('allow_signup').checked,

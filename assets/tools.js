@@ -204,6 +204,24 @@
     });
     document.title = (first.slice(0, 40) || 'ریل') + ' · ' + document.title.split(' · ').slice(-1)[0];
   }
+  // ---------- first steps for a new page (checked by the server against what's really set up) ----------
+  const onboard = $('onboard');
+  async function drawOnboarding() {
+    let me;
+    try { me = await api('GET', '/api/me'); } catch (e) { return; }
+    const o = me.onboarding;
+    if (!o || o.hidden || o.done || me.role !== 'owner') { onboard.hidden = true; return; }
+    const req = o.steps.filter((s) => !s.optional), done = req.filter((s) => s.done).length;
+    onboard.innerHTML = `
+      <div class="sj-onboard-head"><h3>شروع کار با این پیج</h3><span class="sj-chip">${done} از ${req.length}</span>
+        <button type="button" class="sj-linkbtn" id="onboard-hide">بعداً</button></div>
+      <div class="sj-bar"><i style="width:${Math.round((done / req.length) * 100)}%;background:var(--accent)"></i></div>
+      <ol>${o.steps.map((s) => `<li class="${s.done ? 'done' : ''}"><a href="${esc(s.href)}">${esc(s.label)}</a>${s.done ? ' ✓' : ''}</li>`).join('')}</ol>`;
+    onboard.hidden = false;
+    $('onboard-hide').addEventListener('click', () => { onboard.hidden = true; api('POST', '/api/me/onboarding', { hidden: true }).catch(() => {}); });
+  }
+  if (onboard) drawOnboarding();
+
   // ---------- the bell: alerts, weekly reports and panel notices (content/notifications.json) ----------
   const bellList = $('notif-list'), badge = $('notif-count');
   const faNum = (t) => String(t).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);  // the top bar is outside the page's digit converter

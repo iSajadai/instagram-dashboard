@@ -3,7 +3,7 @@ the dashboard chat, a reel's critique, hook/caption writing, comment analysis. A
 or as JSON held to a schema. Failures raise AIError with a message fit to show the user."""
 import json, threading, time
 
-from . import pipeline
+from . import billing, pipeline, store
 
 HOURLY_LIMIT = 40  # requests per user per hour, so a stuck page or a curious hand can't drain the key
 _calls = {}
@@ -28,6 +28,8 @@ def ask(user, system, messages, schema=None, max_tokens=8000, effort="medium"):
     """messages: [{"role": "user"|"assistant", "content": str}]. Returns text, or a dict when schema is given."""
     cfg = pipeline.ai_config(user)
     if not cfg:
+        if (store.setting("ai", {}) or {}).get("key") and not billing.may_use_panel_ai(user):
+            raise AIError("هوش مصنوعی پنل برای اشتراک‌های حرفه‌ایه؛ از «تنظیمات ← اشتراک» ارتقا بده، یا کلید Claude یا GPT خودت رو بذار.")
         raise AIError("کلید هوش مصنوعی تنظیم نشده؛ از «تنظیمات ← هوش مصنوعی» (یا ادمین) یه کلید Claude یا GPT بذار.")
     _rate(user["id"])
     if cfg["provider"] == "openai":

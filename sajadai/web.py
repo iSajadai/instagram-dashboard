@@ -3,7 +3,7 @@ Claude/ChatGPT token), the admin page, a read-only JSON API for ChatGPT Actions,
 
 Run: uvicorn sajadai.web:app --host 0.0.0.0 --port 8000   (or `python -m sajadai serve`, or docker compose up)
 """
-import contextlib, json, re, threading, time
+import contextlib, json, re, threading, time, urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,7 +12,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
-from . import ai, analysis, config, mcp_server, pages, pipeline, publish, store
+from . import ai, analysis, billing, config, mcp_server, ops, pages, pipeline, publish, store
 
 COOKIE = "sj_session"
 USERNAME = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
@@ -227,6 +227,12 @@ def logout(request: Request):
 
 # ---------- installable app, media kit, printable report ----------
 
+@api.get("/healthz", include_in_schema=False)
+def healthz():
+    h = ops.health()
+    return JSONResponse(h, status_code=200 if h["ok"] else 503, headers={"Cache-Control": "no-store"})
+
+
 @api.get("/sw.js", include_in_schema=False)
 def service_worker():
     # served from the root so it may control the whole site
@@ -338,8 +344,10 @@ async def new_page(request: Request, user=Depends(need_user)):
         raise HTTPException(400, "اسم پیج رو بنویس")
     person = user["person"]
     owned = sum(1 for u in store.users() if u["kind"] == "page" and u["owner_id"] == person["id"])
-    if owned + 1 >= max_pages() and not person["is_admin"]:
-        raise HTTPException(400, f"هر حساب حداکثر {max_pages()} پیج می‌تونه داشته باشه")
+    limit = billing.max_pages(person, max_pages())
+    if owned + 1 >= limit and not person["is_admin"]:
+        raise HTTPException(400, f"با اشتراک فعلیت حداکثر {limit} پیج می‌تونی داشته باشی" if billing.config()["enabled"]
+                            else f"هر حساب حداکثر {limit} پیج می‌تونه داشته باشه")
     pid = store.create_page(person["id"], name)
     pipeline.ensure_user_dir(pid)
     store.set_acting(request.cookies.get(COOKIE), pid)
@@ -469,6 +477,8 @@ def me(user=Depends(need_user)):
         "topics": load_content(user, "topics.json", []),
         "reel_topics": load_content(user, "reel_topics.json", {}),
         "status": {k: v for k, v in store.status(user).items()},
+        "onboarding": onboarding(user, p, s),
+        "billing": billing_view(person),
     }
 
 
@@ -550,6 +560,10 @@ async def save_goals(request: Request, user=Depends(need_editor)):
         clean.append({"id": f"g{i + 1}", "label": str(g.get("label") or "")[:80], "metric": g["metric"],
                       "target": int(target) if target.is_integer() else target, "deadline": dl, "why": str(g.get("why") or "")[:300]})
     save_content(user, "goals.json", clean)
+    p = store.prefs(user)
+    if not p.get("goals_set"):  # the starter goals were looked at and saved: that onboarding step is done
+        p["goals_set"] = True
+        store.set_prefs(user["id"], p)
     return {"ok": True}
 
 
@@ -992,6 +1006,9 @@ def admin_state(admin=Depends(need_admin)):
                      "telegram_bot": mask(store.setting("telegram_bot")) if store.setting("telegram_bot") else "",
                      "allow_signup": bool(store.setting("allow_signup", False)), "public_url": store.setting("public_url") or config.PUBLIC_URL,
                      "max_pages": max_pages()},
+        "ops": {**(store.setting("ops", {}) or {}), "backups": ops.describe()},
+        "billing": {**{k: v for k, v in billing.config().items() if k != "merchant"}, "merchant": mask(billing.config()["merchant"])},
+        "payments": [{k: r[k] for k in ("authority", "username", "plan_id", "amount", "status", "ref_id", "created_at")} for r in store.payments()],
         "providers": pipeline.AI_PROVIDERS,
         "users": [{"id": u["id"], "username": u["username"], "is_admin": bool(u["is_admin"]), "created_at": u["created_at"],
                    "kind": u["kind"], "owner_id": u["owner_id"], "page_name": store.prefs(u).get("page_name") or "",
@@ -1055,6 +1072,108 @@ def admin_delete_user(uid: int, admin=Depends(need_admin)):
     if uid == admin["person"]["id"]:
         raise HTTPException(400, "نمی‌تونی حساب خودت رو پاک کنی")
     store.delete_user(uid)  # the user's folder stays on disk, so a mistake can be undone by hand
+    return {"ok": True}
+
+
+@api.post("/api/admin/backup", include_in_schema=False, dependencies=[Depends(same_site)])
+async def admin_backup(admin=Depends(need_admin)):
+    ok, msg = await run_in_threadpool(ops.run_backup)
+    return {"ok": ok, "message": ("ساخته شد: " + msg) if ok else msg}
+
+
+@api.get("/api/admin/backups/{name}", include_in_schema=False)
+def admin_backup_file(name: str, admin=Depends(need_admin)):
+    p = next((b for b in ops.backups() if b.name == name), None)
+    if not p:
+        raise HTTPException(404)
+    return FileResponse(p, media_type="application/gzip", filename=p.name, headers={"Cache-Control": "no-store"})
+
+
+@api.post("/api/admin/billing", include_in_schema=False, dependencies=[Depends(same_site)])
+async def admin_billing(request: Request, admin=Depends(need_admin)):
+    b = await body(request)
+    c = store.setting("billing", {}) or {}
+    if "enabled" in b:
+        c["enabled"] = bool(b["enabled"])
+    if "sandbox" in b:
+        c["sandbox"] = bool(b["sandbox"])
+    m = str(b.get("merchant") or "").strip()
+    if m and not m.startswith("•"):
+        if not re.match(r"^[0-9a-fA-F-]{36}$", m):
+            raise HTTPException(400, "مرچنت کد زرین‌پال ۳۶ کاراکتره")
+        c["merchant"] = m
+    if "free_pages" in b:
+        c["free_pages"] = max(1, min(int(b["free_pages"] or 1), 50))
+    if "plans" in b:
+        plans, seen = [], set()
+        for i, x in enumerate(b["plans"] or []):
+            try:
+                plan = {"id": re.sub(r"[^a-z0-9-]", "", str(x.get("id") or "").lower())[:30] or f"plan-{i + 1}", "name": str(x["name"]).strip()[:60],
+                        "price": int(x["price"]), "days": int(x["days"]), "max_pages": int(x["max_pages"]), "ai": bool(x.get("ai"))}
+            except (KeyError, TypeError, ValueError):
+                raise HTTPException(400, f"پلن {i + 1}: اسم، قیمت (تومان)، روز و تعداد پیج لازمه")
+            if plan["id"] in seen or not plan["name"] or plan["price"] < 1000 or plan["days"] < 1 or plan["max_pages"] < 1:
+                raise HTTPException(400, f"پلن {i + 1}: نامعتبره (قیمت دست‌کم ۱۰۰۰ تومان)")
+            seen.add(plan["id"])
+            plans.append(plan)
+        c["plans"] = plans
+    if c.get("enabled") and not c.get("merchant"):
+        raise HTTPException(400, "برای روشن کردن اشتراک، اول مرچنت کد زرین‌پال رو بذار")
+    store.set_setting("billing", c)
+    return {"ok": True}
+
+
+# ---------- subscriptions (users) ----------
+
+def billing_view(person):
+    c = billing.config()
+    if not c["enabled"]:
+        return {"enabled": False}
+    return {"enabled": True, "plan": billing.plan_for(person), "plans": [x for x in c["plans"] if x.get("price")]}
+
+
+@api.post("/api/billing/checkout", include_in_schema=False, dependencies=[Depends(same_site)])
+async def checkout(request: Request, user=Depends(need_user)):
+    b = await body(request)
+    base = pipeline.public_url() or str(request.base_url).rstrip("/")
+    try:
+        url = await run_in_threadpool(billing.start, user["person"], str(b.get("plan") or ""), base + "/billing/callback")
+    except billing.PayError as e:
+        raise HTTPException(400, str(e))
+    return {"url": url}
+
+
+@api.get("/billing/callback", include_in_schema=False)
+async def billing_callback(Authority: str = "", Status: str = ""):
+    try:
+        ok, msg = await run_in_threadpool(billing.finish, Authority, Status)
+    except billing.PayError as e:
+        ok, msg = False, str(e)
+    return RedirectResponse("/settings?" + urllib.parse.urlencode({"billing": "ok" if ok else "fail", "msg": msg}) + "#billing-card")
+
+
+# ---------- onboarding ----------
+
+def onboarding(user, p, s):
+    """The first steps for a new page, each checked against what's really there."""
+    st = store.status(user)
+    steps = [
+        {"id": "profile", "label": "معرفی پیج برای هوش مصنوعی", "done": bool(p.get("page_profile")), "href": "/settings#page-card"},
+        {"id": "source", "label": "وصل کردن یه منبع داده (Instagram API، Buffer یا Metricool)", "done": bool(s.get("connections")), "href": "/settings#conns-card"},
+        {"id": "data", "label": "گرفتن اولین داده", "done": bool(st.get("refresh_ok")), "href": "/settings#status"},
+        {"id": "goals", "label": "تعیین هدف‌ها", "done": bool(p.get("goals_set")), "href": "/settings#goals-card"},
+        {"id": "ai", "label": "کلید هوش مصنوعی (برای ایده‌ها و دستیار)", "done": pipeline.ai_config(user) is not None, "href": "/settings#ai-card"},
+        {"id": "telegram", "label": "هشدارها تو تلگرام (اختیاری)", "done": bool(p.get("telegram_chat")), "href": "/settings#tg-card", "optional": True},
+    ]
+    return {"steps": steps, "hidden": bool(p.get("onboarding_hidden")), "done": all(x["done"] for x in steps if not x.get("optional"))}
+
+
+@api.post("/api/me/onboarding", include_in_schema=False, dependencies=[Depends(same_site)])
+async def hide_onboarding(request: Request, user=Depends(need_owner)):
+    b = await body(request)
+    p = store.prefs(user)
+    p["onboarding_hidden"] = bool(b.get("hidden", True))
+    store.set_prefs(user["id"], p)
     return {"ok": True}
 
 

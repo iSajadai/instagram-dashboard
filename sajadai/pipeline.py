@@ -4,7 +4,7 @@ only that user's directory and keys, so users never see each other's data."""
 import json, os, shutil, subprocess, sys, threading, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone
 
-from . import config, store
+from . import billing, config, store
 
 TEH = timezone(timedelta(hours=3, minutes=30))
 
@@ -70,7 +70,7 @@ def ai_config(user):
     panel = store.setting("ai", {}) or {}
     if s.get("ai_key"):
         return {"provider": p.get("ai_provider") or "anthropic", "model": p.get("ai_model") or "", "key": s["ai_key"], "own": True}
-    if panel.get("key"):
+    if panel.get("key") and billing.may_use_panel_ai(user):  # with subscriptions on, the shared key is for paid plans
         return {"provider": panel.get("provider") or "anthropic", "model": panel.get("model") or "", "key": panel["key"], "own": False}
     return None
 
@@ -259,7 +259,11 @@ def due_jobs(now=None):
 
 
 def scheduler_loop(stop: threading.Event):
+    from . import ops  # imported here: ops reaches back into this module for the bell
     while not stop.wait(60):
+        ops.tick()  # /healthz checks the scheduler is still turning
+        if ops.backup_due(datetime.now(TEH)):
+            ops.run_backup()
         for uid, job in due_jobs():
             try:
                 if job == "refresh":
@@ -271,3 +275,4 @@ def scheduler_loop(stop: threading.Event):
                     write_content(uid)
             except Exception as e:  # one user's failure mustn't stop the others
                 store.update_status(uid, **{f"{job}_log": f"error: {e}"})
+                ops.alert_admins(f"⚠️ خطا در کار زمان‌بندی‌شدهٔ «{job}»", f"کاربر {uid}: {e}"[:800])

@@ -31,6 +31,16 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL                    -- encrypted JSON
 );
+CREATE TABLE IF NOT EXISTS payments (    -- subscription payments through Zarinpal
+  authority TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  plan_id TEXT NOT NULL,
+  amount INTEGER NOT NULL,               -- toman
+  status TEXT NOT NULL,                  -- pending, verifying, paid, failed, canceled
+  ref_id TEXT,
+  created_at REAL NOT NULL,
+  updated_at REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS memberships (  -- who else works on a page, and as what
   page_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -282,6 +292,33 @@ def set_acting(token, page_id):
 def end_session(token):
     if token:
         q("DELETE FROM sessions WHERE token = ?", sha(token))
+
+
+# ---------- payments ----------
+
+def add_payment(user_id, plan_id, amount, authority):
+    now = time.time()
+    q("INSERT INTO payments (authority, user_id, plan_id, amount, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'pending', ?, ?)",
+      authority, user_id, plan_id, amount, now, now)
+
+
+def payment(authority):
+    return q1("SELECT * FROM payments WHERE authority = ?", authority)
+
+
+def claim_payment(authority) -> bool:
+    """Mark a pending payment as being verified; False if someone else got there first."""
+    with _lock:
+        return db().execute("UPDATE payments SET status = 'verifying', updated_at = ? WHERE authority = ? AND status = 'pending'",
+                            (time.time(), authority)).rowcount == 1
+
+
+def update_payment(authority, status, ref_id=None):
+    q("UPDATE payments SET status = ?, ref_id = COALESCE(?, ref_id), updated_at = ? WHERE authority = ?", status, ref_id, time.time(), authority)
+
+
+def payments(limit=30):
+    return q("SELECT payments.*, users.username FROM payments LEFT JOIN users ON users.id = payments.user_id ORDER BY created_at DESC LIMIT ?", limit)
 
 
 # ---------- panel settings (admin) ----------

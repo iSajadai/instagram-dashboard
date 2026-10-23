@@ -410,6 +410,14 @@ section.sj-sec { scroll-margin-top: calc(var(--header-height) + 1rem); }
 .sj-page-item small { color: var(--text-muted); font-size: 0.7rem; }
 .sj-pages hr { border: 0; border-top: 0.5px solid var(--border); margin: 0.35rem 0; }
 #sj-new-page { width: 100%; color: var(--accent); }
+/* first steps card in the overview */
+.sj-onboard { margin-top: 1rem; padding: 1rem 1.1rem; border-radius: 18px; background: var(--accent-soft); border: 0.5px solid var(--border-strong); display: flex; flex-direction: column; gap: 0.6rem; }
+.sj-onboard-head { display: flex; align-items: center; gap: 0.5rem; }
+.sj-onboard-head h3 { margin: 0; font-size: 1rem; flex: 1; }
+.sj-onboard ol { margin: 0; padding-inline-start: 1.3rem; list-style: persian; display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.3rem 1.5rem; }
+.sj-onboard li { line-height: 1.9; }
+.sj-onboard li a { color: var(--accent); }
+.sj-onboard li.done a { color: var(--text-muted); text-decoration: line-through; }
 /* menus open inside the blurred top bar, where their own blur can't reach the page, so they need a solid fill */
 html[data-theme="light"] .dropdown { background: #f9fafc; }
 html[data-theme="dark"] .dropdown { background: #1b2238; }

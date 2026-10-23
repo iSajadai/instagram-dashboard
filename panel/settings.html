@@ -20,6 +20,13 @@
 
   <p class="pn-note pn-role" id="role-note" hidden></p>
 
+  <section class="pn-card" id="billing-card" hidden>
+    <h2>اشتراک</h2>
+    <p class="pn-msg" id="billing-result" role="status"></p>
+    <p class="pn-note" id="billing-now"></p>
+    <div id="billing-plans" style="display:flex;flex-direction:column;gap:10px"></div>
+  </section>
+
   <section class="pn-card" id="pages-card">
     <h2>پیج‌ها</h2>
     <p class="pn-note">هر پیج اتصال‌ها، داده، هدف‌ها و بُرد خودش رو داره. از منوی پروفایل تو داشبورد بینشون جابه‌جا شو.</p>
@@ -49,13 +56,13 @@
     <details><summary>گزارش آخرین اجرا</summary><pre id="st-log"></pre></details>
   </section>
 
-  <section class="pn-card" data-min="owner">
+  <section id="conns-card" class="pn-card" data-min="owner">
     <h2>اتصال‌ها</h2>
     <p class="pn-note">هر کدوم رو که داری وصل کن؛ داده‌ها با هم ترکیب می‌شن. کلیدها رمزنگاری‌شده ذخیره می‌شن و فقط برای حساب خودت استفاده می‌شن. قبل از ذخیره، یه درخواست فقط‌خواندنی به سرویس زده می‌شه تا درست بودن کلید معلوم بشه.</p>
     <div id="conns" style="display:flex;flex-direction:column;gap:16px"></div>
   </section>
 
-  <section class="pn-card" data-min="owner">
+  <section id="page-card" class="pn-card" data-min="owner">
     <h2>صفحه</h2>
     <label>اسم داشبورد<input id="page_name" maxlength="60"></label>
     <label>معرفی پیج برای هوش مصنوعی
@@ -64,7 +71,7 @@
     <div class="pn-row"><button class="primary" id="save-page" type="button">ذخیره</button><span class="pn-msg" id="page-msg"></span></div>
   </section>
 
-  <section class="pn-card" data-min="owner">
+  <section id="ai-card" class="pn-card" data-min="owner">
     <h2>هوش مصنوعی</h2>
     <p class="pn-note" id="ai-panel-note"></p>
     <div class="pn-grid">
@@ -75,14 +82,14 @@
     <div class="pn-row"><button class="primary" id="save-ai" type="button">ذخیره</button><button id="clear-ai" type="button">حذف کلید خودم</button><span class="pn-msg" id="ai-msg"></span></div>
   </section>
 
-  <section class="pn-card" data-min="owner">
+  <section id="tg-card" class="pn-card" data-min="owner">
     <h2>تلگرام</h2>
     <p class="pn-note" id="tg-note"></p>
     <label>chat id<input id="telegram_chat" dir="ltr" inputmode="numeric" placeholder="123456789"></label>
     <div class="pn-row"><button class="primary" id="save-tg" type="button">ذخیره</button><span class="pn-msg" id="tg-msg"></span></div>
   </section>
 
-  <section class="pn-card" data-min="editor">
+  <section id="goals-card" class="pn-card" data-min="editor">
     <h2>هدف‌ها</h2>
     <p class="pn-note">با نوار پیشرفت بالای داشبورد نشون داده می‌شن. «فالوئر» آخرین تعداده؛ «ریل در هفته» و «بازدید در هفته» مال ۷ روز گذشته‌ان.</p>
     <div class="pn-wrap"><table><thead><tr><th>عنوان</th><th>معیار</th><th>عدد هدف</th><th>مهلت</th><th></th></tr></thead><tbody id="goals"></tbody></table></div>
@@ -166,7 +173,7 @@
     document.querySelectorAll('[data-min]').forEach((el) => { el.hidden = rank[me.role] < rank[el.dataset.min]; });
     $('role-note').hidden = me.role === 'owner';
     $('role-note').textContent = 'تو این پیج «' + ROLE[me.role] + '» هستی؛ بخش‌هایی که دست صاحب پیجه اینجا نشون داده نمی‌شن.';
-    drawPages(); drawTeam();
+    drawPages(); drawTeam(); drawBilling();
     const st = me.status || {};
     $('st-refresh').replaceChildren('آخرین گرفتن داده: ' + pn.when(st.refresh_at) + ' ',
       pn.el('span', { class: 'pn-chip ' + (st.refresh_at ? (st.refresh_ok ? 'ok' : 'bad') : 'off') }, st.refresh_at ? (st.refresh_ok ? 'موفق' : 'خطا') : 'هنوز نه'));
@@ -238,6 +245,27 @@
         if (r) location.reload();
       } }, 'باز کردن');
       return pn.el('tr', {}, pn.el('td', {}, p.name, p.own ? ' (پیج خودت)' : ''), pn.el('td', {}, ROLE[p.role]), pn.el('td', {}, pn.el('div', { class: 'pn-row' }, open, del, msg)));
+    }));
+  }
+  function drawBilling() {
+    const b = me.billing || {};
+    $('billing-card').hidden = !b.enabled;
+    if (!b.enabled) return;
+    const q = new URLSearchParams(location.search);
+    if (q.get('billing')) pn.say($('billing-result'), q.get('msg') || '', q.get('billing') === 'ok');
+    const fa = (n) => Number(n).toLocaleString('fa-IR');
+    $('billing-now').textContent = b.plan.until
+      ? 'اشتراک فعلی: ' + b.plan.name + ' تا ' + pn.when(b.plan.until) + ' · تا ' + fa(b.plan.max_pages) + ' پیج' + (b.plan.ai ? ' · با هوش مصنوعی پنل' : '')
+      : 'الان رو پلن رایگانی: ' + fa(b.plan.max_pages) + ' پیج، بدون هوش مصنوعی مشترک پنل (با کلید خودت همه‌چیز کار می‌کنه).';
+    $('billing-plans').replaceChildren(...b.plans.map((p) => {
+      const msg = pn.el('span', { class: 'pn-msg' });
+      const buy = pn.el('button', { type: 'button', class: 'primary', onclick: async (e) => {
+        const r = await pn.run(e.currentTarget, msg, () => pn.api('POST', '/api/billing/checkout', { plan: p.id }));
+        if (r && r.url) location.href = r.url;
+      } }, (b.plan.id === p.id ? 'تمدید' : 'خرید') + ' · ' + fa(p.price) + ' تومان');
+      return pn.el('div', { class: 'pn-row', style: 'justify-content:space-between;border-top:1px solid var(--color-border-line);padding-top:10px' },
+        pn.el('div', {}, pn.el('b', {}, p.name), pn.el('div', { class: 'pn-note' }, fa(p.days) + ' روز · تا ' + fa(p.max_pages) + ' پیج' + (p.ai ? ' · هوش مصنوعی پنل' : ''))),
+        pn.el('div', { class: 'pn-row' }, buy, msg));
     }));
   }
   async function drawTeam() {
