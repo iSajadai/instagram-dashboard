@@ -96,6 +96,32 @@
     <div class="pn-row"><button id="add-goal" type="button">+ هدف</button><button class="primary" id="save-goals" type="button">ذخیرهٔ هدف‌ها</button><span class="pn-msg" id="goals-msg"></span></div>
   </section>
 
+  <section class="pn-card" data-min="editor" id="voice-card">
+    <h2>صدای من</h2>
+    <p class="pn-note">همهٔ دستیارهای «استودیو محتوا» اینو می‌خونن. این‌جا مهم‌تر از هر جای دیگه‌ست، چون فیلمنامه رو باید بلند بگی: جمله‌ای که هیچ‌وقت نمی‌گی پیش‌نویس نیست، برداشت دوباره‌ست. اگه حوصلهٔ پر کردن نداری، بزن «حدس از کپشن‌هام».</p>
+    <div class="pn-grid">
+      <label>کی هستم، یه جمله<input data-v="who" maxlength="300"></label>
+      <label>آیدی<input data-v="handle" dir="ltr" maxlength="40"></label>
+      <label>با کی حرف می‌زنم (دقیق: «کارمندهایی که از صفر هوش مصنوعی یاد می‌گیرن»)<input data-v="audience" maxlength="300"></label>
+      <label>چی می‌فروشم<input data-v="sells" maxlength="300"></label>
+      <label>جلوی دوربین چطورم (تند و پرانرژی، آروم، شوخ، خشک…)<input data-v="on_camera" maxlength="200"></label>
+      <label>صورت تو ویدیو (همیشه، بعضی وقت‌ها، بدون صورت)<input data-v="face" maxlength="100"></label>
+      <label>کلمه‌هایی که واقعاً استفاده می‌کنم<input data-v="words_used" maxlength="500"></label>
+      <label>کلمه‌هایی که هیچ‌وقت نمی‌گم<input data-v="words_never" maxlength="500"></label>
+      <label>ایموجی تو کپشن (هیچ‌وقت، کم، آزاد)<input data-v="emoji" maxlength="100"></label>
+      <label>سرعت گفتار (کلمه در دقیقه، پیش‌فرض ۱۵۰)<input data-v="wpm" dir="ltr" inputmode="numeric" maxlength="3"></label>
+      <label>لحن<select data-v="register"><option value="casual">محاوره (مثل حرف زدن)</option><option value="formal">رسمی</option></select></label>
+      <label>کلمهٔ کامنت (یه کلمه، بی‌فاصله)<input data-v="keyword" maxlength="40"></label>
+      <label>کلمهٔ کامنت چی می‌فرسته<input data-v="keyword_sends" maxlength="300"></label>
+      <label>لینکم کجا می‌ره<input data-v="link" maxlength="300"></label>
+    </div>
+    <label>سه تا از کپشن‌ها یا متن ریل‌هام که بیشتر از همه شبیه خودمه<textarea data-v="samples" rows="5"></textarea></label>
+    <label>باورهام (۳ تا ۵ چیزی که بخشی از مخاطبم قبول ندارن؛ ریل‌های خوب از این‌جا درمیان)<textarea data-v="positions" rows="3"></textarea></label>
+    <label>ممنوع‌ها (موضوع‌هایی که نمی‌گم، اسم و عددهایی که نمی‌تونم بگم)<textarea data-v="off_limits" rows="2"></textarea></label>
+    <label>مدرک‌هایی که می‌تونم بگم (عدد، نتیجه، داستان واقعی؛ دستیارها هیچ‌وقت عدد نمی‌سازن)<textarea data-v="proof" rows="3"></textarea></label>
+    <div class="pn-row"><button class="primary" id="save-voice" type="button">ذخیره</button><button id="infer-voice" type="button">حدس از کپشن‌هام</button><span class="pn-msg" id="voice-msg"></span></div>
+  </section>
+
   <section class="pn-card" data-min="owner" id="kit-card">
     <h2>مدیاکیت عمومی</h2>
     <p class="pn-note">یه صفحهٔ عمومی برای برندها و همکاری‌ها: فالوئر، بازدید و میانهٔ ریل‌ها، ماندن ۳ ثانیه، بهترین ریل‌ها و راه تماس. فقط وقتی روشنش کنی دیده می‌شه، و هر وقت بخوای خاموشش می‌کنی.</p>
@@ -332,6 +358,18 @@
     await load();
     return { ok: true, message: r.url ? 'روشنه ✓' : 'خاموشه' };
   }));
+  async function loadVoice() {
+    const m = await pn.api('GET', '/api/me/studio/meta');
+    document.querySelectorAll('[data-v]').forEach((el) => { el.value = (m.voice || {})[el.dataset.v] || (el.tagName === 'SELECT' ? 'casual' : ''); });
+  }
+  const voiceValues = () => Object.fromEntries([...document.querySelectorAll('[data-v]')].map((el) => [el.dataset.v, el.value.trim()]));
+  $('save-voice').addEventListener('click', (e) => pn.run(e.currentTarget, $('voice-msg'), () => pn.api('POST', '/api/me/voice', voiceValues())));
+  $('infer-voice').addEventListener('click', (e) => pn.run(e.currentTarget, $('voice-msg'), async () => {
+    const v = await pn.api('POST', '/api/me/voice/infer');
+    Object.entries(v).forEach(([k, val]) => { const el = document.querySelector('[data-v="' + k + '"]'); if (el && val && !el.value) el.value = val; });
+    return { ok: true, message: 'حدس زده شد؛ نگاه کن، درستش کن و ذخیره بزن' };
+  }));
+  loadVoice().catch(() => {});
   $('add-exp').addEventListener('click', () => addExp());
   $('add-topic').addEventListener('click', () => addTopic());
   $('save-exps').addEventListener('click', (e) => pn.run(e.currentTarget, $('exps-msg'), () => pn.api('POST', '/api/me/experiments', {

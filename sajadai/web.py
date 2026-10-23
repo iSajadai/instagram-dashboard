@@ -12,7 +12,8 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
-from . import ai, analysis, billing, config, mcp_server, ops, pages, pipeline, publish, store
+from . import agents, ai, analysis, billing, config, mcp_server, ops, pages, pipeline, publish, store
+from .fa import beats as fa_beats, caption as fa_caption, hooks as fa_hooks, human as fa_human, text as fa_text, viral as fa_viral
 
 COOKIE = "sj_session"
 USERNAME = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
@@ -298,7 +299,9 @@ async def save_kit(request: Request, user=Depends(need_owner)):
 def notifications(user=Depends(need_user)):
     items = load_content(user, "notifications.json", [])[:50]
     # what each person has read is theirs, so a teammate opening the bell doesn't clear it for the owner
-    seen = (store.prefs(user["person"]).get("notifications_seen") or {}).get(str(user["id"]), "")
+    seen = store.prefs(user["person"]).get("notifications_seen") or {}
+    # before teams this was one timestamp for the person's own page
+    seen = seen.get(str(user["id"]), "") if isinstance(seen, dict) else (seen if user["id"] == user["person"]["id"] else "")
     return {"items": items, "unread": sum(1 for i in items if str(i.get("at") or "") > seen)}
 
 
@@ -935,6 +938,86 @@ async def write_caption(request: Request, user=Depends(need_editor)):
               "\nIts best reels so far: " + json.dumps([{k: r.get(k) for k in ("caption", "multiple_of_median", "view_rate_3s_pct")} for r in best], ensure_ascii=False))
     return await run_in_threadpool(lambda: ai_call(lambda: ai.ask(
         user, system, [{"role": "user", "content": "The reel:\n" + topic}], schema=CAPTION_SCHEMA, max_tokens=3000)))
+
+
+# ---------- content studio: the 13 Persian agents and their tools ----------
+
+@api.post("/api/me/studio/{agent}", include_in_schema=False, dependencies=[Depends(same_site)])
+async def studio_run(agent: str, request: Request, user=Depends(need_user)):
+    if agent not in agents.AGENTS:
+        raise HTTPException(404)
+    b = await body(request)
+    inp = b.get("input") if isinstance(b.get("input"), dict) else {}
+    if not (agent == "human" and not inp.get("rewrite")) and user["role"] not in ("owner", "editor"):
+        raise HTTPException(403, "دسترسی تو به این پیج فقط دیدنه")  # everything but the plain humanizer calls the AI
+    try:
+        return await run_in_threadpool(lambda: ai_call(lambda: agents.run(user, agent, inp)))
+    except agents.InputError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.get("/api/me/studio/history", include_in_schema=False)
+def studio_history(user=Depends(need_user)):
+    return {"items": [{k: h[k] for k in ("at", "agent", "input")} | {"i": i} for i, h in enumerate(agents.load(user, "studio_history.json", []))]}
+
+
+@api.get("/api/me/studio/history/{i}", include_in_schema=False)
+def studio_history_item(i: int, user=Depends(need_user)):
+    h = agents.load(user, "studio_history.json", [])
+    if not 0 <= i < len(h):
+        raise HTTPException(404)
+    return h[i]
+
+
+@api.get("/api/me/studio/meta", include_in_schema=False)
+def studio_meta(user=Depends(need_user)):
+    return {"formulas": [{k: f[k] for k in ("id", "name", "template", "example", "on_screen", "best_for", "trap")} for f in fa_hooks.formulas()],
+            "rubric": fa_text.data("rubric_fa.json")["items"], "voice": store.prefs(user).get("voice") or {},
+            "agents": {k: v[0] for k, v in agents.AGENTS.items()}}
+
+
+@api.post("/api/me/fa/{tool}", include_in_schema=False, dependencies=[Depends(same_site)])
+async def fa_tool(tool: str, request: Request, user=Depends(need_user)):
+    """The Persian tools on their own, no AI: hook scores, a beat sheet, the caption linter, the humanizer, a swipe ranking."""
+    b = await body(request)
+    w = agents.wpm(user)
+    if tool == "hooks":
+        return {"ranked": fa_hooks.rank([str(h) for h in (b.get("hooks") or [])][:20], w),
+                "formulas": [fa_hooks.classify(h) for h in (b.get("hooks") or [])][:20]}
+    if tool == "beats":
+        return fa_beats.analyse(str(b.get("script") or "")[:8000], int(b.get("wpm") or w), float(b["target"]) if b.get("target") else None)
+    if tool == "caption":
+        return fa_caption.analyse(str(b.get("text") or "")[:5000], b.get("keywords") or [])
+    if tool == "human":
+        return fa_human.run(str(b.get("text") or "")[:12000], agents.casual(user))
+    if tool == "swipe":
+        return fa_viral.swipe(fa_viral.read_rows(b.get("rows")))
+    raise HTTPException(404)
+
+
+VOICE_KEYS = ("who", "handle", "audience", "sells", "samples", "on_camera", "words_used", "words_never", "emoji", "face", "wpm",
+              "positions", "off_limits", "proof", "keyword", "keyword_sends", "link", "register")
+
+
+@api.post("/api/me/voice", include_in_schema=False, dependencies=[Depends(same_site)])
+async def save_voice(request: Request, user=Depends(need_editor)):
+    b = await body(request)
+    v = {k: str(b.get(k) or "").strip()[:3000] for k in VOICE_KEYS}
+    v["register"] = "formal" if v["register"] == "formal" else "casual"
+    if v["wpm"] and not v["wpm"].isdigit():
+        raise HTTPException(400, "سرعت گفتار باید عدد باشه (کلمه در دقیقه)")
+    p = store.prefs(user)
+    p["voice"] = v
+    store.set_prefs(user["id"], p)
+    return {"ok": True}
+
+
+@api.post("/api/me/voice/infer", include_in_schema=False, dependencies=[Depends(same_site)])
+async def infer_voice(user=Depends(need_editor)):
+    try:
+        return await run_in_threadpool(lambda: ai_call(lambda: agents.infer_voice(user)))
+    except agents.InputError as e:
+        raise HTTPException(400, str(e))
 
 
 # ---------- comments ----------

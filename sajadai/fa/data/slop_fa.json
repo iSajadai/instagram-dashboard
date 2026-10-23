@@ -1,0 +1,1545 @@
+{
+  "version": "1.0-fa",
+  "note": "واژه‌نامه‌ی فارسیِ humanize.py و detect.py برای کپشن، متن ریلز، کامنت و دایرکتِ اینستاگرامِ ایرانی. ترجمه‌ی نسخه‌ی انگلیسی نیست: نشانه‌های خودِ فارسی است؛ فعل‌های اداری («می‌باشد»، «گردید»)، گرته‌برداری از انگلیسی («نقش کلیدی ایفا می‌کند»، «سفر یادگیری»)، اغراق تبلیغاتی و کلیشه‌های اینستاگرامِ فارسی. نیم‌فاصله (U+200C) بخشی از املای درست فارسی است و هرگز حذف نمی‌شود. قاعده‌ی تطبیق در کلید matching آمده: اول ي و ك به ی و ک تبدیل می‌شوند، بعد هر find بین دو مرزِ «حرف فارسی/لاتین یا نیم‌فاصله» تطبیق داده می‌شود و فاصله یا نیم‌فاصله‌ی داخلش با [\\s\\u200c]+ جور می‌شود. مرز فقط حروف است، نه کل بازه‌ی U+0600 تا U+06FF؛ چون «،» و «؟» و «؛» هم در همان بازه‌اند و اگر مرز حساب شوند، واژه‌ی قبل از ویرگول فارسی هیچ‌وقت پیدا نمی‌شود. شکل‌های «می‌باشد» و «می باشد» یک الگو می‌سازند، پس تطابق‌های هم‌پوشان یک بار شمرده می‌شوند (اول بلندترها). جایگزین‌ها محاوره‌ی نرم و دستوری‌اند و رشته‌ی خالی یعنی حذف. هر واژه‌ای را که خودتان عمداً به کار می‌برید از فایل بردارید.",
+  "invisible": [
+    {
+      "cp": "U+200C",
+      "name": "ZERO WIDTH NON-JOINER (نیم‌فاصله، لازمِ املای فارسی)",
+      "action": "keep"
+    },
+    {
+      "cp": "U+200B",
+      "name": "ZERO WIDTH SPACE",
+      "action": "delete"
+    },
+    {
+      "cp": "U+200D",
+      "name": "ZERO WIDTH JOINER",
+      "action": "delete"
+    },
+    {
+      "cp": "U+2060",
+      "name": "WORD JOINER",
+      "action": "delete"
+    },
+    {
+      "cp": "U+FEFF",
+      "name": "ZERO WIDTH NO-BREAK SPACE / BOM",
+      "action": "delete"
+    },
+    {
+      "cp": "U+00AD",
+      "name": "SOFT HYPHEN",
+      "action": "delete"
+    },
+    {
+      "cp": "U+2061-U+2064",
+      "name": "INVISIBLE FUNCTION APPLICATION / TIMES / SEPARATOR / PLUS",
+      "action": "delete"
+    },
+    {
+      "cp": "U+180E",
+      "name": "MONGOLIAN VOWEL SEPARATOR",
+      "action": "delete"
+    },
+    {
+      "cp": "U+061C",
+      "name": "ARABIC LETTER MARK",
+      "action": "delete"
+    },
+    {
+      "cp": "U+200E",
+      "name": "LEFT-TO-RIGHT MARK",
+      "action": "delete"
+    },
+    {
+      "cp": "U+200F",
+      "name": "RIGHT-TO-LEFT MARK",
+      "action": "delete"
+    },
+    {
+      "cp": "U+202A-U+202E",
+      "name": "BIDI EMBEDDINGS / OVERRIDES (LRE, RLE, PDF, LRO, RLO)",
+      "action": "delete"
+    },
+    {
+      "cp": "U+2066-U+2069",
+      "name": "BIDI ISOLATES (LRI, RLI, FSI, PDI)",
+      "action": "delete"
+    },
+    {
+      "cp": "U+E0000-U+E007F",
+      "name": "TAG CHARACTERS (invisible ASCII smuggling)",
+      "action": "delete"
+    },
+    {
+      "cp": "U+00A0",
+      "name": "NO-BREAK SPACE",
+      "action": "space"
+    },
+    {
+      "cp": "U+202F",
+      "name": "NARROW NO-BREAK SPACE",
+      "action": "space"
+    },
+    {
+      "cp": "U+2009",
+      "name": "THIN SPACE",
+      "action": "space"
+    },
+    {
+      "cp": "U+2007",
+      "name": "FIGURE SPACE",
+      "action": "space"
+    },
+    {
+      "cp": "U+2003",
+      "name": "EM SPACE",
+      "action": "space"
+    },
+    {
+      "cp": "U+2002",
+      "name": "EN SPACE",
+      "action": "space"
+    }
+  ],
+  "typographic": [
+    {
+      "from": "—",
+      "name": "EM DASH",
+      "to": "، ",
+      "signal": true
+    },
+    {
+      "from": "–",
+      "name": "EN DASH",
+      "to": "-",
+      "signal": true
+    },
+    {
+      "from": "“",
+      "name": "LEFT DOUBLE QUOTE",
+      "to": "«",
+      "signal": true
+    },
+    {
+      "from": "”",
+      "name": "RIGHT DOUBLE QUOTE",
+      "to": "»",
+      "signal": true
+    },
+    {
+      "from": "‘",
+      "name": "LEFT SINGLE QUOTE",
+      "to": "'",
+      "signal": true
+    },
+    {
+      "from": "’",
+      "name": "RIGHT SINGLE QUOTE",
+      "to": "'",
+      "signal": true
+    },
+    {
+      "from": "…",
+      "name": "HORIZONTAL ELLIPSIS",
+      "to": "...",
+      "signal": true
+    },
+    {
+      "from": "•",
+      "name": "BULLET",
+      "to": "-",
+      "signal": true
+    },
+    {
+      "from": "·",
+      "name": "MIDDLE DOT",
+      "to": "-",
+      "signal": true
+    },
+    {
+      "from": "ي",
+      "name": "ARABIC YEH",
+      "to": "ی",
+      "signal": false
+    },
+    {
+      "from": "ك",
+      "name": "ARABIC KAF",
+      "to": "ک",
+      "signal": false
+    },
+    {
+      "from": "ى",
+      "name": "ARABIC ALEF MAKSURA",
+      "to": "ی",
+      "signal": false
+    },
+    {
+      "from": "٤",
+      "name": "ARABIC-INDIC DIGIT FOUR",
+      "to": "۴",
+      "signal": false
+    },
+    {
+      "from": "٥",
+      "name": "ARABIC-INDIC DIGIT FIVE",
+      "to": "۵",
+      "signal": false
+    },
+    {
+      "from": "٦",
+      "name": "ARABIC-INDIC DIGIT SIX",
+      "to": "۶",
+      "signal": false
+    }
+  ],
+  "words": [
+    {
+      "find": "می‌باشد",
+      "replace": "است",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می باشد",
+      "replace": "است",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "میباشد",
+      "replace": "است",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می‌باشند",
+      "replace": "هستند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می باشند",
+      "replace": "هستند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "میباشند",
+      "replace": "هستند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمی‌باشد",
+      "replace": "نیست",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمی باشد",
+      "replace": "نیست",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمیباشد",
+      "replace": "نیست",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمی‌باشند",
+      "replace": "نیستند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمی باشند",
+      "replace": "نیستند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمیباشند",
+      "replace": "نیستند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می‌نماید",
+      "replace": "می‌کند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می نماید",
+      "replace": "می‌کند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "مینماید",
+      "replace": "می‌کند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می‌نمایند",
+      "replace": "می‌کنند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می نمایند",
+      "replace": "می‌کنند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "مینمایند",
+      "replace": "می‌کنند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می‌گردد",
+      "replace": "می‌شود",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می گردد",
+      "replace": "می‌شود",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "میگردد",
+      "replace": "می‌شود",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می‌گردند",
+      "replace": "می‌شوند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "می گردند",
+      "replace": "می‌شوند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "میگردند",
+      "replace": "می‌شوند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "بهره‌گیری",
+      "replace": "استفاده",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "بهره گیری",
+      "replace": "استفاده",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "فوق‌الذکر",
+      "replace": "بالا",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "فوق الذکر",
+      "replace": "بالا",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "علی‌رغم",
+      "replace": "با وجود",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "علی رغم",
+      "replace": "با وجود",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "علیرغم",
+      "replace": "با وجود",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "به‌منظور",
+      "replace": "برای",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "به منظور",
+      "replace": "برای",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمود",
+      "replace": "کرد",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمودند",
+      "replace": "کردند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نموده",
+      "replace": "کرده",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمودن",
+      "replace": "کردن",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نمایید",
+      "replace": "کنید",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "نماید",
+      "replace": "کند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "گردید",
+      "replace": "شد",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "گردیدند",
+      "replace": "شدند",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "گردیده",
+      "replace": "شده",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "جهت",
+      "replace": "برای",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "اینجانب",
+      "replace": "من",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "لذا",
+      "replace": "برای همین",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "فلذا",
+      "replace": "برای همین",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "کماکان",
+      "replace": "هنوز",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "متعاقباً",
+      "replace": "بعد",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "بالاخص",
+      "replace": "مخصوصاً",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "مذکور",
+      "replace": "گفته‌شده",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "صرفاً",
+      "replace": "فقط",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "گاهاً",
+      "replace": "گاهی",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "دوماً",
+      "replace": "دوم اینکه",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "سوماً",
+      "replace": "سوم اینکه",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "درخصوص",
+      "replace": "درباره‌ی",
+      "family": "bureaucratic"
+    },
+    {
+      "find": "انقلابی",
+      "replace": "بزرگ",
+      "family": "hype"
+    },
+    {
+      "find": "تحول‌آفرین",
+      "replace": "مهم",
+      "family": "hype"
+    },
+    {
+      "find": "تحول آفرین",
+      "replace": "مهم",
+      "family": "hype"
+    },
+    {
+      "find": "متحول‌کننده",
+      "replace": "مهم",
+      "family": "hype"
+    },
+    {
+      "find": "متحول کننده",
+      "replace": "مهم",
+      "family": "hype"
+    },
+    {
+      "find": "بی‌نظیر",
+      "replace": "خیلی خوب",
+      "family": "hype"
+    },
+    {
+      "find": "بی نظیر",
+      "replace": "خیلی خوب",
+      "family": "hype"
+    },
+    {
+      "find": "بینظیر",
+      "replace": "خیلی خوب",
+      "family": "hype"
+    },
+    {
+      "find": "بی‌همتا",
+      "replace": "خاص",
+      "family": "hype"
+    },
+    {
+      "find": "بی همتا",
+      "replace": "خاص",
+      "family": "hype"
+    },
+    {
+      "find": "بیهمتا",
+      "replace": "خاص",
+      "family": "hype"
+    },
+    {
+      "find": "منحصربه‌فرد",
+      "replace": "خاص",
+      "family": "hype"
+    },
+    {
+      "find": "منحصربه فرد",
+      "replace": "خاص",
+      "family": "hype"
+    },
+    {
+      "find": "منحصر به فرد",
+      "replace": "خاص",
+      "family": "hype"
+    },
+    {
+      "find": "منحصربفرد",
+      "replace": "خاص",
+      "family": "hype"
+    },
+    {
+      "find": "شگفت‌انگیز",
+      "replace": "جالب",
+      "family": "hype"
+    },
+    {
+      "find": "شگفت انگیز",
+      "replace": "جالب",
+      "family": "hype"
+    },
+    {
+      "find": "شگفت‌انگیزی",
+      "replace": "جالبی",
+      "family": "hype"
+    },
+    {
+      "find": "شگفت انگیزی",
+      "replace": "جالبی",
+      "family": "hype"
+    },
+    {
+      "find": "خیره‌کننده",
+      "replace": "دیدنی",
+      "family": "hype"
+    },
+    {
+      "find": "خیره کننده",
+      "replace": "دیدنی",
+      "family": "hype"
+    },
+    {
+      "find": "حیرت‌انگیز",
+      "replace": "جالب",
+      "family": "hype"
+    },
+    {
+      "find": "حیرت انگیز",
+      "replace": "جالب",
+      "family": "hype"
+    },
+    {
+      "find": "خارق‌العاده",
+      "replace": "عجیب",
+      "family": "hype"
+    },
+    {
+      "find": "خارق العاده",
+      "replace": "عجیب",
+      "family": "hype"
+    },
+    {
+      "find": "فوق‌العاده‌ای",
+      "replace": "خیلی خوبی",
+      "family": "hype"
+    },
+    {
+      "find": "فوق العاده ای",
+      "replace": "خیلی خوبی",
+      "family": "hype"
+    },
+    {
+      "find": "قدرتمند",
+      "replace": "قوی",
+      "family": "hype"
+    },
+    {
+      "find": "قدرتمندی",
+      "replace": "قوی‌ای",
+      "family": "hype"
+    },
+    {
+      "find": "جادویی",
+      "replace": "خیلی خوب",
+      "family": "hype"
+    },
+    {
+      "find": "نوآورانه",
+      "replace": "جدید",
+      "family": "hype"
+    },
+    {
+      "find": "جامع",
+      "replace": "کامل",
+      "family": "hype"
+    },
+    {
+      "find": "ارزشمند",
+      "replace": "مفید",
+      "family": "hype"
+    },
+    {
+      "find": "گیم‌چنجر",
+      "replace": "مهم",
+      "family": "hype"
+    },
+    {
+      "find": "گیم چنجر",
+      "replace": "مهم",
+      "family": "hype"
+    },
+    {
+      "find": "گیمچنجر",
+      "replace": "مهم",
+      "family": "hype"
+    },
+    {
+      "find": "قطعاً",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "بی‌شک",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "بی شک",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "بیشک",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "بی‌تردید",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "بی تردید",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "مسلماً",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "اساساً",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "عمیقاً",
+      "replace": "خیلی",
+      "family": "filler"
+    },
+    {
+      "find": "همواره",
+      "replace": "همیشه",
+      "family": "filler"
+    },
+    {
+      "find": "هم‌اکنون",
+      "replace": "الان",
+      "family": "filler"
+    },
+    {
+      "find": "هم اکنون",
+      "replace": "الان",
+      "family": "filler"
+    },
+    {
+      "find": "هماکنون",
+      "replace": "الان",
+      "family": "filler"
+    },
+    {
+      "find": "حقیقتاً",
+      "replace": "واقعاً",
+      "family": "filler"
+    },
+    {
+      "find": "نهایتاً",
+      "replace": "آخرش",
+      "family": "filler"
+    },
+    {
+      "find": "بی‌گمان",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "بی گمان",
+      "replace": "",
+      "family": "filler"
+    },
+    {
+      "find": "چشم‌انداز",
+      "replace": "فضا",
+      "family": "translationese"
+    },
+    {
+      "find": "چشم انداز",
+      "replace": "فضا",
+      "family": "translationese"
+    },
+    {
+      "find": "چشمانداز",
+      "replace": "فضا",
+      "family": "translationese"
+    },
+    {
+      "find": "اکوسیستم",
+      "replace": "فضا",
+      "family": "translationese"
+    },
+    {
+      "find": "یکپارچه",
+      "replace": "یک‌دست",
+      "family": "translationese"
+    },
+    {
+      "find": "بهینه‌سازی‌شده",
+      "replace": "بهترشده",
+      "family": "translationese"
+    },
+    {
+      "find": "بهینه سازی شده",
+      "replace": "بهترشده",
+      "family": "translationese"
+    },
+    {
+      "find": "بهینه‌سازی شده",
+      "replace": "بهترشده",
+      "family": "translationese"
+    },
+    {
+      "find": "کلیدی",
+      "replace": "مهم",
+      "family": "translationese"
+    },
+    {
+      "find": "حیاتی",
+      "replace": "خیلی مهم",
+      "family": "translationese"
+    },
+    {
+      "find": "پارادایم",
+      "replace": "الگو",
+      "family": "translationese"
+    },
+    {
+      "find": "هم‌افزایی",
+      "replace": "همکاری",
+      "family": "translationese"
+    },
+    {
+      "find": "هم افزایی",
+      "replace": "همکاری",
+      "family": "translationese"
+    },
+    {
+      "find": "همافزایی",
+      "replace": "همکاری",
+      "family": "translationese"
+    },
+    {
+      "find": "توانمندسازی",
+      "replace": "کمک",
+      "family": "translationese"
+    },
+    {
+      "find": "کاوش",
+      "replace": "بررسی",
+      "family": "translationese"
+    },
+    {
+      "find": "نقشه‌راه",
+      "replace": "برنامه",
+      "family": "translationese"
+    },
+    {
+      "find": "نقشه راه",
+      "replace": "برنامه",
+      "family": "translationese"
+    },
+    {
+      "find": "گنجینه",
+      "replace": "کلی چیز",
+      "family": "translationese"
+    }
+  ],
+  "phrases": [
+    {
+      "find": "در دنیای پرشتاب امروز",
+      "replace": "این روزها",
+      "family": "openers"
+    },
+    {
+      "find": "در عصر دیجیتال امروز",
+      "replace": "این روزها",
+      "family": "openers"
+    },
+    {
+      "find": "در عصر دیجیتال",
+      "replace": "این روزها",
+      "family": "openers"
+    },
+    {
+      "find": "در دنیای امروز",
+      "replace": "این روزها",
+      "family": "openers"
+    },
+    {
+      "find": "امروزه با پیشرفت تکنولوژی",
+      "replace": "این روزها",
+      "family": "openers"
+    },
+    {
+      "find": "در دنیای همیشه در حال تغییر",
+      "replace": "در",
+      "family": "openers"
+    },
+    {
+      "find": "همانطور که می‌دانید",
+      "replace": "",
+      "family": "openers"
+    },
+    {
+      "find": "همان‌طور که می‌دانید",
+      "replace": "",
+      "family": "openers"
+    },
+    {
+      "find": "همونطور که میدونید",
+      "replace": "",
+      "family": "openers"
+    },
+    {
+      "find": "همونطور که می‌دونید",
+      "replace": "",
+      "family": "openers"
+    },
+    {
+      "find": "بیایید با هم نگاهی بیندازیم به",
+      "replace": "بریم سراغ",
+      "family": "openers"
+    },
+    {
+      "find": "بیایید نگاهی بیندازیم به",
+      "replace": "بریم سراغ",
+      "family": "openers"
+    },
+    {
+      "find": "بیایید شروع کنیم",
+      "replace": "شروع کنیم",
+      "family": "openers"
+    },
+    {
+      "find": "غوطه‌ور شویم",
+      "replace": "بریم سراغش",
+      "family": "openers"
+    },
+    {
+      "find": "کاوش کنیم",
+      "replace": "ببینیم",
+      "family": "openers"
+    },
+    {
+      "find": "سفر یادگیری",
+      "replace": "یادگیری",
+      "family": "openers"
+    },
+    {
+      "find": "سفر موفقیت",
+      "replace": "مسیر موفقیت",
+      "family": "openers"
+    },
+    {
+      "find": "تصور کنید دنیایی را که",
+      "replace": "فکر کنید اگه",
+      "family": "openers"
+    },
+    {
+      "find": "بر کسی پوشیده نیست که",
+      "replace": "",
+      "family": "openers"
+    },
+    {
+      "find": "پوشیده نیست که",
+      "replace": "",
+      "family": "openers"
+    },
+    {
+      "find": "لازم به ذکر است که",
+      "replace": "",
+      "family": "connectors"
+    },
+    {
+      "find": "لازم به ذکر است",
+      "replace": "",
+      "family": "connectors"
+    },
+    {
+      "find": "شایان ذکر است که",
+      "replace": "",
+      "family": "connectors"
+    },
+    {
+      "find": "شایان ذکر است",
+      "replace": "",
+      "family": "connectors"
+    },
+    {
+      "find": "به عبارت دیگر",
+      "replace": "یعنی",
+      "family": "connectors"
+    },
+    {
+      "find": "به بیان دیگر",
+      "replace": "یعنی",
+      "family": "connectors"
+    },
+    {
+      "find": "در نهایت می‌توان گفت که",
+      "replace": "",
+      "family": "connectors"
+    },
+    {
+      "find": "در نهایت می‌توان گفت",
+      "replace": "",
+      "family": "connectors"
+    },
+    {
+      "find": "در پایان",
+      "replace": "آخرش",
+      "family": "connectors"
+    },
+    {
+      "find": "به طور کلی",
+      "replace": "",
+      "family": "connectors"
+    },
+    {
+      "find": "در مجموع",
+      "replace": "کلاً",
+      "family": "connectors"
+    },
+    {
+      "find": "در راستای",
+      "replace": "برای",
+      "family": "connectors"
+    },
+    {
+      "find": "در خصوص",
+      "replace": "درباره‌ی",
+      "family": "connectors"
+    },
+    {
+      "find": "از اهمیت ویژه‌ای برخوردار است",
+      "replace": "خیلی مهمه",
+      "family": "connectors"
+    },
+    {
+      "find": "از اهمیت بالایی برخوردار است",
+      "replace": "خیلی مهمه",
+      "family": "connectors"
+    },
+    {
+      "find": "نقش کلیدی ایفا می‌کند",
+      "replace": "خیلی مهمه",
+      "family": "connectors"
+    },
+    {
+      "find": "نقش بسزایی ایفا می‌کند",
+      "replace": "خیلی اثر داره",
+      "family": "connectors"
+    },
+    {
+      "find": "نقش مهمی ایفا می‌کند",
+      "replace": "مهمه",
+      "family": "connectors"
+    },
+    {
+      "find": "ایفا می‌کند",
+      "replace": "داره",
+      "family": "connectors"
+    },
+    {
+      "find": "حائز اهمیت است",
+      "replace": "مهمه",
+      "family": "connectors"
+    },
+    {
+      "find": "حائز اهمیت",
+      "replace": "مهم",
+      "family": "connectors"
+    },
+    {
+      "find": "طیف گسترده‌ای از",
+      "replace": "کلی",
+      "family": "connectors"
+    },
+    {
+      "find": "گنجینه‌ای از",
+      "replace": "کلی",
+      "family": "connectors"
+    },
+    {
+      "find": "به طور قابل توجهی",
+      "replace": "خیلی",
+      "family": "connectors"
+    },
+    {
+      "find": "علاوه بر این",
+      "replace": "تازه",
+      "family": "connectors"
+    },
+    {
+      "find": "از سوی دیگر",
+      "replace": "از اون طرف",
+      "family": "connectors"
+    },
+    {
+      "find": "بدون شک",
+      "replace": "",
+      "family": "connectors"
+    },
+    {
+      "find": "بدون تردید",
+      "replace": "",
+      "family": "connectors"
+    },
+    {
+      "find": "امیدوارم این مطلب برای شما مفید بوده باشد",
+      "replace": "",
+      "family": "closers"
+    },
+    {
+      "find": "امیدوارم مفید بوده باشد",
+      "replace": "",
+      "family": "closers"
+    },
+    {
+      "find": "امیدوارم مفید بوده باشه",
+      "replace": "",
+      "family": "closers"
+    },
+    {
+      "find": "اگر سوالی دارید در کامنت‌ها بپرسید",
+      "replace": "",
+      "family": "closers"
+    },
+    {
+      "find": "نظرات خود را با ما در میان بگذارید",
+      "replace": "",
+      "family": "closers"
+    },
+    {
+      "find": "نظرتون رو تو کامنت‌ها بنویسید",
+      "replace": "",
+      "family": "closers"
+    },
+    {
+      "find": "انتخاب با شماست",
+      "replace": "",
+      "family": "closers"
+    },
+    {
+      "find": "پس منتظر چه هستید",
+      "replace": "",
+      "family": "closers"
+    },
+    {
+      "find": "پس منتظر چی هستی",
+      "replace": "",
+      "family": "closers"
+    },
+    {
+      "find": "اسکرول نکن",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "رد نشو",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "تا آخر ویدیو با ما باشید",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "تا آخر ویدیو ببین",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "فالو یادت نره",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "فالو یادتون نره",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "لایک و کامنت یادتون نره",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "برای دیدن مطالب بیشتر پیج رو فالو کن",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "برای مطالب بیشتر فالو کن",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "این پست رو برای کسی که لازمش داره بفرست",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "برای کسی که لازمش داره بفرست",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "تگ کن کسی که باید اینو ببینه",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "تگ کن کسی که",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "الگوریتم اینستاگرام عاشق",
+      "replace": "اینستاگرام طرفدار",
+      "family": "instagram"
+    },
+    {
+      "find": "الگوریتم عاشق",
+      "replace": "اینستاگرام طرفدار",
+      "family": "instagram"
+    },
+    {
+      "find": "اکسپلور شو",
+      "replace": "دیده شو",
+      "family": "instagram"
+    },
+    {
+      "find": "اکسپلور شدن",
+      "replace": "دیده شدن",
+      "family": "instagram"
+    },
+    {
+      "find": "دور زدن الگوریتم",
+      "replace": "دیده شدن",
+      "family": "instagram"
+    },
+    {
+      "find": "یک شبه وایرال",
+      "replace": "زود دیده",
+      "family": "instagram"
+    },
+    {
+      "find": "تو این ویدیو می‌خوام بهتون بگم",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "تو این ویدیو می‌خوام بهتون نشون بدم",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "در این ویدیو قصد داریم",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "امروز می‌خوام بهتون نشون بدم",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "سلام به همه‌ی دوستای عزیز",
+      "replace": "سلام",
+      "family": "instagram"
+    },
+    {
+      "find": "سلام به همه دوستای عزیز",
+      "replace": "سلام",
+      "family": "instagram"
+    },
+    {
+      "find": "هیچکس در موردش حرف نمیزنه",
+      "replace": "کمتر کسی ازش حرف می‌زنه",
+      "family": "instagram"
+    },
+    {
+      "find": "هیچ‌کس در موردش حرف نمی‌زنه",
+      "replace": "کمتر کسی ازش حرف می‌زنه",
+      "family": "instagram"
+    },
+    {
+      "find": "این همه چی رو عوض کرد",
+      "replace": "جواب داد",
+      "family": "instagram"
+    },
+    {
+      "find": "باورتون نمیشه",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "بریم که داشته باشیم",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "با ما همراه باشید",
+      "replace": "",
+      "family": "instagram"
+    },
+    {
+      "find": "سیو کن برای بعد",
+      "replace": "",
+      "family": "instagram"
+    }
+  ],
+  "structures": [
+    {
+      "id": "not-just",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:این|اون|آن)\\s+(?:فقط|صرفاً|تنها)\\s+[^.!?؟\\n]{2,60}?\\s+نیست(?:ش)?\\s*[،,.\\-]\\s*(?:بلکه)?",
+      "name": "«این فقط X نیست، (بلکه) Y است»",
+      "fix": "همون Y رو مستقیم بگو. نیمه‌ی «X نیست» رو پاک کن."
+    },
+    {
+      "id": "not-only",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])نه\\s*(?:تنها|فقط)\\s[^.!?؟\\n]{2,80}?بلکه(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+      "name": "«نه تنها ... بلکه ...»",
+      "fix": "دو جمله‌ی جدا کن یا نیمه‌ی ضعیف‌تر رو حذف کن."
+    },
+    {
+      "id": "isnt-about",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:موضوع|مسئله|بحث|داستان)\\s+(?:سر|درباره\\u200c?ی?|در\\s+مورد)\\s+[^.!?؟\\n]{2,60}?\\s+نیست\\s*[.،!,]\\s*(?:بلکه\\s+)?(?:سر|درباره|در\\s+مورد)",
+      "name": "«موضوع سر X نیست، سر Y است»",
+      "fix": "با Y شروع کن. خودِ چرخش جمله نشونه است."
+    },
+    {
+      "id": "rhetorical-q",
+      "regex": "^\\s*(?:(?:و|اما|ولی)\\s+)?(?:نتیجه|نتیجه\\u200cش|نتیجش|راز(?:\\s+(?:کار|ماجرا|موفقیت))?|بهترین\\s+قسمت(?:ش)?|جالبش|جالب\\u200cترین\\s+بخش(?:ش)?|چرا|چطور|چی\\s+شد|دلیلش|راه\\s*حل|حقیقت|مشکل\\s+کجاست|خلاصه)\\s*[؟?]\\s*$",
+      "name": "خطِ سؤالِ نمایشیِ کوتاه («نتیجه؟»، «اما چرا؟»، «راز کار؟»)",
+      "fix": "جواب رو همون‌جا توی جمله بگو؛ صحنه‌چینی نکن."
+    },
+    {
+      "id": "heres-the-point",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:نکته(?:\\u200c?ی\\s+(?:مهم|جالب))?|جالبش|جالبی\\s+ماجرا|اصل\\s+ماجرا|حقیقت|راز\\s+کار)\\s+(?:اینجاست|این\\s+است)\\s*(?:که|:)",
+      "name": "«نکته اینجاست که» / «حقیقت این است که»",
+      "fix": "خودِ نکته رو بگو، اعلامش نکن."
+    },
+    {
+      "id": "lets",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:بیایید|بیاین\\s+با\\s+هم|بیا\\s+با\\s+هم)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+      "name": "«بیایید ...» (let's ترجمه‌ای)",
+      "fix": "مستقیم برو سر اصل حرف؛ «بیایید» ترجمه‌ی let's است."
+    },
+    {
+      "id": "in-this-video",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:(?:تو|توی|در)\\s+(?:این|اين)\\s+(?:ویدیو|ویدئو|ویدیوی|ریلز|کلیپ|لایو)|امروز\\s+(?:می\\u200c?\\s?خوام|می\\u200c?\\s?خواهم|قراره)\\s+(?:بهتون|به\\s+شما|بهت)\\s+(?:نشون|نشان|بگم|بگویم|یاد|آموزش))",
+      "name": "مقدمه‌ی ویدیو («تو این ویدیو...»، «امروز می‌خوام بهتون نشون بدم»)",
+      "fix": "پاکش کن و از نتیجه شروع کن؛ دو ثانیه‌ی اول سرنوشت ریلز رو تعیین می‌کنه."
+    },
+    {
+      "id": "emoji-bullets",
+      "regex": "(?:^[ \\t]*[\\U0001F300-\\U0001FAFF☀-➿⬅-⬇⭐][^\\n]*(?:\\n|$)){3,}",
+      "name": "لیستِ بولتِ ایموجی (۳ خط یا بیشتر)",
+      "fix": "خط تیره یا شکستن خط؛ بولتِ ایموجی قالبی‌ترین چیز کپشنه."
+    },
+    {
+      "id": "hashtag-wall",
+      "regex": "(?:#[\\w\\u200c]+[ \\t\\n]*){6,}",
+      "name": "دیوارِ هشتگ (۶ یا بیشتر)",
+      "fix": "سه‌چهار هشتگِ دقیق کافیه."
+    },
+    {
+      "id": "follow-bait",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:فالو\\s*(?:کن|کنید|کنین)\\s+(?:برای|واسه|تا)|تگ\\s*(?:کن|کنید|کنین)\\s+(?:کسی|یکی|دوستی|رفیقی|کسایی)|دابل\\s*تپ|دو\\s*بار\\s*(?:لمس|تپ|ضربه)|لایک\\s+(?:کن|کنید|کنین)\\s+(?:اگه|اگر))",
+      "name": "طعمه‌ی رفلکسی (فالو کن برای، تگ کن کسی که، دابل‌تپ)",
+      "fix": "فقط همون یک کاری رو بخواه که این پست واقعاً لازم داره."
+    },
+    {
+      "id": "triad",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])[\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c]{2,}\\s*،\\s*[\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c]{2,}\\s+و\\s+[\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c]{2,}(?:\\s+(?:است|هست|بود|باشد|باشه))?\\s*[.!؟]",
+      "name": "سه‌گانه‌ی صفت («ساده، سریع و کاربردی»)",
+      "fix": "دو مورد یا چهار؛ سه‌تایی ریتم پیش‌فرض مدل است."
+    },
+    {
+      "id": "in-this-article",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:در|تو|توی)\\s+(?:این|ادامه\\u200c?ی?\\s+این)\\s+(?:مقاله|مطلب|نوشته|نوشتار)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+      "name": "«در این مقاله/مطلب»",
+      "fix": "کپشن مقاله نیست؛ پاکش کن."
+    },
+    {
+      "id": "as-mentioned",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:همان|همون)\\u200c?\\s?طور\\s+که\\s+(?:اشاره\\s+(?:شد|کردیم|کردم)|گفته\\s+شد|ذکر\\s+شد|گفتیم|قبلاً\\s+گفتم|قبلا\\s+گفتم)",
+      "name": "«همانطور که اشاره شد»",
+      "fix": "توی کپشن کوتاه به عقب ارجاع نده؛ حذفش کن."
+    },
+    {
+      "id": "bang-bang",
+      "regex": "!{3,}|[!؟?]{4,}",
+      "name": "علامت تعجب‌های پشت‌سرهم («!!!»)",
+      "fix": "یک علامت تعجب، یا هیچ."
+    },
+    {
+      "id": "fragment-cadence",
+      "regex": "(?:^|(?<=[.!؟]\\s))(?:[\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c]+(?:\\s+[\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c]+)?\\.\\s+){2}[\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c]+(?:\\s+[\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c]+)?\\.",
+      "name": "ریتمِ سه‌تکه‌ی «X. Y. Z.»",
+      "fix": "تکه‌ها رو توی یک جمله‌ی واقعی ادغام کن."
+    },
+    {
+      "id": "as-an-ai",
+      "regex": "به[\\s\\u200c]*عنوان\\s+(?:یک\\s+)?(?:مدل\\s+زبانی|هوش\\s+مصنوعی|دستیار\\s+(?:هوشمند|هوش\\s+مصنوعی))",
+      "name": "اشاره‌ی مدل به خودش («به عنوان یک مدل زبانی»)",
+      "fix": "کل جمله رو پاک کن."
+    },
+    {
+      "id": "essay-closer",
+      "regex": "^\\s*(?:در\\s+نهایت|در\\s+پایان|به[\\s\\u200c]*طور\\s+خلاصه|در\\s+جمع[\\s\\u200c]*بندی|نتیجه[\\s\\u200c]*گیری)\\s*[،:,]",
+      "name": "شروع‌کننده‌ی جمع‌بندیِ انشایی («در نهایت،»)",
+      "fix": "پست نتیجه‌گیری لازم نداره."
+    },
+    {
+      "id": "stop-scroll",
+      "regex": "^\\s*(?:اسکرول\\s+نکن(?:ید|ین)?|رد\\s+نشو|ردش\\s+نکن|وایسا)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+      "name": "شروعِ «اسکرول نکن»",
+      "fix": "خودِ ادعا باید توقف بسازه؛ درخواستِ توجه یعنی هنوز به دستش نیاوردی."
+    },
+    {
+      "id": "rocket",
+      "regex": "[\\U0001F680\\U0001F525\\U0001F4A1✨\\U0001F3AF]",
+      "name": "ایموجی موشک / آتش / لامپ / درخشش / هدف",
+      "fix": "حداکثر یک ایموجی، و نه از این پنج‌تا."
+    },
+    {
+      "id": "engagement-bait",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:نظر\\s*(?:تون|ت|شما)\\s+(?:چیه|چیست|در\\s+این\\s+(?:مورد|باره)\\s+چیست)|موافق(?:ی|ید|ین)|شما\\s+چی\\s+فکر\\s+می\\u200c?\\s?کنی(?:د|ن)?|کیا\\s+موافقن)\\s*[؟?]\\s*$",
+      "name": "طعمه‌ی تعاملِ آخر پست («نظرتون چیه؟»، «موافقید؟»)",
+      "fix": "سؤالی بپرس که فقط خودت درباره‌ی همین پست می‌تونی بپرسی."
+    },
+    {
+      "id": "shows-that",
+      "regex": "که\\s+نشان[\\s\\u200c]*(?:دهنده[\\s\\u200c]*ی?|می[\\s\\u200c]*دهد)\\s",
+      "name": "«که نشان‌دهنده‌ی ... است» آویزان به آخر جمله",
+      "fix": "یا جمله‌ی جدا با شاهد، یا حذف."
+    },
+    {
+      "id": "unsourced-claim",
+      "regex": "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:(?:کارشناسان|متخصصان|محققان)\\s+(?:معتقدند|بر\\s+این\\s+باورند)|(?:مطالعات|تحقیقات|پژوهش[\\s\\u200c]*ها)\\s+نشان\\s+(?:می[\\s\\u200c]*دهد|می[\\s\\u200c]*دهند|داده[\\s\\u200c]*اند))",
+      "name": "«کارشناسان معتقدند / تحقیقات نشان می‌دهد» بدون منبع",
+      "fix": "اسم منبع رو بیار یا حذفش کن."
+    }
+  ],
+  "colloquial_markers": [
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:می[\\u200c ]?|نمی[\\u200c ]?)(?:خوام|خوای|خواد|خوایم|خواین|تونم|تونی|تونه|تونیم|تونین|شه|ره|رم|گه|گم|دم|ده|دی|کنه|کنم|کنی|کنن|کنین|زنه|بینم|بینی|بینه|دونم|دونی|دونه|یاد|یام|گیره|خوره|مونه|شن|رن)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:داره|دارن|دارین|نداره|ندارن|هستن|نیستن|هستین|نیستین)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:اینو|اونو|اون|اونا|اینا|اونجا|اینجوری|اونجوری|همینجوری|چجوری|چطوری|همون)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "[\\u0600-\\u06ff]\\s+رو(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:بهت|برات|باهات|ازت|بهم|برام|باهام|ازم|بهش|براش|باهاش|ازش|بهتون|براتون|باهاتون|ازتون|بهمون|برامون|باهامون|ازمون)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:یه|خیلیا|همه\\u200c?ش|همش|چی|چیه|چیا|کیه|کجاست|اگه|دیگه|واسه|مگه|خب|آخرش|اولش|بعدش|راستش|الان|هنوزم|کلی)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:خوبه|بده|مهمه|عالیه|سخته|راحته|درسته|اینه|اونه|چطوره|بهتره|کافیه|لازمه|معلومه)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:کنین|بگین|ببینین|بدین|بخواین|برین|بیاین|بذار|بذارین|بذارید|نذار)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:اومد|اومدم|اومدی|اومده|اومدن|ور\\s+رفتم|موندم|خوندم)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])"
+  ],
+  "formal_markers": [
+    "[\\u0600-\\u06ff]\\s+را(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:می|نمی)[\\u200c ]?باش(?:د|ند)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])است(?=\\s*[.!؟،:;]|\\s*$)",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:می|نمی)[\\u200c ]?(?:شود|شوند|کند|کنند|دهد|دهند|گوید|گویند|رود|روند|آید|آیند|توان|توانند|توانید|توانیم|توانم|دانید|دانیم|نماید|نمایند)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])یک(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:آن|این)[\\u200c ]?ها(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])آن(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:همچنین|بنابراین|علاوه\\s+بر\\s+این|از\\s+این\\s+رو|لذا|زیرا|چنانچه|هنگامی\\s+که|به[\\s\\u200c]?منظور|جهت|نیز|گردید|گردد|نمایید|شایان|لازم\\s+به\\s+ذکر)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:هستند|نیستند|بودند|خواهد|خواهند|خواهیم|خواهید|خواهم)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])"
+  ],
+  "pronouns": [
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:من|ما|تو|شما|خودم|خودت|خودمون|خودتون|خودمان|خودتان|مرا|منو|ماها|شماها)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])(?:برام|بهم|ازم|باهام|بهت|برات|ازت|باهات|بهتون|براتون|ازتون|باهاتون|بهمون|برامون|ازمون|باهامون|برایم|برایت)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "[\\u0600-\\u06ff]{2,}\\u200c?(?:مون|تون|مان|تان)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])ن?(?:می|نمی)[\\u200c ]?[\\u0600-\\u06ff]{1,8}(?:م|یم|ین|ید|ی)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])",
+    "(?<![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])ن?(?:کردم|رفتم|گفتم|دیدم|خوردم|فهمیدم|داشتم|بودم|شدم|خریدم|نوشتم|ساختم|گرفتم|زدم|اومدم|موندم|خوندم|کردی|رفتی|گفتی|دیدی|داشتی|بودی|شدی|کردیم|رفتیم|گفتیم|داشتیم|بودیم|شدیم)(?![\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200c])"
+  ],
+  "number_words": [
+    "دو",
+    "سه",
+    "چهار",
+    "پنج",
+    "شش",
+    "شیش",
+    "هفت",
+    "هشت",
+    "نه",
+    "ده",
+    "یازده",
+    "دوازده",
+    "سیزده",
+    "چهارده",
+    "پانزده",
+    "پونزده",
+    "شانزده",
+    "شونزده",
+    "هفده",
+    "هجده",
+    "هیجده",
+    "نوزده",
+    "بیست",
+    "سی",
+    "چهل",
+    "پنجاه",
+    "شصت",
+    "هفتاد",
+    "هشتاد",
+    "نود",
+    "صد",
+    "دویست",
+    "سیصد",
+    "چهارصد",
+    "پانصد",
+    "پونصد",
+    "هزار",
+    "میلیون",
+    "میلیارد",
+    "نصف",
+    "نیم",
+    "دوبرابر",
+    "دو برابر",
+    "سه‌برابر",
+    "سه برابر",
+    "درصد",
+    "دهه",
+    "دوجین"
+  ],
+  "money_words": [
+    "تومن",
+    "تومان",
+    "دلار",
+    "ریال",
+    "یورو",
+    "درهم",
+    "میلیون",
+    "میلیارد",
+    "حقوق",
+    "اجاره",
+    "سود",
+    "ضرر",
+    "درآمد",
+    "قیمت",
+    "هزینه",
+    "قسط",
+    "وام",
+    "پول",
+    "دستمزد",
+    "فروش",
+    "بودجه",
+    "تخفیف",
+    "کارمزد",
+    "پس‌انداز"
+  ],
+  "time_units": [
+    "ثانیه",
+    "دقیقه",
+    "ساعت",
+    "روز",
+    "هفته",
+    "ماه",
+    "سال"
+  ],
+  "matching": {
+    "normalize": [
+      [
+        "ي",
+        "ی"
+      ],
+      [
+        "ك",
+        "ک"
+      ]
+    ],
+    "boundary_class": "[\\u0610-\\u061a\\u0620-\\u065f\\u066e-\\u06d3\\u06d5-\\u06dc\\u06df-\\u06e8\\u06ea-\\u06ef\\u06fa-\\u06ff\\u200cA-Za-z]",
+    "gap": "[\\s\\u200c]+",
+    "rule": "pattern = (?<!BOUNDARY) + re.escape(find) with each escaped space/ZWNJ run -> GAP + (?!BOUNDARY); count non-overlapping hits, longest find first"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "instagram-agent-fa",
+  "description": "Thirteen Persian (Farsi) Claude skills for running an Instagram page, localized from instagram-agent-skill: Reels from 26 Persian hook formulas with a scored hook and a timed beat sheet, viral research ranked by outlier multiple, a Persian caption linter, carousels, stories, profile score, weekly plan, comments, replies, DMs, repurposing, audits, and a Persian humanizer that keeps half-spaces.",
+  "version": "1.0.0",
+  "author": {
+    "name": "iSajadai",
+    "url": "https://github.com/iSajadai/instagram-dashboard"
+  },
+  "homepage": "https://github.com/iSajadai/instagram-dashboard",
+  "repository": "https://github.com/iSajadai/instagram-dashboard",
+  "license": "MIT",
+  "keywords": ["instagram", "persian", "farsi", "reels", "content", "humanizer"]
+}

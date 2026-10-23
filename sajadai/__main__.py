@@ -8,10 +8,11 @@
   python -m sajadai import NAME PATH                         copy an existing dashboard (repo checkout or
                                                              /var/lib/sajadai-dashboard) into a user's data
   python -m sajadai refresh NAME | content NAME              run a user's data refresh / AI content now
+  python -m sajadai build-skills                             copy the Persian tools into skills/ig-fa-tools (the Claude skills)
 
 Data lives in $SAJADAI_DATA_DIR (default: ./var in the repo).
 """
-import argparse, getpass, sys
+import argparse, getpass, shutil, sys
 
 from . import config, pipeline, store
 
@@ -40,6 +41,7 @@ def main(argv=None):
     i.add_argument("path")
     for name in ("refresh", "content"):
         sub.add_parser(name).add_argument("name")
+    sub.add_parser("build-skills")
     a = ap.parse_args(argv)
 
     if a.cmd == "serve":
@@ -55,7 +57,7 @@ def main(argv=None):
         pw = sys.stdin.readline().rstrip("\n") if a.password_stdin else getpass.getpass("password (8+ characters): ")
         if len(pw) < 8:
             sys.exit("password too short")
-        if store.find_user(a.name):
+        if store.name_taken(a.name):
             sys.exit(f"{a.name!r} already exists")
         uid = store.create_user(a.name, pw, a.admin, prefs={"page_name": a.name})
         pipeline.ensure_user_dir(uid)
@@ -76,6 +78,31 @@ def main(argv=None):
         ok = pipeline.write_content(u["id"])
         print(store.status(store.get_user(u["id"])).get("content_log", ""))
         sys.exit(0 if ok else 1)
+    elif a.cmd == "build-skills":
+        build_skills()
+
+
+TOOLS_ENTRY = '''#!/usr/bin/env python3
+"""Persian Instagram tools for the ig-*-fa Claude skills: hook scores, beat timing, the caption linter,
+the humanizer, swipe ranking, the 26 formulas and the profile rubric. Standard library only.
+Built from sajadai/fa by `python -m sajadai build-skills`; edit it there, not here."""
+import os, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fa.cli import main  # noqa: E402
+
+main()
+'''
+
+
+def build_skills():
+    """skills/ig-fa-tools gets a copy of sajadai/fa (it imports nothing else) and fa_tools.py to run it."""
+    src = config.ROOT / "sajadai" / "fa"
+    dst = config.ROOT / "skills" / "ig-fa-tools"
+    shutil.rmtree(dst / "fa", ignore_errors=True)
+    shutil.copytree(src, dst / "fa", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    (dst / "fa_tools.py").write_text(TOOLS_ENTRY, encoding="utf-8")
+    print(f"built {dst}")
 
 
 if __name__ == "__main__":

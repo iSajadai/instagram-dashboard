@@ -20,6 +20,12 @@ A self-hosted Instagram analytics dashboard with a multi-user panel, built for c
 - **Pages and teams.** Several Instagram pages per account, each with its own sources; add teammates as editor or viewer.
 - **Share and keep.** A public media kit for brands (`/kit/<name>`, opt-in), a printable weekly report, a notification
   bell, and it installs on a phone as an app.
+- **A Persian content studio.** The 13 agents of [instagram-agent-skill](https://github.com/Jakeschincariol/instagram-agent-skill)
+  (MIT) rebuilt for Persian: Reels from 26 Persian hook formulas with each hook scored out of 100 and the script timed,
+  captions linted against the 125 characters the feed shows, carousels with ready 1080×1350 slides, stories, a profile
+  score, a weekly plan built on the page's own best hours, viral research ranked by outlier multiple, comments, replies,
+  DMs, repurposing and an audit of the page's own reels. Everything passes a Persian humanizer that keeps (and fixes)
+  half-spaces. The same tools are in the MCP server, and as Claude skills in [`skills/`](skills).
 - **Run it for others.** Optional subscriptions with Zarinpal, nightly backups (7 kept, downloadable by the admin),
   and `/healthz` for uptime monitors.
 
@@ -98,6 +104,21 @@ Without Docker: `"command": "/path/to/instagram-dashboard/venv/bin/python"`, `"a
 ChatGPT can't reach `localhost`. To use it with a local panel, expose it with a tunnel
 (e.g. `cloudflared tunnel --url http://localhost:8000`) and use the tunnel URL above.
 
+### Persian Claude skills, without the panel
+
+`skills/` holds the 13 agents as Claude skills in Persian (`ig-reel-fa`, `ig-caption-fa`, … `ig-audit-fa`) plus
+`ig-fa-tools`, the Persian tools they run (standard library Python, nothing leaves the machine):
+
+```bash
+cp -r skills/ig-* ~/.claude/skills/
+# or, in Claude Code:
+/plugin marketplace add iSajadai/instagram-dashboard
+/plugin install instagram-agent-fa
+```
+
+Then fill `~/.claude/instagram/voice.md` from `skills/templates/voice.md`. The tools come from `sajadai/fa`
+(`python -m sajadai build-skills` refreshes the copy in `skills/ig-fa-tools`); tests are in `tests/`.
+
 ## Running it on a server
 
 Put the panel behind HTTPS. `deploy/nginx-panel.conf` is a reverse-proxy config for `127.0.0.1:8000`, and
@@ -135,6 +156,9 @@ sajadai/publish.py        sending to Buffer (ideas, scheduled reels)
 sajadai/pages.py          the media kit and the printable report
 sajadai/billing.py        plans and Zarinpal payments
 sajadai/ops.py            backups, /healthz, admin alerts
+sajadai/agents.py         the content studio's 13 agents (prompts, schemas, Persian post-processing)
+sajadai/fa/               Persian tools: hook scoring + 26 formulas, beat timing, caption linter, humanizer, swipe, audit
+skills/                   the same agents as Persian Claude skills
 scripts/fetch_*.py        Metricool / Buffer / Instagram API → raw/
 scripts/shape.py          raw/ → data.json (merging sources, keeping history)
 scripts/write_content.py  weekly AI ideas and insights (Claude or GPT, with web search)
@@ -152,6 +176,7 @@ index.html                the dashboard page (d3 charts, Vazirmatn font, no CDN)
 3. اتصال به Claude و ChatGPT: «تنظیمات ← اتصال به Claude و ChatGPT».
 
 **امکانات:**
+- استودیو محتوا: ۱۳ دستیار بومی‌شده برای فارسی (ریل با امتیاز هوک و زمان‌بندی، کپشن، کاروسل با فایل آماده، استوری، پروفایل، برنامهٔ هفته، تحقیق وایرال، کامنت، جواب، دایرکت، بازنشر، کالبدشکافی، آدمی‌کن)، و همین‌ها به‌صورت مهارت Claude تو پوشهٔ `skills`
 - دستیار و نقد ریل
 - نویسندهٔ هوک و کپشن
 - بُرد تولید با ارسال به Buffer

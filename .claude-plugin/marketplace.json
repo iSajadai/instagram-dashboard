@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "instagram-dashboard",
+  "description": "Persian Instagram skills for Claude",
+  "owner": {
+    "name": "iSajadai",
+    "url": "https://github.com/iSajadai/instagram-dashboard"
+  },
+  "plugins": [
+    {
+      "name": "instagram-agent-fa",
+      "description": "Thirteen Persian Instagram skills with Persian hook scoring, beat timing, a caption linter and a humanizer.",
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/iSajadai/instagram-dashboard"
+    }
+  ]
+}
