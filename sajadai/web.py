@@ -43,14 +43,45 @@ api = FastAPI(title="Instagram dashboard API", version="1.0", lifespan=lifespan,
 # ---------- auth helpers ----------
 
 def current_user(request: Request):
-    return store.session_user(request.cookies.get(COOKIE))
+    """The page this browser is working on (a users row as a dict: its data, settings and keys), with
+    "person" (who signed in), "role" (theirs on this page: owner, editor or viewer) and "is_admin" (the
+    person's). A person's own page is the default; another page needs a membership."""
+    tok = request.cookies.get(COOKIE)
+    person = store.session_user(tok)
+    if not person:
+        return None
+    page, role = person, "owner"
+    acting = store.session_acting(tok)
+    if acting and acting != person["id"]:
+        r = store.role_for(person["id"], acting)
+        p = store.get_user(acting) if r else None
+        if p:
+            page, role = p, r
+    u = dict(page)
+    u.update(person=dict(person), role=role, is_admin=bool(person["is_admin"]))
+    return u
 
 
 def need_user(request: Request):
+    """Anyone on the page, viewers included: for reading."""
     u = current_user(request)
     if not u:
         raise HTTPException(401, "وارد نشدی")
     return u
+
+
+def need_editor(user=Depends(need_user)):
+    """Owners and editors: changing content (goals, board, ideas) and using the AI tools."""
+    if user["role"] not in ("owner", "editor"):
+        raise HTTPException(403, "دسترسی تو به این پیج فقط دیدنه")
+    return user
+
+
+def need_owner(user=Depends(need_user)):
+    """The page's owner: its connections, keys, token, team and public kit."""
+    if user["role"] != "owner":
+        raise HTTPException(403, "فقط صاحب پیج می‌تونه این رو عوض کنه")
+    return user
 
 
 def need_admin(user=Depends(need_user)):
@@ -73,10 +104,12 @@ def api_user(request: Request):
     return u
 
 
-def login_response(user_id, body):
+def login_response(user_id, body, acting=None):
+    tok = store.new_session(user_id)
+    if acting:
+        store.set_acting(tok, acting)
     r = JSONResponse(body)
-    r.set_cookie(COOKIE, store.new_session(user_id), max_age=config.SESSION_DAYS * 86400, httponly=True,
-                 samesite="lax", secure=config.SECURE_COOKIES)
+    r.set_cookie(COOKIE, tok, max_age=config.SESSION_DAYS * 86400, httponly=True, samesite="lax", secure=config.SECURE_COOKIES)
     return r
 
 
@@ -95,7 +128,7 @@ def check_new_login(username, password):
         raise HTTPException(400, "نام کاربری: ۳ تا ۳۲ حرف انگلیسی، عدد، نقطه، خط تیره یا زیرخط")
     if len(password or "") < 8:
         raise HTTPException(400, "رمز باید دست‌کم ۸ حرف باشه")
-    if store.find_user(username):
+    if store.name_taken(username):
         raise HTTPException(400, "این نام کاربری گرفته شده")
 
 
@@ -236,7 +269,7 @@ def printable_report(request: Request, days: int = 7):
 
 
 @api.post("/api/me/kit", include_in_schema=False, dependencies=[Depends(same_site)])
-async def save_kit(request: Request, user=Depends(need_user)):
+async def save_kit(request: Request, user=Depends(need_owner)):
     b = await body(request)
     slug = str(b.get("slug") or "").strip().lower()
     on = bool(b.get("enabled"))
@@ -258,15 +291,106 @@ async def save_kit(request: Request, user=Depends(need_user)):
 @api.get("/api/me/notifications", include_in_schema=False)
 def notifications(user=Depends(need_user)):
     items = load_content(user, "notifications.json", [])[:50]
-    seen = store.prefs(user).get("notifications_seen") or ""
+    # what each person has read is theirs, so a teammate opening the bell doesn't clear it for the owner
+    seen = (store.prefs(user["person"]).get("notifications_seen") or {}).get(str(user["id"]), "")
     return {"items": items, "unread": sum(1 for i in items if str(i.get("at") or "") > seen)}
 
 
 @api.post("/api/me/notifications/seen", include_in_schema=False, dependencies=[Depends(same_site)])
 def notifications_seen(user=Depends(need_user)):
-    p = store.prefs(user)
-    p["notifications_seen"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    store.set_prefs(user["id"], p)
+    person = store.get_user(user["person"]["id"])
+    p = store.prefs(person)
+    if not isinstance(p.get("notifications_seen"), dict):
+        p["notifications_seen"] = {}
+    p["notifications_seen"][str(user["id"])] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    store.set_prefs(person["id"], p)
+    return {"ok": True}
+
+
+# ---------- pages and teams ----------
+# Every page is a users row with its own data folder, connections and settings. A person's own row is
+# their first page; extra pages are rows of kind 'page' that nobody signs in as. Others join a page as
+# editor or viewer through the memberships table, and each browser remembers which page it has open.
+
+def max_pages():
+    return int(store.setting("max_pages", 5) or 5)
+
+
+@api.post("/api/me/switch", include_in_schema=False, dependencies=[Depends(same_site)])
+async def switch_page(request: Request, user=Depends(need_user)):
+    b = await body(request)
+    try:
+        pid = int(b.get("page"))
+    except (TypeError, ValueError):
+        raise HTTPException(400, "پیج نامعتبره")
+    person = user["person"]
+    if not store.role_for(person["id"], pid):
+        raise HTTPException(403, "به این پیج دسترسی نداری")
+    store.set_acting(request.cookies.get(COOKIE), None if pid == person["id"] else pid)
+    return {"ok": True}
+
+
+@api.post("/api/pages", include_in_schema=False, dependencies=[Depends(same_site)])
+async def new_page(request: Request, user=Depends(need_user)):
+    b = await body(request)
+    name = str(b.get("name") or "").strip()[:60]
+    if not name:
+        raise HTTPException(400, "اسم پیج رو بنویس")
+    person = user["person"]
+    owned = sum(1 for u in store.users() if u["kind"] == "page" and u["owner_id"] == person["id"])
+    if owned + 1 >= max_pages() and not person["is_admin"]:
+        raise HTTPException(400, f"هر حساب حداکثر {max_pages()} پیج می‌تونه داشته باشه")
+    pid = store.create_page(person["id"], name)
+    pipeline.ensure_user_dir(pid)
+    store.set_acting(request.cookies.get(COOKIE), pid)
+    return {"ok": True, "id": pid}
+
+
+@api.delete("/api/pages/{pid}", include_in_schema=False, dependencies=[Depends(same_site)])
+def delete_page(pid: int, request: Request, user=Depends(need_user)):
+    page = store.get_user(pid)
+    person = user["person"]
+    if not page or page["kind"] != "page" or store.role_for(person["id"], pid) != "owner":
+        raise HTTPException(403, "فقط صاحب یه پیج اضافه می‌تونه پاکش کنه")
+    store.delete_user(pid)  # its folder stays on disk, so a mistake can be undone by hand
+    store.set_acting(request.cookies.get(COOKIE), None)
+    return {"ok": True}
+
+
+@api.get("/api/me/members", include_in_schema=False)
+def team(user=Depends(need_user)):
+    return {"members": store.members(user["id"]), "you": user["person"]["id"], "role": user["role"]}
+
+
+@api.post("/api/me/members", include_in_schema=False, dependencies=[Depends(same_site)])
+async def add_member(request: Request, user=Depends(need_owner)):
+    """Add someone who already has an account here, by their username, as editor or viewer."""
+    b = await body(request)
+    role = b.get("role")
+    if role not in ("editor", "viewer", "owner"):
+        raise HTTPException(400, "نقش باید editor، viewer یا owner باشه")
+    who = store.find_user(str(b.get("username") or ""))
+    if not who:
+        raise HTTPException(400, "کسی با این نام کاربری اینجا حساب نداره؛ اول باید ثبت‌نام کنه")
+    if who["id"] == user["id"]:
+        raise HTTPException(400, "این پیج خودشه")
+    store.set_member(user["id"], who["id"], role)
+    return {"ok": True}
+
+
+@api.delete("/api/me/members/{uid}", include_in_schema=False, dependencies=[Depends(same_site)])
+def remove_member(uid: int, request: Request, user=Depends(need_user)):
+    me_id = user["person"]["id"]
+    if uid != me_id and user["role"] != "owner":
+        raise HTTPException(403, "فقط صاحب پیج می‌تونه کسی رو برداره")
+    if uid == user["id"]:
+        raise HTTPException(400, "صاحب اصلی پیج رو نمی‌شه برداشت")
+    owners = [m for m in store.members(user["id"]) if m["role"] == "owner"]
+    if len(owners) == 1 and owners[0]["id"] == uid:
+        raise HTTPException(400, "پیج بدون صاحب نمی‌مونه؛ اول یکی دیگه رو owner کن")
+    store.remove_member(user["id"], uid)
+    if uid == me_id:  # left the page: back to their own
+        store.set_acting(request.cookies.get(COOKIE), None)
     return {"ok": True}
 
 
@@ -319,11 +443,15 @@ def mask(v):
 @api.get("/api/me", include_in_schema=False)
 def me(user=Depends(need_user)):
     p, s = store.prefs(user), store.user_secrets(user)
-    conns = s.get("connections", {})
+    owner = user["role"] == "owner"
+    conns = s.get("connections", {}) if owner else {k: {} for k in s.get("connections", {})}  # teammates see what's connected, not the keys
     panel_ai = store.setting("ai", {}) or {}
     base = pipeline.public_url()
+    person = user["person"]
     return {
-        "username": user["username"], "is_admin": bool(user["is_admin"]),
+        "username": person["username"], "is_admin": bool(user["is_admin"]), "role": user["role"],
+        "page": {"id": user["id"], "name": p.get("page_name") or user["username"], "own": user["id"] == person["id"]},
+        "pages": store.pages_for(person),
         "prefs": {k: p.get(k, "") for k in ("page_name", "page_profile", "telegram_chat", "ai_provider", "ai_model")},
         "kit": {"enabled": bool(p.get("kit_enabled")), "slug": p.get("kit_slug", ""), "bio": p.get("kit_bio", ""), "contact": p.get("kit_contact", ""),
                 "handle": p.get("kit_handle", ""), "url": (base or "") + "/kit/" + p["kit_slug"] if p.get("kit_enabled") and p.get("kit_slug") else None},
@@ -345,7 +473,7 @@ def me(user=Depends(need_user)):
 
 
 @api.post("/api/me/prefs", include_in_schema=False, dependencies=[Depends(same_site)])
-async def save_prefs(request: Request, user=Depends(need_user)):
+async def save_prefs(request: Request, user=Depends(need_owner)):
     b = await body(request)
     p = store.prefs(user)
     for k in ("page_name", "page_profile", "telegram_chat", "ai_provider", "ai_model"):
@@ -360,7 +488,7 @@ async def save_prefs(request: Request, user=Depends(need_user)):
 
 
 @api.post("/api/me/connections/{name}", include_in_schema=False, dependencies=[Depends(same_site)])
-async def save_connection(name: str, request: Request, user=Depends(need_user)):
+async def save_connection(name: str, request: Request, user=Depends(need_owner)):
     spec = pipeline.CONNECTIONS.get(name)
     if not spec:
         raise HTTPException(404)
@@ -382,7 +510,7 @@ async def save_connection(name: str, request: Request, user=Depends(need_user)):
 
 
 @api.delete("/api/me/connections/{name}", include_in_schema=False, dependencies=[Depends(same_site)])
-def remove_connection(name: str, user=Depends(need_user)):
+def remove_connection(name: str, user=Depends(need_owner)):
     s = store.user_secrets(user)
     s.get("connections", {}).pop(name, None)
     store.set_secrets(user["id"], s)
@@ -390,7 +518,7 @@ def remove_connection(name: str, user=Depends(need_user)):
 
 
 @api.post("/api/me/ai_key", include_in_schema=False, dependencies=[Depends(same_site)])
-async def save_ai_key(request: Request, user=Depends(need_user)):
+async def save_ai_key(request: Request, user=Depends(need_owner)):
     b = await body(request)
     s = store.user_secrets(user)
     key = str(b.get("key") or "").strip()
@@ -403,7 +531,7 @@ async def save_ai_key(request: Request, user=Depends(need_user)):
 
 
 @api.post("/api/me/goals", include_in_schema=False, dependencies=[Depends(same_site)])
-async def save_goals(request: Request, user=Depends(need_user)):
+async def save_goals(request: Request, user=Depends(need_editor)):
     b = await body(request)
     goals = b.get("goals")
     if not isinstance(goals, list) or len(goals) > 20:
@@ -452,7 +580,7 @@ def slug(text, taken, fallback="t"):
 
 
 @api.post("/api/me/experiments", include_in_schema=False, dependencies=[Depends(same_site)])
-async def save_experiments(request: Request, user=Depends(need_user)):
+async def save_experiments(request: Request, user=Depends(need_editor)):
     b = await body(request)
     exps = b.get("experiments")
     if not isinstance(exps, list) or len(exps) > 50:
@@ -478,7 +606,7 @@ async def save_experiments(request: Request, user=Depends(need_user)):
 
 
 @api.post("/api/me/topics", include_in_schema=False, dependencies=[Depends(same_site)])
-async def save_topics(request: Request, user=Depends(need_user)):
+async def save_topics(request: Request, user=Depends(need_editor)):
     """Topics ({label, keywords}) and the manual reel → topic fixes ({reel url: topic id})."""
     b = await body(request)
     topics, manual = b.get("topics"), b.get("reel_topics") or {}
@@ -519,7 +647,7 @@ def get_board(user=Depends(need_user)):
 
 
 @api.post("/api/me/board", include_in_schema=False, dependencies=[Depends(same_site)])
-async def save_board(request: Request, user=Depends(need_user)):
+async def save_board(request: Request, user=Depends(need_editor)):
     """The whole production board: each card is a reel on its way from idea to published."""
     b = await body(request)
     items = b.get("items")
@@ -571,7 +699,7 @@ def buffer_call(fn, *args):
 
 
 @api.get("/api/me/buffer/channels", include_in_schema=False)
-async def buffer_channels(user=Depends(need_user)):
+async def buffer_channels(user=Depends(need_editor)):
     k = buffer_key(user)
     chans = [c for c in await run_in_threadpool(buffer_call, publish.channels, k) if not c["disconnected"]]
     if not chans:
@@ -580,7 +708,7 @@ async def buffer_channels(user=Depends(need_user)):
 
 
 @api.post("/api/me/buffer/send", include_in_schema=False, dependencies=[Depends(same_site)])
-async def buffer_send(request: Request, user=Depends(need_user)):
+async def buffer_send(request: Request, user=Depends(need_editor)):
     """Send a board card to Buffer: as an idea, or as a reel scheduled for a Tehran time (needs a video URL)."""
     b = await body(request)
     k = buffer_key(user)
@@ -629,31 +757,32 @@ def background(fn, user_id):
 
 
 @api.post("/api/me/refresh", include_in_schema=False, dependencies=[Depends(same_site)])
-def refresh_now(user=Depends(need_user)):
+def refresh_now(user=Depends(need_editor)):
     return background(pipeline.refresh, user["id"])
 
 
 @api.post("/api/me/content", include_in_schema=False, dependencies=[Depends(same_site)])
-def content_now(user=Depends(need_user)):
+def content_now(user=Depends(need_editor)):
     if not pipeline.ai_config(user):
         raise HTTPException(400, "اول کلید هوش مصنوعی رو تنظیم کن (تو همین صفحه، یا از ادمین بخواه)")
     return background(pipeline.write_content, user["id"])
 
 
 @api.post("/api/me/token", include_in_schema=False, dependencies=[Depends(same_site)])
-def make_token(user=Depends(need_user)):
+def make_token(user=Depends(need_owner)):
     return {"token": store.new_api_token(user["id"])}
 
 
 @api.post("/api/me/password", include_in_schema=False, dependencies=[Depends(same_site)])
 async def change_password(request: Request, user=Depends(need_user)):
     b = await body(request)
-    if not store.check_pw(b.get("current") or "", user["pw"]):
+    person = user["person"]  # the password is the signed-in person's, whatever page is open
+    if not store.check_pw(b.get("current") or "", person["pw"]):
         raise HTTPException(400, "رمز فعلی اشتباهه")
     if len(b.get("new") or "") < 8:
         raise HTTPException(400, "رمز تازه باید دست‌کم ۸ حرف باشه")
-    store.set_password(user["id"], b["new"])
-    return login_response(user["id"], {"ok": True})
+    store.set_password(person["id"], b["new"])
+    return login_response(person["id"], {"ok": True}, acting=user["id"] if user["id"] != person["id"] else None)  # stay on the open page
 
 
 # ---------- AI: chat with the dashboard, a reel's critique, hook/caption writing ----------
@@ -693,7 +822,7 @@ The page's data (JSON):
 
 
 @api.post("/api/me/chat", include_in_schema=False, dependencies=[Depends(same_site)])
-async def chat(request: Request, user=Depends(need_user)):
+async def chat(request: Request, user=Depends(need_editor)):
     b = await body(request)
     msgs = [m for m in (b.get("messages") or []) if isinstance(m, dict) and m.get("role") in ("user", "assistant")]
     msgs = [{"role": m["role"], "content": str(m.get("content") or "")[:4000]} for m in msgs][-12:]
@@ -717,7 +846,7 @@ def my_reel(reel: str, user=Depends(need_user)):
 
 
 @api.post("/api/me/reel-topic", include_in_schema=False, dependencies=[Depends(same_site)])
-async def set_reel_topic(request: Request, user=Depends(need_user)):
+async def set_reel_topic(request: Request, user=Depends(need_editor)):
     """Fix one reel's topic by hand ("" goes back to guessing from the caption)."""
     b = await body(request)
     url, tid = str(b.get("reel") or ""), str(b.get("topic") or "")
@@ -742,7 +871,7 @@ CRITIQUE_SCHEMA = {
 
 
 @api.post("/api/me/reel-critique", include_in_schema=False, dependencies=[Depends(same_site)])
-async def reel_critique(request: Request, user=Depends(need_user)):
+async def reel_critique(request: Request, user=Depends(need_editor)):
     b = await body(request)
     d = user_json(user)
     r = analysis.reel(d, str(b.get("reel") or ""))
@@ -777,7 +906,7 @@ CAPTION_SCHEMA = {
 
 
 @api.post("/api/me/write-caption", include_in_schema=False, dependencies=[Depends(same_site)])
-async def write_caption(request: Request, user=Depends(need_user)):
+async def write_caption(request: Request, user=Depends(need_editor)):
     b = await body(request)
     topic = "\n".join(str(b.get(k) or "")[:1500] for k in ("title", "hook", "beats", "text") if b.get(k)).strip()
     if not topic:
@@ -832,7 +961,7 @@ COMMENTS_SCHEMA = {
 
 
 @api.post("/api/me/comments/analyze", include_in_schema=False, dependencies=[Depends(same_site)])
-async def analyze_comments(user=Depends(need_user)):
+async def analyze_comments(user=Depends(need_editor)):
     d = comments_data(user)
     if not d["posts"]:
         raise HTTPException(400, "هنوز کامنتی گرفته نشده" if d["error"] != "permission" else "توکن اینستاگرام اجازهٔ خوندن کامنت‌ها رو نداره")
@@ -861,9 +990,11 @@ def admin_state(admin=Depends(need_admin)):
     return {
         "settings": {"ai_provider": ai.get("provider", "anthropic"), "ai_model": ai.get("model", ""), "ai_key": mask(ai.get("key")) if ai.get("key") else "",
                      "telegram_bot": mask(store.setting("telegram_bot")) if store.setting("telegram_bot") else "",
-                     "allow_signup": bool(store.setting("allow_signup", False)), "public_url": store.setting("public_url") or config.PUBLIC_URL},
+                     "allow_signup": bool(store.setting("allow_signup", False)), "public_url": store.setting("public_url") or config.PUBLIC_URL,
+                     "max_pages": max_pages()},
         "providers": pipeline.AI_PROVIDERS,
         "users": [{"id": u["id"], "username": u["username"], "is_admin": bool(u["is_admin"]), "created_at": u["created_at"],
+                   "kind": u["kind"], "owner_id": u["owner_id"], "page_name": store.prefs(u).get("page_name") or "",
                    "connections": sorted(store.user_secrets(u).get("connections", {}).keys()),
                    "status": {k: v for k, v in store.status(u).items() if not k.endswith("_log")}} for u in store.users()],
     }
@@ -886,6 +1017,12 @@ async def admin_settings(request: Request, admin=Depends(need_admin)):
         store.set_setting("telegram_bot", str(b["telegram_bot"]).strip())
     if "allow_signup" in b:
         store.set_setting("allow_signup", bool(b["allow_signup"]))
+    if "max_pages" in b:
+        try:
+            n = int(b["max_pages"])
+        except (TypeError, ValueError):
+            raise HTTPException(400, "تعداد پیج باید عدد باشه")
+        store.set_setting("max_pages", max(1, min(n, 100)))
     if "public_url" in b:
         url = str(b["public_url"] or "").strip().rstrip("/")
         if url and not re.match(r"^https?://[^\s/]+", url):
@@ -906,13 +1043,16 @@ async def admin_reset_password(uid: int, request: Request, admin=Depends(need_ad
     b = await body(request)
     if len(b.get("password") or "") < 8:
         raise HTTPException(400, "رمز باید دست‌کم ۸ حرف باشه")
+    u = store.get_user(uid)
+    if not u or u["kind"] != "person":
+        raise HTTPException(400, "این یه پیج اضافه‌ست و رمز نداره")
     store.set_password(uid, b["password"])
     return {"ok": True}
 
 
 @api.delete("/api/admin/users/{uid}", include_in_schema=False, dependencies=[Depends(same_site)])
 def admin_delete_user(uid: int, admin=Depends(need_admin)):
-    if uid == admin["id"]:
+    if uid == admin["person"]["id"]:
         raise HTTPException(400, "نمی‌تونی حساب خودت رو پاک کنی")
     store.delete_user(uid)  # the user's folder stays on disk, so a mistake can be undone by hand
     return {"ok": True}

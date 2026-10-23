@@ -28,6 +28,7 @@
     <label>کلید API هوش مصنوعی<input id="ai_key" dir="ltr" autocomplete="off"></label>
     <label>توکن ربات تلگرام (از @BotFather)<input id="telegram_bot" dir="ltr" autocomplete="off"></label>
     <label>آدرس عمومی پنل<input id="public_url" dir="ltr" placeholder="https://dash.example.com"></label>
+    <label>حداکثر پیج برای هر حساب (با پیج خودش)<input id="max_pages" type="number" min="1" max="100" dir="ltr" style="max-width:8rem"></label>
     <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="allow_signup"> هر کسی بتونه خودش ثبت‌نام کنه</label>
     <div class="pn-row"><button class="primary" id="save" type="button">ذخیره</button><span class="pn-msg" id="save-msg"></span></div>
   </section>
@@ -60,18 +61,23 @@
     $('ai_provider').value = st.settings.ai_provider;
     ['ai_model', 'ai_key', 'telegram_bot', 'public_url'].forEach((k) => { $(k).value = st.settings[k] || ''; });
     $('allow_signup').checked = st.settings.allow_signup;
+    $('max_pages').value = st.settings.max_pages;
     $('users').replaceChildren(...st.users.map((u) => {
       const msg = pn.el('span', { class: 'pn-msg' });
       const reset = pn.el('button', { type: 'button', onclick: (e) => {
         const pw = prompt('رمز تازه برای ' + u.username + ' (دست‌کم ۸ حرف):');
         if (pw) pn.run(e.currentTarget, msg, () => pn.api('POST', '/api/admin/users/' + u.id + '/password', { password: pw }));
       } }, 'رمز تازه');
+      const isPage = u.kind === 'page';
+      if (isPage) reset.hidden = true;  // extra pages have no sign-in
+      const owner = isPage && st.users.find((x) => x.id === u.owner_id);
       const del = pn.el('button', { type: 'button', class: 'danger', onclick: async (e) => {
-        if (!confirm('کاربر ' + u.username + ' حذف بشه؟ (فایل‌های داده‌اش رو سرور می‌مونن)')) return;
+        if (!confirm((u.kind === 'page' ? 'پیج ' + (u.page_name || u.username) : 'کاربر ' + u.username + ' و پیج‌های اضافه‌اش') + ' حذف بشه؟ (فایل‌های داده رو سرور می‌مونن)')) return;
         await pn.run(e.currentTarget, msg, () => pn.api('DELETE', '/api/admin/users/' + u.id)); load();
       } }, 'حذف');
       return pn.el('tr', {},
-        pn.el('td', {}, u.username, u.is_admin ? ' · ادمین' : ''),
+        pn.el('td', {}, isPage ? '📄 ' + (u.page_name || u.username) : u.username, u.is_admin ? ' · ادمین' : '',
+          isPage ? pn.el('div', { class: 'pn-note' }, 'پیج اضافهٔ ' + (owner ? owner.username : '—')) : ''),
         pn.el('td', {}, u.connections.map((c) => LABEL[c] || c).join('، ') || '—'),
         pn.el('td', {}, chip(u.status.refresh_at, u.status.refresh_ok)),
         pn.el('td', {}, chip(u.status.content_at, u.status.content_ok)),
@@ -80,7 +86,8 @@
   };
   $('save').addEventListener('click', (e) => pn.run(e.currentTarget, $('save-msg'), async () => {
     await pn.api('POST', '/api/admin/settings', { ai_provider: $('ai_provider').value, ai_model: $('ai_model').value.trim(), ai_key: $('ai_key').value.trim(),
-      telegram_bot: $('telegram_bot').value.trim(), public_url: $('public_url').value.trim(), allow_signup: $('allow_signup').checked });
+      telegram_bot: $('telegram_bot').value.trim(), public_url: $('public_url').value.trim(), allow_signup: $('allow_signup').checked,
+      max_pages: Number($('max_pages').value) || 5 });
     await load(); return { ok: true, message: 'ذخیره شد ✓' };
   }));
   $('add').addEventListener('click', (e) => pn.run(e.currentTarget, $('add-msg'), async () => {

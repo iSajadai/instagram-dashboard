@@ -401,3 +401,19 @@ section.sj-sec { scroll-margin-top: calc(var(--header-height) + 1rem); }
 .sj-notif-item summary small { flex: none; color: var(--text-muted); font-weight: 400; font-size: 0.72rem; }
 .sj-notif-item p { margin: 0.4rem 0 0; font-size: 0.8rem; line-height: 1.8; color: var(--text-secondary); white-space: pre-line; }
 #notif-list .sj-note { padding: 0.5rem; margin: 0; }
+
+/* ---------- pages and team ---------- */
+.sj-pages-title { margin: 0; padding: 0.35rem 0.75rem 0.2rem; font-size: 0.72rem; color: var(--text-muted); }
+.sj-page-item { width: 100%; justify-content: space-between; }
+.sj-page-item.is-current { color: var(--accent); font-weight: 700; }
+.sj-page-item.is-current::after { content: "✓"; }
+.sj-page-item small { color: var(--text-muted); font-size: 0.7rem; }
+.sj-pages hr { border: 0; border-top: 0.5px solid var(--border); margin: 0.35rem 0; }
+#sj-new-page { width: 100%; color: var(--accent); }
+/* menus open inside the blurred top bar, where their own blur can't reach the page, so they need a solid fill */
+html[data-theme="light"] .dropdown { background: #f9fafc; }
+html[data-theme="dark"] .dropdown { background: #1b2238; }
+/* a viewer can look but not change: the server refuses anyway, this keeps the buttons out of the way */
+html.sj-ro .sj-row-btns, html.sj-ro .sj-bmove, html.sj-ro [data-new], html.sj-ro #reel-crit-btn, html.sj-ro #comments-analyze,
+html.sj-ro .nav-item[data-sec="assistant"], html.sj-ro #sj-refresh, html.sj-ro .sj-topic-pick, html.sj-ro [data-idea] { display: none !important; }
+html.sj-ro .sj-bcard { cursor: default; }

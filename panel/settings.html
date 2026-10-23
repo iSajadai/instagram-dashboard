@@ -18,7 +18,25 @@
     <nav class="pn-nav"><span id="who"></span><a href="/">داشبورد</a><a href="/admin" id="admin-link" hidden>ادمین</a><a href="/logout">خروج</a></nav>
   </div>
 
-  <section class="pn-card" id="status">
+  <p class="pn-note pn-role" id="role-note" hidden></p>
+
+  <section class="pn-card" id="pages-card">
+    <h2>پیج‌ها</h2>
+    <p class="pn-note">هر پیج اتصال‌ها، داده، هدف‌ها و بُرد خودش رو داره. از منوی پروفایل تو داشبورد بینشون جابه‌جا شو.</p>
+    <div class="pn-wrap"><table><thead><tr><th>پیج</th><th>نقش تو</th><th></th></tr></thead><tbody id="pages"></tbody></table></div>
+    <div class="pn-row"><input id="new-page" maxlength="60" placeholder="اسم پیج تازه" style="max-width:16rem"><button id="add-page" type="button">+ پیج تازه</button><span class="pn-msg" id="pages-msg"></span></div>
+  </section>
+
+  <section class="pn-card" id="team-card">
+    <h2>تیم این پیج</h2>
+    <p class="pn-note">ویرایشگر می‌تونه هدف‌ها، بُرد، آزمایش‌ها و ایده‌ها رو عوض کنه و از دستیار استفاده کنه؛ کلیدها و اتصال‌ها رو نمی‌بینه. «فقط دیدن» فقط داشبورد رو می‌بینه. کسی که اضافه می‌کنی باید اول اینجا حساب داشته باشه.</p>
+    <div class="pn-wrap"><table><thead><tr><th>کاربر</th><th>نقش</th><th></th></tr></thead><tbody id="members"></tbody></table></div>
+    <div class="pn-row" id="add-member-row"><input id="member-name" dir="ltr" placeholder="نام کاربری" style="max-width:12rem" autocomplete="off">
+      <select id="member-role"><option value="editor">ویرایشگر</option><option value="viewer">فقط دیدن</option><option value="owner">صاحب</option></select>
+      <button class="primary" id="add-member" type="button">اضافه کن</button><span class="pn-msg" id="team-msg"></span></div>
+  </section>
+
+  <section class="pn-card" data-min="editor" id="status">
     <h2>وضعیت داده</h2>
     <p class="pn-note">داده هر ۶ ساعت خودکار از منبع‌هایی که وصل کردی گرفته می‌شه. ایده‌ها و تحلیل هفتگی شنبه‌ها ساعت ۸:۳۰ تهران نوشته می‌شن.</p>
     <div class="pn-row"><span id="st-refresh"></span></div>
@@ -31,13 +49,13 @@
     <details><summary>گزارش آخرین اجرا</summary><pre id="st-log"></pre></details>
   </section>
 
-  <section class="pn-card">
+  <section class="pn-card" data-min="owner">
     <h2>اتصال‌ها</h2>
     <p class="pn-note">هر کدوم رو که داری وصل کن؛ داده‌ها با هم ترکیب می‌شن. کلیدها رمزنگاری‌شده ذخیره می‌شن و فقط برای حساب خودت استفاده می‌شن. قبل از ذخیره، یه درخواست فقط‌خواندنی به سرویس زده می‌شه تا درست بودن کلید معلوم بشه.</p>
     <div id="conns" style="display:flex;flex-direction:column;gap:16px"></div>
   </section>
 
-  <section class="pn-card">
+  <section class="pn-card" data-min="owner">
     <h2>صفحه</h2>
     <label>اسم داشبورد<input id="page_name" maxlength="60"></label>
     <label>معرفی پیج برای هوش مصنوعی
@@ -46,7 +64,7 @@
     <div class="pn-row"><button class="primary" id="save-page" type="button">ذخیره</button><span class="pn-msg" id="page-msg"></span></div>
   </section>
 
-  <section class="pn-card">
+  <section class="pn-card" data-min="owner">
     <h2>هوش مصنوعی</h2>
     <p class="pn-note" id="ai-panel-note"></p>
     <div class="pn-grid">
@@ -57,21 +75,21 @@
     <div class="pn-row"><button class="primary" id="save-ai" type="button">ذخیره</button><button id="clear-ai" type="button">حذف کلید خودم</button><span class="pn-msg" id="ai-msg"></span></div>
   </section>
 
-  <section class="pn-card">
+  <section class="pn-card" data-min="owner">
     <h2>تلگرام</h2>
     <p class="pn-note" id="tg-note"></p>
     <label>chat id<input id="telegram_chat" dir="ltr" inputmode="numeric" placeholder="123456789"></label>
     <div class="pn-row"><button class="primary" id="save-tg" type="button">ذخیره</button><span class="pn-msg" id="tg-msg"></span></div>
   </section>
 
-  <section class="pn-card">
+  <section class="pn-card" data-min="editor">
     <h2>هدف‌ها</h2>
     <p class="pn-note">با نوار پیشرفت بالای داشبورد نشون داده می‌شن. «فالوئر» آخرین تعداده؛ «ریل در هفته» و «بازدید در هفته» مال ۷ روز گذشته‌ان.</p>
     <div class="pn-wrap"><table><thead><tr><th>عنوان</th><th>معیار</th><th>عدد هدف</th><th>مهلت</th><th></th></tr></thead><tbody id="goals"></tbody></table></div>
     <div class="pn-row"><button id="add-goal" type="button">+ هدف</button><button class="primary" id="save-goals" type="button">ذخیرهٔ هدف‌ها</button><span class="pn-msg" id="goals-msg"></span></div>
   </section>
 
-  <section class="pn-card" id="kit-card">
+  <section class="pn-card" data-min="owner" id="kit-card">
     <h2>مدیاکیت عمومی</h2>
     <p class="pn-note">یه صفحهٔ عمومی برای برندها و همکاری‌ها: فالوئر، بازدید و میانهٔ ریل‌ها، ماندن ۳ ثانیه، بهترین ریل‌ها و راه تماس. فقط وقتی روشنش کنی دیده می‌شه، و هر وقت بخوای خاموشش می‌کنی.</p>
     <label class="pn-check"><input type="checkbox" id="kit_enabled"> مدیاکیت روشن باشه</label>
@@ -85,14 +103,14 @@
     <div class="pn-row"><button class="primary" id="save-kit" type="button">ذخیره</button><span class="pn-msg" id="kit-msg"></span></div>
   </section>
 
-  <section class="pn-card" id="experiments-card">
+  <section class="pn-card" data-min="editor" id="experiments-card">
     <h2>آزمایش‌ها</h2>
     <p class="pn-note">دو هوک یا دو کاور رو روی دو ریل امتحان کن. لینک هر دو ریل رو بذار؛ وقتی هر دو ۴۸ ساعته شدن، برنده تو صفحهٔ «آزمایش‌ها»ی داشبورد معلوم می‌شه.</p>
     <div id="exps" style="display:flex;flex-direction:column;gap:12px"></div>
     <div class="pn-row"><button id="add-exp" type="button">+ آزمایش</button><button class="primary" id="save-exps" type="button">ذخیرهٔ آزمایش‌ها</button><span class="pn-msg" id="exps-msg"></span></div>
   </section>
 
-  <section class="pn-card" id="topics-settings">
+  <section class="pn-card" data-min="editor" id="topics-settings">
     <h2>موضوع‌ها</h2>
     <p class="pn-note">موضوع هر ریل از کلمه‌های کپشنش حدس زده می‌شه: اولین موضوعی که یکی از کلمه‌هاش تو کپشن باشه. کلمه‌ها رو با ویرگول جدا کن. اگه یه ریل اشتباه دسته‌بندی شد، تو صفحهٔ همون ریل تو داشبورد موضوع درستش رو انتخاب کن.</p>
     <div class="pn-wrap"><table><thead><tr><th>موضوع</th><th>کلمه‌ها</th><th></th></tr></thead><tbody id="topics"></tbody></table></div>
@@ -100,7 +118,7 @@
     <div class="pn-row"><button id="add-topic" type="button">+ موضوع</button><button class="primary" id="save-topics" type="button">ذخیرهٔ موضوع‌ها</button><span class="pn-msg" id="topics-msg"></span></div>
   </section>
 
-  <section class="pn-card" id="ai-connect">
+  <section class="pn-card" data-min="owner" id="ai-connect">
     <h2>اتصال به Claude و ChatGPT</h2>
     <p class="pn-note">با یه توکن، Claude یا ChatGPT خودت می‌تونه آمار این داشبورد رو بخونه و ازش تحلیل و ایده بده (فقط خواندن؛ چیزی منتشر نمی‌کنه). توکن فقط یه بار نشون داده می‌شه؛ ساختن توکن تازه، قبلی رو باطل می‌کنه.</p>
     <div class="pn-row"><button class="primary" id="make-token" type="button">ساختن توکن</button><span class="pn-chip" id="token-chip"></span></div>
@@ -143,6 +161,12 @@
 
   function render() {
     $('who').textContent = me.username; $('admin-link').hidden = !me.is_admin;
+    document.querySelector('.pn-top h1').textContent = 'تنظیمات · ' + me.page.name;
+    const rank = { viewer: 0, editor: 1, owner: 2 };
+    document.querySelectorAll('[data-min]').forEach((el) => { el.hidden = rank[me.role] < rank[el.dataset.min]; });
+    $('role-note').hidden = me.role === 'owner';
+    $('role-note').textContent = 'تو این پیج «' + ROLE[me.role] + '» هستی؛ بخش‌هایی که دست صاحب پیجه اینجا نشون داده نمی‌شن.';
+    drawPages(); drawTeam();
     const st = me.status || {};
     $('st-refresh').replaceChildren('آخرین گرفتن داده: ' + pn.when(st.refresh_at) + ' ',
       pn.el('span', { class: 'pn-chip ' + (st.refresh_at ? (st.refresh_ok ? 'ok' : 'bad') : 'off') }, st.refresh_at ? (st.refresh_ok ? 'موفق' : 'خطا') : 'هنوز نه'));
@@ -199,6 +223,53 @@
     const nFix = Object.keys(me.reel_topics || {}).length;
     $('topic-fixes').textContent = nFix ? nFix + ' ریل موضوعش دستی تعیین شده. ریلی که موضوعش حذف بشه برمی‌گرده به حدس از کپشن.' : '';
   }
+
+  const ROLE = { owner: 'صاحب', editor: 'ویرایشگر', viewer: 'فقط دیدن' };
+  function drawPages() {
+    $('pages').replaceChildren(...me.pages.map((p) => {
+      const msg = pn.el('span', { class: 'pn-msg' });
+      const del = p.extra && p.role === 'owner' ? pn.el('button', { type: 'button', class: 'danger', onclick: async (e) => {
+        if (!confirm('پیج «' + p.name + '» با همهٔ تنظیماتش پاک بشه؟')) return;
+        const r = await pn.run(e.currentTarget, msg, () => pn.api('DELETE', '/api/pages/' + p.id));
+        if (r) location.reload();
+      } }, 'حذف') : '';
+      const open = p.id === me.page.id ? pn.el('span', { class: 'pn-chip ok' }, 'باز') : pn.el('button', { type: 'button', onclick: async (e) => {
+        const r = await pn.run(e.currentTarget, msg, () => pn.api('POST', '/api/me/switch', { page: p.id }));
+        if (r) location.reload();
+      } }, 'باز کردن');
+      return pn.el('tr', {}, pn.el('td', {}, p.name, p.own ? ' (پیج خودت)' : ''), pn.el('td', {}, ROLE[p.role]), pn.el('td', {}, pn.el('div', { class: 'pn-row' }, open, del, msg)));
+    }));
+  }
+  async function drawTeam() {
+    const t = await pn.api('GET', '/api/me/members');
+    const owner = t.role === 'owner';
+    $('add-member-row').hidden = !owner;
+    $('members').replaceChildren(...t.members.map((m) => {
+      const msg = pn.el('span', { class: 'pn-msg' });
+      let roleCell = ROLE[m.role];
+      const soleOwner = m.role === 'owner' && t.members.filter((x) => x.role === 'owner').length === 1;
+      if (owner && !m.self && m.id !== t.you) {
+        const sel = pn.el('select', { onchange: (e) => pn.run(e.currentTarget, msg, () => pn.api('POST', '/api/me/members', { username: m.username, role: sel.value })) },
+          ...Object.entries(ROLE).map(([k, v]) => pn.el('option', { value: k }, v)));
+        sel.value = m.role; roleCell = sel;
+      }
+      const leave = m.id === t.you && !m.self && !soleOwner;  // a page always keeps an owner
+      const rm = (owner && !m.self && m.id !== t.you) || leave ? pn.el('button', { type: 'button', class: 'danger', onclick: async (e) => {
+        if (!confirm(leave ? 'از این پیج خارج بشی؟' : m.username + ' از تیم برداشته بشه؟')) return;
+        const r = await pn.run(e.currentTarget, msg, () => pn.api('DELETE', '/api/me/members/' + m.id));
+        if (r) { if (leave) location.href = '/'; else drawTeam(); }
+      } }, leave ? 'خروج از پیج' : 'برداشتن') : '';
+      return pn.el('tr', {}, pn.el('td', { dir: 'ltr', style: 'text-align:right' }, m.username, m.id === t.you ? ' (تو)' : ''), pn.el('td', {}, roleCell), pn.el('td', {}, pn.el('div', { class: 'pn-row' }, rm, msg)));
+    }));
+  }
+  $('add-member').addEventListener('click', (e) => pn.run(e.currentTarget, $('team-msg'), async () => {
+    await pn.api('POST', '/api/me/members', { username: $('member-name').value.trim(), role: $('member-role').value });
+    $('member-name').value = ''; drawTeam(); return { ok: true, message: 'اضافه شد ✓' };
+  }));
+  $('add-page').addEventListener('click', (e) => pn.run(e.currentTarget, $('pages-msg'), async () => {
+    await pn.api('POST', '/api/pages', { name: $('new-page').value.trim() });
+    location.reload(); return { ok: true, message: 'ساخته شد ✓' };
+  }));
 
   const METRICS = [['multiple', 'چند برابر میانهٔ بازدید'], ['view_rate', 'ماندن بعد از ۳ ثانیه'], ['save_rate', 'نرخ ذخیره'], ['shares_per_1k', 'اشتراک در هر ۱۰۰۰ نفر'], ['avg_watch', 'میانگین تماشا']];
   function addExp(x) {

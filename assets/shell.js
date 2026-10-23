@@ -144,8 +144,34 @@
     document.getElementById('sj-greeting').textContent = greet() + '، ' + me.username;
     document.querySelectorAll('[data-user-name]').forEach((el) => { el.textContent = me.username; });
     document.querySelectorAll('[data-user-initials]').forEach((el) => { el.textContent = me.username.slice(0, 2).toUpperCase(); });
-    document.querySelectorAll('[data-user-role]').forEach((el) => { el.textContent = me.is_admin ? 'ادمین پنل' : 'کاربر'; });
+    const ROLE = { owner: 'صاحب پیج', editor: 'ویرایشگر', viewer: 'فقط دیدن' };
+    document.querySelectorAll('[data-user-role]').forEach((el) => { el.textContent = (me.page && !me.page.own ? ROLE[me.role] + ' · ' : '') + (me.is_admin ? 'ادمین پنل' : 'کاربر'); });
     root.classList.add('sj-panel');  // panel-only buttons drawn later (idea cards) show through CSS
+    root.classList.toggle('sj-ro', me.role === 'viewer');  // a viewer's page hides the buttons that change things
+    // pages: the ones this person can open, and a new one
+    const list = document.getElementById('sj-page-list');
+    if (list && me.pages) {
+      list.replaceChildren(...me.pages.map((p) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'dropdown-item text-sm sj-page-item' + (p.id === me.page.id ? ' is-current' : '');
+        b.textContent = p.name;
+        if (p.role !== 'owner') { const r = document.createElement('small'); r.textContent = ROLE[p.role]; b.append(r); }
+        b.addEventListener('click', async () => {
+          if (p.id === me.page.id) return;
+          const r = await fetch('/api/me/switch', { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'sajadai', 'Content-Type': 'application/json' }, body: JSON.stringify({ page: p.id }) });
+          if (r.ok) location.reload();
+        });
+        return b;
+      }));
+      document.getElementById('sj-new-page').addEventListener('click', async () => {
+        const name = prompt('اسم پیج تازه (مثلاً اسم پیج اینستاگرامش):');
+        if (!name || !name.trim()) return;
+        const r = await fetch('/api/pages', { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'sajadai', 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim() }) });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok) location.href = '/settings';  // a new page starts with connecting its sources
+        else alert(d.detail || 'ساخته نشد');
+      });
+    }
     // installable app: only the panel has a manifest and a service worker to offer
     const ml = document.createElement('link'); ml.rel = 'manifest'; ml.href = '/manifest.webmanifest'; document.head.append(ml);
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => { /* not over https */ });
