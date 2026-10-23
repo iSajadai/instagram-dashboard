@@ -16,38 +16,39 @@
     return d;
   }
   let meta = null;
+  const ico = (id) => `<svg class="sj-ico" aria-hidden="true"><use href="#${id}"></use></svg>`;
   const formulaOptions = () => '<option value="">خودش انتخاب کنه</option>' + (meta ? meta.formulas.map((f) => `<option value="${f.id}">#${fa(f.id)} ${esc(f.name)}</option>`).join('') : '');
 
   // ---------- the agents and their forms ----------
   const A = {
-    reel: { icon: '🎬', title: 'ریل‌ساز', desc: 'از یه ایده: سه هوک از ۲۶ فرمول با امتیاز، فیلمنامه، متن روی صفحه و زمان‌بندی صحنه‌ها.',
+    reel: { icon: 'i-a-reel', title: 'ریل‌ساز', desc: 'از یه ایده: سه هوک از ۲۶ فرمول با امتیاز، فیلمنامه، متن روی صفحه و زمان‌بندی صحنه‌ها.',
       fields: [['idea', 'ایدهٔ ریل (یه اتفاق واقعی، با عدد اگه داری)', 'area'], ['length', 'طول هدف (ثانیه)', 'num', '30'], ['formula', 'فرمول هوک', 'formula']] },
-    caption: { icon: '✍️', title: 'کپشن‌نویس', desc: 'کپشن با ۱۲۵ حرف اول درست، یه درخواست، تا ۵ هشتگ، بررسی‌شده با لینتر فارسی.',
+    caption: { icon: 'i-a-caption', title: 'کپشن‌نویس', desc: 'کپشن با ۱۲۵ حرف اول درست، یه درخواست، تا ۵ هشتگ، بررسی‌شده با لینتر فارسی.',
       fields: [['about', 'این پست/ریل دربارهٔ چیه (یا فیلمنامه‌اش)', 'area'], ['job', 'نوع', 'select', '', [['auto', 'خودش تشخیص بده'], ['A', 'ریل خودش هوک داره'], ['B', 'کپشن خودش محتواست']]], ['keywords', 'عبارت‌هایی که می‌خوای باهاش پیدا بشی (با ویرگول)', 'text']] },
-    carousel: { icon: '🗂️', title: 'کاروسل‌ساز', desc: 'کاور، متن اسلایدها، اسلاید جمع‌بندی و کپشن؛ با فایل‌های ۱۰۸۰×۱۳۵۰ آمادهٔ آپلود.',
+    carousel: { icon: 'i-a-carousel', title: 'کاروسل‌ساز', desc: 'کاور، متن اسلایدها، اسلاید جمع‌بندی و کپشن؛ با فایل‌های ۱۰۸۰×۱۳۵۰ آمادهٔ آپلود.',
       fields: [['idea', 'ایده (مرحله‌ها، چارچوب، قبل/بعد، فهرست)', 'area'], ['keywords', 'عبارت‌های جست‌وجو', 'text']] },
-    story: { icon: '⭕', title: 'استوری‌نویس', desc: 'استوری‌های امروز فریم به فریم، کدوم استیکر کجا، و قیف دایرکتی که اول خودشون شروع می‌کنن.',
+    story: { icon: 'i-a-story', title: 'استوری‌نویس', desc: 'استوری‌های امروز فریم به فریم، کدوم استیکر کجا، و قیف دایرکتی که اول خودشون شروع می‌کنن.',
       fields: [['today', 'امروز چی شد / چی داری', 'area'], ['goal', 'هدف', 'select', '', [['ارتباط', 'ارتباط'], ['فروش', 'فروش'], ['ایده گرفتن از مخاطب', 'ایده گرفتن از مخاطب'], ['معرفی محصول', 'معرفی محصول']]], ['offer', 'محصول یا پیشنهاد (اگه هست)', 'text']] },
-    viral: { icon: '🔎', title: 'تحقیق وایرال', desc: 'ریل‌هایی که تو حوزه‌ات جواب دادن رو با «چند برابر میانهٔ همون پیج» رتبه می‌ده، فرمولشون رو اسم می‌بره و نسخهٔ خودت رو می‌نویسه.',
+    viral: { icon: 'i-a-viral', title: 'تحقیق وایرال', desc: 'ریل‌هایی که تو حوزه‌ات جواب دادن رو با «چند برابر میانهٔ همون پیج» رتبه می‌ده، فرمولشون رو اسم می‌بره و نسخهٔ خودت رو می‌نویسه.',
       fields: [['niche', 'حوزه', 'text'], ['rows', 'ریل‌ها: هر خط «آیدی، فالوئر، میانهٔ بازدید ریل‌هاش، بازدید این ریل، هوک»', 'area', '@page_a\t48000\t11000\t412000\tهیچ‌کس بهت نمی‌گه ۳۰ ریل اولت قراره شکست بخوره']] },
-    plan: { icon: '🗓️', title: 'برنامه‌ریز هفته', desc: 'هفته از شنبه: چی، چه قالبی، چه ساعتی (از آمار خودت)، با فرمول هوک؛ و ۱۰ حساب برای تعامل.',
+    plan: { icon: 'i-a-plan', title: 'برنامه‌ریز هفته', desc: 'هفته از شنبه: چی، چه قالبی، چه ساعتی (از آمار خودت)، با فرمول هوک؛ و ۱۰ حساب برای تعامل.',
       fields: [['happened', 'این هفته واقعاً چی شد (تماس، عدد، اشتباه، چیزی که ساختی)', 'area'], ['sells', 'چی می‌فروشی و به کی', 'text'], ['themes', '۳-۴ موضوعی که می‌خوای بهش شناخته بشی', 'text'], ['accounts', 'حساب‌هایی که می‌خوای دیده بشی (اختیاری)', 'area']] },
-    audit: { icon: '🩺', title: 'کالبدشکافی پست‌ها', desc: 'ریل‌های خودت با عددهای واقعی: چند برابر میانه، ماندن ۳ ثانیه، اشتراک و فالو به ازای reach. چی رو قطع کنی، چی رو بیشتر.',
+    audit: { icon: 'i-a-audit', title: 'کالبدشکافی پست‌ها', desc: 'ریل‌های خودت با عددهای واقعی: چند برابر میانه، ماندن ۳ ثانیه، اشتراک و فالو به ازای reach. چی رو قطع کنی، چی رو بیشتر.',
       fields: [] },
-    profile: { icon: '🪪', title: 'پروفایل‌سنج', desc: 'پروفایلت از ۱۰۰ با چک‌لیست ۱۲ بخشی، و بازنویسی بخش‌هایی که امتیاز از دست دادن.',
+    profile: { icon: 'i-a-profile', title: 'پروفایل‌سنج', desc: 'پروفایلت از ۱۰۰ با چک‌لیست ۱۲ بخشی، و بازنویسی بخش‌هایی که امتیاز از دست دادن.',
       fields: [['name_field', 'فیلد نام (خط پررنگ زیر عکس)', 'text'], ['handle', 'آیدی', 'text'], ['bio', 'بایو', 'area'], ['link', 'لینک به کجا می‌ره', 'text'],
         ['highlights', 'اسم هایلایت‌ها', 'text'], ['pinned', 'پست‌های پین‌شده', 'text'], ['grid', 'نه کاور اول گرید چی نشون می‌دن', 'area'], ['photo', 'عکس پروفایل', 'text'],
         ['category', 'نوع اکانت و دسته‌بندی', 'text'], ['activity', 'آخرین پست و استوری کی بود', 'text']] },
-    human: { icon: '🧑', title: 'آدمی‌کن', desc: 'ردپای ماشین رو پاک می‌کنه (نیم‌فاصله رو نگه می‌داره و درست می‌کنه) و با پنج سنجه امتیاز می‌ده.',
+    human: { icon: 'i-a-human', title: 'آدمی‌کن', desc: 'ردپای ماشین رو پاک می‌کنه (نیم‌فاصله رو نگه می‌داره و درست می‌کنه) و با پنج سنجه امتیاز می‌ده.',
       fields: [['text', 'متن (کپشن، فیلمنامه، کامنت، دایرکت)', 'area'], ['rewrite', 'خطوط علامت‌دار رو هم با هوش مصنوعی بازنویسی کن', 'check']] },
-    comment: { icon: '💬', title: 'کامنت‌نویس', desc: 'کامنت روی پست بقیه که آدم با نظر بنویسه، نه ربات: دو گزینه از ۹ نوع.',
+    comment: { icon: 'i-a-comment', title: 'کامنت‌نویس', desc: 'کامنت روی پست بقیه که آدم با نظر بنویسه، نه ربات: دو گزینه از ۹ نوع.',
       fields: [['posts', 'متن پست یا ریل (چندتا؟ با یه خط --- جدا کن)', 'area']] },
-    reply: { icon: '↩️', title: 'جواب کامنت', desc: 'کامنت‌های پست خودت رو دسته‌بندی می‌کنه (کلمهٔ کلیدی، مشتری، سؤال، …) و به ترتیب ارزش جواب می‌نویسه.',
+    reply: { icon: 'i-a-reply', title: 'جواب کامنت', desc: 'کامنت‌های پست خودت رو دسته‌بندی می‌کنه (کلمهٔ کلیدی، مشتری، سؤال، …) و به ترتیب ارزش جواب می‌نویسه.',
       fields: [['comments', 'کامنت‌ها، هر خط یکی (با آیدی)', 'area']], extra: '<button type="button" class="sj-btn" id="reply-load">از کامنت‌های بی‌جواب خودم</button>' },
-    dm: { icon: '✉️', title: 'دایرکت‌نویس', desc: 'تحویل کلمهٔ کلیدی، پیام اول به آشنا، پیشنهاد همکاری، و دو پیگیری؛ فقط وقتی اول خودشون حرکت کردن.',
+    dm: { icon: 'i-a-dm', title: 'دایرکت‌نویس', desc: 'تحویل کلمهٔ کلیدی، پیام اول به آشنا، پیشنهاد همکاری، و دو پیگیری؛ فقط وقتی اول خودشون حرکت کردن.',
       fields: [['kind', 'نوع', 'select', '', [['keyword', 'تحویل کلمهٔ کلیدی'], ['warm', 'پیام به آشنا'], ['collab', 'پیشنهاد همکاری'], ['cold', 'سرد (توصیه نمی‌شه)']]],
         ['who', 'به کی (آیدی، چی کار می‌کنه)', 'text'], ['trigger', 'دلیل پیام امروز (کامنتی که گذاشت، استوری‌ای که جواب داد…)', 'text'], ['want', 'چی می‌خوای', 'text'], ['thing', 'چیزی که قول دادی / لینکش', 'text']] },
-    repurpose: { icon: '♻️', title: 'بازنشر', desc: 'یه ویدیو، پادکست یا مقالهٔ بلند رو می‌کنه یه هفته ریل و کاروسل که هر کدوم تنها وایمیستن.',
+    repurpose: { icon: 'i-a-repurpose', title: 'بازنشر', desc: 'یه ویدیو، پادکست یا مقالهٔ بلند رو می‌کنه یه هفته ریل و کاروسل که هر کدوم تنها وایمیستن.',
       fields: [['title', 'عنوان منبع', 'text'], ['source', 'متن کامل (ترنسکریپت، مقاله، یادداشت)', 'area']] },
   };
   const ORDER = ['reel', 'caption', 'carousel', 'story', 'viral', 'plan', 'audit', 'profile', 'human', 'comment', 'reply', 'dm', 'repurpose'];
@@ -67,7 +68,7 @@
     const a = A[agent];
     location.hash = '#/studio/' + agent;
     $('studio-form-card').hidden = false;
-    $('studio-form-title').textContent = a.icon + ' ' + a.title;
+    $('studio-form-title').innerHTML = ico(a.icon) + ' ' + esc(a.title);
     $('studio-form-desc').textContent = a.desc;
     $('studio-fields').innerHTML = a.fields.map(field).join('') + (a.extra || '');
     Object.entries(prefill || {}).forEach(([k, v]) => { const el = $('sf-' + k); if (el) { if (el.type === 'checkbox') el.checked = !!v; else el.value = v; } });
@@ -295,13 +296,13 @@
   async function history() {
     try {
       const d = await api('GET', '/api/me/studio/history');
-      $('studio-history').innerHTML = d.items.length ? d.items.slice(0, 12).map((h) => `<button type="button" class="sj-chip-btn" data-hist="${h.i}">${esc(A[h.agent] ? A[h.agent].icon + ' ' + A[h.agent].title : h.agent)} · ${esc(String(Object.values(h.input || {}).find((v) => typeof v === 'string' && v) || '').slice(0, 30))}</button>`).join('')
-        : '<p class="sj-small">هنوز چیزی ننوشتی.</p>';
+      $('studio-history').innerHTML = d.items.length ? d.items.slice(0, 12).map((h) => `<button type="button" class="sj-chip-btn" data-hist="${h.i}">${A[h.agent] ? ico(A[h.agent].icon) + ' ' + esc(A[h.agent].title) : esc(h.agent)} · ${esc(String(Object.values(h.input || {}).find((v) => typeof v === 'string' && v) || '').slice(0, 30))}</button>`).join('')
+        : window.vfEmpty('i-a-reel', 'هنوز چیزی ننوشتی', 'یه دستیار از بالا انتخاب کن؛ هر چی بنویسه این‌جا می‌مونه تا دوباره ببینیش.');
     } catch (e) { /* signed out */ }
   }
   async function show(param) {
     if (!meta) { try { meta = await api('GET', '/api/me/studio/meta'); } catch (e) { meta = { formulas: [] }; } }
-    $('studio-agents').innerHTML = ORDER.map((k) => `<button type="button" class="sj-agent" data-agent="${k}"><span>${A[k].icon}</span><b>${A[k].title}</b><small>${A[k].desc}</small></button>`).join('');
+    $('studio-agents').innerHTML = ORDER.map((k) => `<button type="button" class="sj-agent" data-agent="${k}"><span class="sj-agent-ico">${ico(A[k].icon)}</span><b>${A[k].title}</b><small>${A[k].desc}</small></button>`).join('');
     $('studio-voice').hidden = !!(meta.voice && (meta.voice.who || meta.voice.samples));
     history();
     if (param && A[param]) open(param); else $('studio-form-card').hidden = true;

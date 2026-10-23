@@ -30,7 +30,10 @@
 
   function drawList() {
     if (!data) return;
-    if (data.error && NOTE[data.error] && !data.posts.length) { list.innerHTML = `<p class="sj-note">${esc(NOTE[data.error])}</p>`; return; }
+    if (data.error && NOTE[data.error] && !data.posts.length) {
+      list.innerHTML = window.vfEmpty('i-comment', data.error === 'permission' ? 'اجازهٔ خوندن کامنت‌ها نیست' : 'هنوز کامنتی نیومده', NOTE[data.error], '<a class="sj-btn" href="/settings#conns-card">تنظیمات اتصال‌ها</a>');
+      return;
+    }
     const posts = data.posts.map((p) => ({ ...p, shown: p.comments.filter((c) => filter === 'all' || !c.answered) })).filter((p) => p.shown.length);
     if (!posts.length) { list.innerHTML = `<p class="sj-note">${filter === 'open' ? 'همهٔ کامنت‌ها جواب گرفتن ✓' : 'تو ۳۰ روز اخیر کامنتی نیومده.'}</p>`; return; }
     list.innerHTML = posts.map((p) => `

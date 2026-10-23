@@ -63,6 +63,7 @@
     competitors: ['competitors'], audience: ['audience'], checklist: ['checklist'],
     assistant: ['assistant'], studio: ['studio'], board: ['board'], comments: ['comments'], reel: ['reel'],  // reel takes the reel's shortcode: #/reel/DeuAledNcym
   };
+  const NO_RANGE = new Set(['assistant', 'studio', 'board', 'comments', 'checklist', 'experiments', 'reel']);
   const links = new Map([...document.querySelectorAll('.sidebar .nav-item[data-sec]')].map((a) => [a.dataset.sec, a]));
   const sections = Object.values(PAGES).flat().map((id) => document.getElementById(id)).filter(Boolean);
   const pageTitle = document.getElementById('sj-page-title');
@@ -88,6 +89,9 @@
     const own = document.getElementById(PAGES[id][0]);
     pageLabel = label ? label.textContent : (own && own.dataset.title) || '';
     if (pageTitle) pageTitle.textContent = pageLabel;
+    // the 7/30/all control only means something on pages drawn from a date range
+    const range = document.getElementById('sj-range');
+    if (range) range.hidden = NO_RANGE.has(id);
     setTitle();
     window.scrollTo(0, 0);
     const dash = document.getElementById('dash-root');

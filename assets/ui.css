@@ -1,0 +1,156 @@
+/* The design-system layer, loaded last on every panel page. VibeFarsi's Persian RTL rules and the
+   ui-ux-pro-max checklist on top of the glass theme in skin.css: one type scale (six sizes) with
+   line-heights by role, no letter-spacing on Persian, text that passes 4.5:1, 44px tap targets,
+   16px form fields (iOS doesn't zoom), one focus ring, motion tokens that honour reduced motion, and
+   the VibeFarsi pieces this panel uses (empty state, skeleton, stat delta, field help/error). */
+
+:root {
+  /* type: six sizes, nothing in between */
+  --fs-xs: 0.8125rem;   /* 13px: meta, captions, chips */
+  --fs-sm: 0.9375rem;   /* 15px: body in dense UI, tables, buttons */
+  --fs-base: 1rem;      /* 16px: body, form fields */
+  --fs-lg: 1.125rem;    /* 18px: card titles */
+  --fs-xl: 1.5rem;      /* 24px: KPI numbers, section headings */
+  --fs-2xl: 1.875rem;   /* 30px: page title */
+  --lh-body: 1.8;       /* Persian needs the room */
+  --lh-heading: 1.25;
+  --lh-control: 1.5;
+  /* the old names the dashboard uses, on the same scale */
+  --cds-font-size-caption: var(--fs-xs);
+  --cds-font-size-body: var(--fs-sm);
+  --cds-font-size-heading: var(--fs-lg);
+  --cds-font-size-title: var(--fs-2xl);
+  /* motion (VibeFarsi turquoise/glass) */
+  --motion: 240ms;
+  --motion-fast: 160ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* shape and touch */
+  --tap: 44px;
+  --shape-control: 12px;
+  --shape-surface: 22px;
+}
+
+/* Text colours that pass 4.5:1 on the light glass (the iOS tints are too pale for text) */
+html[data-theme="light"] {
+  --text-muted: #5f6470;
+  --text-secondary: #4a4f5a;
+  --accent: #0062d6;
+  --accent-hover: #0052b4;
+  --coral: #c4161c;
+  --good: #1d7a34;
+  --ring: #0062d6;
+}
+html[data-theme="dark"] { --ring: #64b5ff; }
+
+/* ---------- typography ---------- */
+html[lang="fa"] body { font-size: var(--fs-base); line-height: var(--lh-body); }
+html[lang="fa"] :is(body, body *) { letter-spacing: 0 !important; }  /* tracking breaks Persian letter joins */
+h1, h2, h3, h4, .sj-title, .sj-pagetitle, .sj-h2 { line-height: var(--lh-heading); }
+button, .sj-btn, .icon-btn, input, select, label, .sj-chip, .pn-chip { line-height: var(--lh-control); }
+.text-xs, .sidebar-section-title, [class*="text-[0.7rem]"] { font-size: var(--fs-xs) !important; }
+.nav-item, .dropdown-item, .sidebar-label { font-size: var(--fs-sm); }
+.text-sm { font-size: var(--fs-sm) !important; }
+.sj-num, .sj-goal-num, td, .sj-kpi-num, time { font-variant-numeric: tabular-nums; }
+.sj-note, .pn-note { font-size: var(--fs-sm); line-height: var(--lh-body); }
+small, .sj-small { font-size: var(--fs-xs); }
+
+/* ---------- focus: one visible ring everywhere ---------- */
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: inherit; }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offset: 0; }
+
+/* ---------- touch: 44px targets ---------- */
+button, [role="button"], summary, select, a.sj-btn, .sj-btn, .icon-btn, .dropdown-item, .nav-item, .sj-chip-btn, .sj-iconbtn,
+.pn button, .pn-nav a, .sj-seg button, .sj-agent, input[type="file"] { cursor: pointer; }
+.sj-btn, .icon-btn, .dropdown-item, .pn button, .pn input:not([type="checkbox"]):not([type="radio"]), .pn select,
+.sj-form input, .sj-form select, .sj-iconbtn, .sj-chip-btn, a.sj-btn { min-height: var(--tap); }
+.icon-btn, .sj-iconbtn { min-width: var(--tap); }
+.sj-seg button { min-height: 36px; padding-inline: 14px; }
+.sj-seg { padding: 4px; }
+summary { min-height: var(--tap); display: flex; align-items: center; gap: 8px; }
+.pn-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.pn-nav a { display: inline-flex; align-items: center; min-height: var(--tap); padding-inline: 12px; border-radius: var(--shape-control); color: var(--text-secondary); text-decoration: none; }
+.pn-nav a:hover { background: var(--accent-soft); color: var(--text); }
+.pn-nav #who { padding-inline: 12px; color: var(--text-muted); font-size: var(--fs-sm); }
+.sj-linkbtn:not(p .sj-linkbtn) { min-height: var(--tap); padding-inline: 8px; }
+.sj-copy { min-width: var(--tap); }
+input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; }
+
+/* ---------- forms: 16px so iOS Safari doesn't zoom on focus ---------- */
+input:not([type="checkbox"]):not([type="radio"]), textarea, select { font-size: max(var(--fs-base), 1em); }
+.pn label, .sj-form label { gap: 6px; font-size: var(--fs-sm); }
+.field-help { font-size: var(--fs-xs); color: var(--text-muted); }
+.field-error { font-size: var(--fs-xs); color: var(--coral); }
+[aria-invalid="true"] { border-color: var(--coral) !important; }
+
+/* ---------- motion ---------- */
+.sj-btn, .icon-btn, .dropdown-item, .nav-item, .sj-card, .sj-agent, .sj-chip-btn, .pn button {
+  transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease),
+              color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion) var(--motion-ease);
+}
+.sj-btn:active, .icon-btn:active, .pn button:active, .sj-agent:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+  .sj-btn:active, .icon-btn:active, .pn button:active, .sj-agent:active { transform: none; }
+}
+
+/* ---------- icons (lucide): stroke follows the text weight, directional ones flip in RTL ---------- */
+.nav-icon, .icon-btn svg, .sj-ico { stroke-width: 1.75; }
+.nav-item.is-active .nav-icon { stroke-width: 2.1; }
+[dir="rtl"] .flip-rtl, [dir="rtl"] use[href="#i-logout"] { transform: scaleX(-1); transform-origin: center; }
+.sj-ico { width: 1.25em; height: 1.25em; flex: none; vertical-align: -0.25em; }
+
+/* ---------- VibeFarsi: empty state ---------- */
+.vf-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 16px; text-align: center;
+  border: 1px dashed var(--border-strong); border-radius: var(--shape-surface); }
+.vf-empty-ico { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+.vf-empty-ico svg { width: 22px; height: 22px; }
+.vf-empty b { font-size: var(--fs-base); }
+.vf-empty p { margin: 0; max-width: 28rem; font-size: var(--fs-sm); color: var(--text-secondary); line-height: var(--lh-body); }
+.vf-empty .sj-btn { margin-top: 8px; }
+
+/* ---------- VibeFarsi: skeleton (pulse, or a shimmer that sweeps right to left) ---------- */
+.vf-skel { display: block; border-radius: 10px; background: var(--surface-3); position: relative; overflow: hidden; }
+.vf-skel::after { content: ""; position: absolute; inset: 0; transform: translateX(100%);
+  background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.45), transparent); animation: vf-shine 1.4s var(--motion-ease) infinite; }
+html[data-theme="dark"] .vf-skel::after { background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.08), transparent); }
+@keyframes vf-shine { to { transform: translateX(-100%); } }
+.vf-skel-line { height: 12px; margin: 8px 0; }
+.vf-skel-block { height: 120px; margin: 8px 0; }
+.vf-skel-group { padding: 4px 0; }
+
+/* ---------- VibeFarsi: stat delta (up and forward is up-left in RTL) ---------- */
+.sj-delta svg { width: 14px; height: 14px; vertical-align: -2px; margin-inline-end: 2px; }
+
+#studio-form-title { display: flex; align-items: center; gap: 8px; }
+/* phones: the 13 agents as a compact two-column grid; each one's description is on its form */
+@media (max-width: 640px) {
+  .sj-agents { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .sj-agent { padding: 12px; align-items: center; text-align: center; }
+  .sj-agent small { display: none; }
+  .sj-agent b { font-size: var(--fs-sm); }
+}
+
+/* ---------- section index for long settings pages ---------- */
+.pn.pn-wide { max-width: 76rem; }
+.pn-layout { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 24px; align-items: start; }
+.pn-toc { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: var(--shape-surface);
+  background: var(--surface); border: 1px solid var(--border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  max-height: calc(100vh - 32px); overflow-y: auto; }
+.pn-toc b { padding: 4px 12px 8px; font-size: var(--fs-xs); color: var(--text-muted); font-weight: 600; }
+.pn-toc a { display: flex; align-items: center; gap: 10px; min-height: var(--tap); padding-inline: 12px; border-radius: var(--shape-control);
+  color: var(--text-secondary); text-decoration: none; font-size: var(--fs-sm); }
+.pn-toc a svg { width: 18px; height: 18px; flex: none; }
+.pn-toc a:hover { background: var(--accent-soft); color: var(--text); }
+.pn-toc a[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.pn-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.pn-main > section { scroll-margin-top: 16px; }
+@media (max-width: 900px) {
+  .pn-layout { grid-template-columns: minmax(0, 1fr); }
+  .pn-toc { position: sticky; top: 0; z-index: 5; flex-direction: row; overflow-x: auto; max-height: none; padding: 8px; border-radius: 16px;
+    scrollbar-width: none; scroll-snap-type: x proximity; }
+  .pn-toc::-webkit-scrollbar { display: none; }
+  .pn-toc b { display: none; }
+  .pn-toc a { flex: none; white-space: nowrap; scroll-snap-align: start; }
+  .pn-main > section { scroll-margin-top: 76px; }
+}

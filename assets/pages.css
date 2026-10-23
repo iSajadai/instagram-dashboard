@@ -2,7 +2,7 @@
    print cleanly on A4 (no blur or shadows on paper). */
 @font-face { font-family: "Vazirmatn"; src: url("/assets/vazirmatn.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 :root {
-  --accent: #007aff; --violet: #af52de; --good: #248a3d; --bad: #d70015;
+  --accent: #0062d6; --violet: #af52de; --good: #248a3d; --bad: #d70015;
   --text: #1d1d1f; --muted: #6e6e73; --line: rgba(0, 0, 0, 0.08);
   --card: rgba(255, 255, 255, 0.62); --card-border: rgba(255, 255, 255, 0.7);
 }
@@ -10,7 +10,7 @@
 html { min-height: 100%; background: #eef2f8 linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
 body { margin: 0; font-family: Vazirmatn, -apple-system, "Segoe UI", Tahoma, sans-serif; color: var(--text); line-height: 1.8; }
 main { max-width: 56rem; margin: 0 auto; padding: 2rem 1rem 3rem; display: flex; flex-direction: column; gap: 1.25rem; }
-h1 { margin: 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
+h1 { margin: 0; font-size: 1.875rem; font-weight: 800; line-height: 1.25; }
 h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
 h3 { margin: 0.5rem 0; font-size: 0.95rem; color: var(--muted); }
 a { color: var(--accent); }
@@ -47,7 +47,7 @@ li { margin-bottom: 0.35rem; }
   box-shadow: 0 6px 18px rgba(0, 122, 255, 0.3); }
 .cta-text { margin: 0; font-weight: 600; }
 .rep-head { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; }
-.rep-head button { font: inherit; font-weight: 700; padding: 0.6rem 1.2rem; border-radius: 999px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+.rep-head button { font: inherit; font-weight: 700; min-height: 44px; padding: 0.6rem 1.2rem; border-radius: 999px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
 footer { text-align: center; font-size: 0.78rem; color: var(--muted); }
 @media (max-width: 700px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { th:nth-child(2), td:nth-child(2), th:nth-child(4), td:nth-child(4) { display: none; } }
@@ -60,3 +60,7 @@ footer { text-align: center; font-size: 0.78rem; color: var(--muted); }
   .no-print { display: none; }
   a { color: inherit; text-decoration: none; }
 }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h2, h3 { line-height: 1.25; }
+td, .tile .num { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { * { transition-duration: 1ms !important; animation-duration: 1ms !important; } }

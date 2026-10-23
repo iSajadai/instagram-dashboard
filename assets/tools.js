@@ -35,7 +35,7 @@
     if (!log) return;
     log.innerHTML = chat.map((m) => `<div class="sj-msg ${m.role === 'user' ? 'me' : 'ai'}">${m.role === 'user' ? esc(m.content) : fmt(m.content)}</div>`).join('')
       + (pending ? '<div class="sj-msg ai sj-typing"><span></span><span></span><span></span></div>' : '');
-    if (!chat.length && !pending) log.innerHTML = '<p class="sj-note">هنوز سؤالی نپرسیدی.</p>';
+    if (!chat.length && !pending) log.innerHTML = window.vfEmpty('i-chat', 'هنوز سؤالی نپرسیدی', 'از یکی از پیشنهادهای پایین شروع کن یا سؤال خودت رو بنویس.');
     log.scrollTop = log.scrollHeight;
   };
   async function ask(text) {
@@ -139,7 +139,7 @@
   function curve(el, pts) {
     if (!el || !window.d3) return;
     el.replaceChildren();
-    if (pts.length < 2) { el.innerHTML = '<div class="sj-fail">هنوز عکس کافی از عددها جمع نشده</div>'; return; }
+    if (pts.length < 2) { el.innerHTML = '<div class="sj-fail sj-empty">منحنی بعد از چند بار گرفتن داده (هر ۶ ساعت) کشیده می‌شه</div>'; return; }
     const W = el.clientWidth || 600, H = 200, m = { t: 14, r: 14, b: 26, l: 46 };
     const all = [{ hours: 0, views: 0 }].concat(pts);
     const x = d3.scaleLinear([0, d3.max(all, (p) => p.hours) || 1], [m.l, W - m.r]);
@@ -156,7 +156,7 @@
   async function showReel(c) {
     const body = $('reel-body');
     if (!body) return;
-    body.innerHTML = '<p class="sj-note">در حال بارگذاری…</p>';
+    body.innerHTML = '<div class="vf-skel-group" aria-busy="true" aria-label="در حال بارگذاری"><span class="vf-skel vf-skel-line" style="width:40%"></span><span class="vf-skel vf-skel-block"></span><span class="vf-skel vf-skel-line" style="width:70%"></span></div>';
     let r;
     try { r = await api('GET', '/api/me/reel?reel=' + encodeURIComponent(c)); } catch (e) { body.innerHTML = `<p class="sj-error">${esc(e.message)}</p>`; return; }
     const first = (r.caption || '').split('\n')[0];
