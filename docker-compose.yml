@@ -5,7 +5,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${SAJADAI_PORT:-8000}:8000"   # SAJADAI_PORT in .env picks another local port
     volumes:
       - ./var:/data
     env_file:
