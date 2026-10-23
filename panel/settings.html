@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>تنظیمات داشبورد</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/panel.css">
+</head>
+<body>
+<main class="pn">
+  <div class="pn-top">
+    <h1>تنظیمات</h1>
+    <nav class="pn-nav"><span id="who"></span><a href="/">داشبورد</a><a href="/admin" id="admin-link" hidden>ادمین</a><a href="/logout">خروج</a></nav>
+  </div>
+
+  <section class="pn-card" id="status">
+    <h2>وضعیت داده</h2>
+    <p class="pn-note">داده هر ۶ ساعت خودکار از منبع‌هایی که وصل کردی گرفته می‌شه. ایده‌ها و تحلیل هفتگی شنبه‌ها ساعت ۸:۳۰ تهران نوشته می‌شن.</p>
+    <div class="pn-row"><span id="st-refresh"></span></div>
+    <div class="pn-row"><span id="st-content"></span></div>
+    <div class="pn-row">
+      <button class="primary" id="do-refresh" type="button">گرفتن داده الان</button>
+      <button id="do-content" type="button">نوشتن ایده‌ها الان</button>
+    </div>
+    <p class="pn-msg" id="do-msg" role="status"></p>
+    <details><summary>گزارش آخرین اجرا</summary><pre id="st-log"></pre></details>
+  </section>
+
+  <section class="pn-card">
+    <h2>اتصال‌ها</h2>
+    <p class="pn-note">هر کدوم رو که داری وصل کن؛ داده‌ها با هم ترکیب می‌شن. کلیدها رمزنگاری‌شده ذخیره می‌شن و فقط برای حساب خودت استفاده می‌شن. قبل از ذخیره، یه درخواست فقط‌خواندنی به سرویس زده می‌شه تا درست بودن کلید معلوم بشه.</p>
+    <div id="conns" style="display:flex;flex-direction:column;gap:16px"></div>
+  </section>
+
+  <section class="pn-card">
+    <h2>صفحه</h2>
+    <label>اسم داشبورد<input id="page_name" maxlength="60"></label>
+    <label>معرفی پیج برای هوش مصنوعی
+      <textarea id="page_profile" placeholder="مثلاً: پیج فارسی آموزش آشپزی سریع برای دانشجوها؛ ریل‌های ۳۰ ثانیه‌ای با صدای خودم؛ سری «غذای ۱۰ دقیقه‌ای». هدف: رسیدن به ۱۰ هزار فالوئر و فروش کتاب آشپزی."></textarea></label>
+    <p class="pn-note">ایده‌ها و تحلیل‌های هفتگی بر اساس همین متن نوشته می‌شن: موضوع پیج، زبان، سبک، سری‌ها و هر قانونی که دارید (مثلاً «اسم برند رو نیار»).</p>
+    <div class="pn-row"><button class="primary" id="save-page" type="button">ذخیره</button><span class="pn-msg" id="page-msg"></span></div>
+  </section>
+
+  <section class="pn-card">
+    <h2>هوش مصنوعی</h2>
+    <p class="pn-note" id="ai-panel-note"></p>
+    <div class="pn-grid">
+      <label>ارائه‌دهنده<select id="ai_provider"></select></label>
+      <label>مدل (اختیاری)<input id="ai_model" dir="ltr" placeholder="پیش‌فرض: claude-opus-5-5 یا gpt-5"></label>
+    </div>
+    <label>کلید API خودت (اختیاری)<input id="ai_key" dir="ltr" autocomplete="off" placeholder="sk-ant-… یا sk-…"></label>
+    <div class="pn-row"><button class="primary" id="save-ai" type="button">ذخیره</button><button id="clear-ai" type="button">حذف کلید خودم</button><span class="pn-msg" id="ai-msg"></span></div>
+  </section>
+
+  <section class="pn-card">
+    <h2>تلگرام</h2>
+    <p class="pn-note" id="tg-note"></p>
+    <label>chat id<input id="telegram_chat" dir="ltr" inputmode="numeric" placeholder="123456789"></label>
+    <div class="pn-row"><button class="primary" id="save-tg" type="button">ذخیره</button><span class="pn-msg" id="tg-msg"></span></div>
+  </section>
+
+  <section class="pn-card">
+    <h2>هدف‌ها</h2>
+    <p class="pn-note">با نوار پیشرفت بالای داشبورد نشون داده می‌شن. «فالوئر» آخرین تعداده؛ «ریل در هفته» و «بازدید در هفته» مال ۷ روز گذشته‌ان.</p>
+    <div class="pn-wrap"><table><thead><tr><th>عنوان</th><th>معیار</th><th>عدد هدف</th><th>مهلت</th><th></th></tr></thead><tbody id="goals"></tbody></table></div>
+    <div class="pn-row"><button id="add-goal" type="button">+ هدف</button><button class="primary" id="save-goals" type="button">ذخیرهٔ هدف‌ها</button><span class="pn-msg" id="goals-msg"></span></div>
+  </section>
+
+  <section class="pn-card" id="ai-connect">
+    <h2>اتصال به Claude و ChatGPT</h2>
+    <p class="pn-note">با یه توکن، Claude یا ChatGPT خودت می‌تونه آمار این داشبورد رو بخونه و ازش تحلیل و ایده بده (فقط خواندن؛ چیزی منتشر نمی‌کنه). توکن فقط یه بار نشون داده می‌شه؛ ساختن توکن تازه، قبلی رو باطل می‌کنه.</p>
+    <div class="pn-row"><button class="primary" id="make-token" type="button">ساختن توکن</button><span class="pn-chip" id="token-chip"></span></div>
+    <div id="token-out" hidden><div style="display:flex;flex-direction:column;gap:12px">
+      <h3>۱. Claude (claude.ai یا Claude Desktop) — Custom Connector</h3>
+      <p class="pn-note">Settings ← Connectors ← Add custom connector، و این آدرس رو بده:</p>
+      <div class="pn-row"><pre id="mcp-url" style="flex:1"></pre><button type="button" data-copy="mcp-url">کپی</button></div>
+      <h3>۲. ChatGPT — Connector یا Custom GPT</h3>
+      <p class="pn-note">اگه حالت توسعه‌دهندهٔ ChatGPT رو داری: Settings ← Connectors ← Create و همون آدرس بالا. یا یه Custom GPT بساز و تو Actions این آدرس رو Import کن، و Authentication رو API Key از نوع Bearer با توکن زیر بذار:</p>
+      <div class="pn-row"><pre id="openapi-url" style="flex:1"></pre><button type="button" data-copy="openapi-url">کپی</button></div>
+      <div class="pn-row"><pre id="token" style="flex:1"></pre><button type="button" data-copy="token">کپی توکن</button></div>
+      <h3>۳. Claude Code یا هر کلاینت MCP دیگه</h3>
+      <div class="pn-row"><pre id="claude-code" style="flex:1"></pre><button type="button" data-copy="claude-code">کپی</button></div>
+    </div></div>
+    <details><summary>نصب روی کامپیوتر خودت (بدون سرور ما)</summary>
+      <p class="pn-note">کل این پنل متن‌بازه و روی کامپیوتر خودت هم اجرا می‌شه؛ اون‌وقت Claude Desktop مستقیم و بدون اینترنتِ اضافه بهش وصل می‌شه. راهنما: README مخزن، بخش «Run your own».</p>
+    </details>
+  </section>
+
+  <section class="pn-card">
+    <h2>رمز عبور</h2>
+    <div class="pn-grid">
+      <label>رمز فعلی<input id="pw-cur" type="password" dir="ltr" autocomplete="current-password"></label>
+      <label>رمز تازه (دست‌کم ۸ حرف)<input id="pw-new" type="password" dir="ltr" autocomplete="new-password" minlength="8"></label>
+    </div>
+    <div class="pn-row"><button class="primary" id="save-pw" type="button">عوض کردن رمز</button><span class="pn-msg" id="pw-msg"></span></div>
+  </section>
+</main>
+<script src="/assets/panel.js"></script>
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const HELP = {
+    metricool: 'API متریکول فقط تو پلن Advanced هست. توکن: Metricool ← Account settings ← API. userId و blogId تو همون صفحه و تو آدرس برند (blogId=…) هستن. رقبا و بهترین ساعت انتشار فقط از این منبع میاد.',
+    buffer: 'تو Buffer اول اینستاگرام رو از Channels ← Connect وصل کن، بعد از Settings ← API یه کلید بساز. Buffer برای هر ریل «فالو از ریل» هم می‌ده، ولی تعداد فالوئر و آمار روزانه نداره.',
+    instagram: 'توکن بلندمدت از developers.facebook.com (اپ ← Instagram ← API setup with Instagram login ← Generate token)، با دسترسی instagram_business_basic و instagram_business_manage_insights. خودکار تمدید می‌شه. تعداد فالوئر، آمار روزانه و «ماندن ۳ ثانیه» رو این می‌ده.',
+  };
+  let me;
+  const load = async () => { me = await pn.api('GET', '/api/me'); render(); };
+
+  function render() {
+    $('who').textContent = me.username; $('admin-link').hidden = !me.is_admin;
+    const st = me.status || {};
+    $('st-refresh').replaceChildren('آخرین گرفتن داده: ' + pn.when(st.refresh_at) + ' ',
+      pn.el('span', { class: 'pn-chip ' + (st.refresh_at ? (st.refresh_ok ? 'ok' : 'bad') : 'off') }, st.refresh_at ? (st.refresh_ok ? 'موفق' : 'خطا') : 'هنوز نه'));
+    $('st-content').replaceChildren('آخرین نوشتن ایده‌ها: ' + pn.when(st.content_at) + ' ',
+      pn.el('span', { class: 'pn-chip ' + (st.content_at ? (st.content_ok ? 'ok' : 'bad') : 'off') }, st.content_at ? (st.content_ok ? 'موفق' : 'خطا') : 'هنوز نه'));
+    $('st-log').textContent = [st.refresh_log, st.content_log].filter(Boolean).join('\n\n') || '—';
+
+    const box = $('conns'); box.replaceChildren();
+    Object.entries(me.connections).forEach(([name, c]) => {
+      const msg = pn.el('p', { class: 'pn-msg', role: 'status' });
+      const inputs = Object.entries(c.fields).map(([f, info]) => {
+        const secret = f === 'token' || f === 'api_key';
+        return [f, pn.el('input', { dir: 'ltr', autocomplete: 'off', value: info.value || '', placeholder: secret && c.connected ? 'برای عوض کردن، مقدار تازه بنویس' : '' }), info.label];
+      });
+      const save = async (force, btn) => {
+        const body = { force };
+        inputs.forEach(([f, inp]) => { body[f] = inp.value.trim(); });
+        const r = await pn.run(btn, msg, () => pn.api('POST', '/api/me/connections/' + name, body));
+        if (r && r.ok) { await load(); }
+        else if (r && !force) forceBtn.hidden = false;
+      };
+      const testBtn = pn.el('button', { class: 'primary', type: 'button', onclick: (e) => save(false, e.currentTarget) }, 'تست و ذخیره');
+      const forceBtn = pn.el('button', { type: 'button', hidden: '', onclick: (e) => save(true, e.currentTarget) }, 'ذخیره بدون تست');
+      const del = pn.el('button', { class: 'danger', type: 'button', onclick: async (e) => { if (confirm('اتصال ' + c.label + ' حذف بشه؟')) { await pn.run(e.currentTarget, msg, () => pn.api('DELETE', '/api/me/connections/' + name)); load(); } } }, 'حذف');
+      if (!c.connected) del.hidden = true;
+      box.append(pn.el('div', { style: 'display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--color-border-line);padding-top:12px' },
+        pn.el('div', { class: 'pn-row' }, pn.el('h3', {}, c.label), pn.el('span', { class: 'pn-chip ' + (c.connected ? 'ok' : 'off') }, c.connected ? 'وصل' : 'وصل نیست')),
+        pn.el('p', { class: 'pn-note' }, HELP[name] || ''),
+        pn.el('div', { class: 'pn-grid' }, inputs.map(([, inp, label]) => pn.el('label', {}, label, inp))),
+        pn.el('div', { class: 'pn-row' }, testBtn, forceBtn, del), msg));
+    });
+
+    ['page_name', 'page_profile', 'telegram_chat', 'ai_model'].forEach((k) => { $(k).value = me.prefs[k] || ''; });
+    $('ai_provider').replaceChildren(...Object.entries(me.ai.providers).map(([k, v]) => pn.el('option', { value: k }, v)));
+    $('ai_provider').value = me.prefs.ai_provider || 'anthropic';
+    $('ai_key').value = me.ai.own_key || '';
+    $('ai-panel-note').textContent = me.ai.panel_provider
+      ? 'ادمین یه کلید مشترک (' + me.ai.providers[me.ai.panel_provider] + ') گذاشته؛ اگه کلید خودت رو بذاری، ایده‌ها با کلید و ارائه‌دهندهٔ خودت نوشته می‌شن.'
+      : 'ادمین کلید مشترکی نگذاشته؛ برای ایده‌ها و تحلیل هفتگی کلید خودت (Claude یا GPT) رو بذار.';
+    $('tg-note').textContent = me.telegram_ready
+      ? 'هشدار ریل‌های تازه، کم شدن فالوئر و گزارش شنبه‌ها به تلگرامت میاد. به ربات پنل یه پیام بده (هر چیزی)، بعد chat id خودت رو از @userinfobot بگیر و اینجا بذار.'
+      : 'ادمین هنوز ربات تلگرام پنل رو تنظیم نکرده؛ chat id رو الان بذار، از وقتی ربات تنظیم بشه پیام‌ها میان.';
+    $('token-chip').textContent = me.has_token ? 'یه توکن فعال داری' : 'توکنی نساختی';
+    $('token-chip').className = 'pn-chip ' + (me.has_token ? 'ok' : 'off');
+
+    const tb = $('goals'); tb.replaceChildren(); (me.goals || []).forEach(addGoal);
+  }
+
+  function addGoal(g) {
+    g = g || { label: '', metric: 'followers', target: '', deadline: '' };
+    const sel = pn.el('select', {}, ...[['followers', 'فالوئر'], ['reels_7d', 'ریل در هفته'], ['views_7d', 'بازدید در هفته']].map(([v, t]) => pn.el('option', { value: v }, t)));
+    sel.value = g.metric;
+    const tr = pn.el('tr', {},
+      pn.el('td', {}, pn.el('input', { value: g.label || '', maxlength: '80', 'data-k': 'label' })),
+      pn.el('td', {}, sel),
+      pn.el('td', {}, pn.el('input', { type: 'number', min: '1', dir: 'ltr', value: g.target ?? '', 'data-k': 'target', style: 'width:7rem' })),
+      pn.el('td', {}, pn.el('input', { type: 'date', dir: 'ltr', value: g.deadline || '', 'data-k': 'deadline' })),
+      pn.el('td', {}, pn.el('button', { type: 'button', class: 'danger', onclick: () => tr.remove() }, 'حذف')));
+    tr._sel = sel; tr._why = g.why || '';
+    $('goals').append(tr);
+  }
+
+  $('add-goal').addEventListener('click', () => addGoal());
+  $('save-goals').addEventListener('click', (e) => pn.run(e.currentTarget, $('goals-msg'), () => pn.api('POST', '/api/me/goals', {
+    goals: [...$('goals').children].map((tr) => ({ label: tr.querySelector('[data-k=label]').value, metric: tr._sel.value,
+      target: Number(tr.querySelector('[data-k=target]').value), deadline: tr.querySelector('[data-k=deadline]').value || null, why: tr._why })) })));
+  $('save-page').addEventListener('click', (e) => pn.run(e.currentTarget, $('page-msg'), () => pn.api('POST', '/api/me/prefs', { page_name: $('page_name').value, page_profile: $('page_profile').value })));
+  $('save-tg').addEventListener('click', (e) => pn.run(e.currentTarget, $('tg-msg'), () => pn.api('POST', '/api/me/prefs', { telegram_chat: $('telegram_chat').value.trim() })));
+  $('save-ai').addEventListener('click', (e) => pn.run(e.currentTarget, $('ai-msg'), async () => {
+    await pn.api('POST', '/api/me/prefs', { ai_provider: $('ai_provider').value, ai_model: $('ai_model').value.trim() });
+    const k = $('ai_key').value.trim();
+    if (k && !k.startsWith('•')) await pn.api('POST', '/api/me/ai_key', { key: k });
+    await load(); return { ok: true, message: 'ذخیره شد ✓' };
+  }));
+  $('clear-ai').addEventListener('click', (e) => pn.run(e.currentTarget, $('ai-msg'), async () => { await pn.api('POST', '/api/me/ai_key', { key: '' }); await load(); return { ok: true, message: 'کلید خودت حذف شد' }; }));
+  $('do-refresh').addEventListener('click', (e) => pn.run(e.currentTarget, $('do-msg'), () => pn.api('POST', '/api/me/refresh')).then(() => setTimeout(load, 30000)));
+  $('do-content').addEventListener('click', (e) => pn.run(e.currentTarget, $('do-msg'), () => pn.api('POST', '/api/me/content')).then(() => setTimeout(load, 120000)));
+  $('save-pw').addEventListener('click', (e) => pn.run(e.currentTarget, $('pw-msg'), () => pn.api('POST', '/api/me/password', { current: $('pw-cur').value, new: $('pw-new').value })));
+  $('make-token').addEventListener('click', async (e) => {
+    if (me.has_token && !confirm('توکن قبلی باطل می‌شه و هر Claude یا ChatGPT که باهاش وصله باید دوباره وصل بشه. ادامه؟')) return;
+    const r = await pn.run(e.currentTarget, $('do-msg'), () => pn.api('POST', '/api/me/token'));
+    if (!r) return;
+    const base = me.urls.base || location.origin;
+    $('mcp-url').textContent = base + '/mcp/u/' + r.token;
+    $('openapi-url').textContent = base + '/openapi.json';
+    $('token').textContent = r.token;
+    $('claude-code').textContent = 'claude mcp add --transport http instagram-dashboard ' + base + '/mcp --header "Authorization: Bearer ' + r.token + '"';
+    $('token-out').hidden = false; me.has_token = true;
+    $('token-chip').textContent = 'توکن تازه ساخته شد'; $('token-chip').className = 'pn-chip ok';
+  });
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-copy]'); if (b) pn.copy($(b.dataset.copy).textContent, b); });
+  load();
+})();
+</script>
+</body>
+</html>

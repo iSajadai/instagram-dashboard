@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>مدیریت پنل</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/panel.css">
+</head>
+<body>
+<main class="pn">
+  <div class="pn-top">
+    <h1>مدیریت پنل</h1>
+    <nav class="pn-nav"><a href="/">داشبورد</a><a href="/settings">تنظیمات من</a><a href="/logout">خروج</a></nav>
+  </div>
+
+  <section class="pn-card">
+    <h2>تنظیمات مشترک</h2>
+    <p class="pn-note">کلید هوش مصنوعی مشترک برای کاربرهایی استفاده می‌شه که کلید خودشون رو نگذاشتن. کلیدها رمزنگاری‌شده ذخیره می‌شن و دوباره نشون داده نمی‌شن؛ برای عوض کردن، مقدار تازه بنویس.</p>
+    <div class="pn-grid">
+      <label>ارائه‌دهندهٔ هوش مصنوعی<select id="ai_provider"></select></label>
+      <label>مدل (اختیاری)<input id="ai_model" dir="ltr" placeholder="claude-opus-5-5 / gpt-5"></label>
+    </div>
+    <label>کلید API هوش مصنوعی<input id="ai_key" dir="ltr" autocomplete="off"></label>
+    <label>توکن ربات تلگرام (از @BotFather)<input id="telegram_bot" dir="ltr" autocomplete="off"></label>
+    <label>آدرس عمومی پنل<input id="public_url" dir="ltr" placeholder="https://dash.example.com"></label>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="allow_signup"> هر کسی بتونه خودش ثبت‌نام کنه</label>
+    <div class="pn-row"><button class="primary" id="save" type="button">ذخیره</button><span class="pn-msg" id="save-msg"></span></div>
+  </section>
+
+  <section class="pn-card">
+    <h2>کاربرها</h2>
+    <div class="pn-wrap"><table>
+      <thead><tr><th>کاربر</th><th>اتصال‌ها</th><th>آخرین داده</th><th>ایده‌ها</th><th></th></tr></thead>
+      <tbody id="users"></tbody>
+    </table></div>
+    <h3>کاربر تازه</h3>
+    <div class="pn-grid">
+      <label>نام کاربری<input id="nu-name" dir="ltr" autocomplete="off"></label>
+      <label>رمز (دست‌کم ۸ حرف)<input id="nu-pw" type="password" dir="ltr" autocomplete="new-password"></label>
+    </div>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="nu-admin"> ادمین باشه</label>
+    <div class="pn-row"><button class="primary" id="add" type="button">ساختن کاربر</button><span class="pn-msg" id="add-msg"></span></div>
+  </section>
+</main>
+<script src="/assets/panel.js"></script>
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const LABEL = { metricool: 'Metricool', buffer: 'Buffer', instagram: 'Instagram' };
+  const chip = (at, ok) => pn.el('span', { class: 'pn-chip ' + (at ? (ok ? 'ok' : 'bad') : 'off') }, at ? pn.when(at) : 'هنوز نه');
+  let st;
+  const load = async () => {
+    st = await pn.api('GET', '/api/admin');
+    $('ai_provider').replaceChildren(...Object.entries(st.providers).map(([k, v]) => pn.el('option', { value: k }, v)));
+    $('ai_provider').value = st.settings.ai_provider;
+    ['ai_model', 'ai_key', 'telegram_bot', 'public_url'].forEach((k) => { $(k).value = st.settings[k] || ''; });
+    $('allow_signup').checked = st.settings.allow_signup;
+    $('users').replaceChildren(...st.users.map((u) => {
+      const msg = pn.el('span', { class: 'pn-msg' });
+      const reset = pn.el('button', { type: 'button', onclick: (e) => {
+        const pw = prompt('رمز تازه برای ' + u.username + ' (دست‌کم ۸ حرف):');
+        if (pw) pn.run(e.currentTarget, msg, () => pn.api('POST', '/api/admin/users/' + u.id + '/password', { password: pw }));
+      } }, 'رمز تازه');
+      const del = pn.el('button', { type: 'button', class: 'danger', onclick: async (e) => {
+        if (!confirm('کاربر ' + u.username + ' حذف بشه؟ (فایل‌های داده‌اش رو سرور می‌مونن)')) return;
+        await pn.run(e.currentTarget, msg, () => pn.api('DELETE', '/api/admin/users/' + u.id)); load();
+      } }, 'حذف');
+      return pn.el('tr', {},
+        pn.el('td', {}, u.username, u.is_admin ? ' · ادمین' : ''),
+        pn.el('td', {}, u.connections.map((c) => LABEL[c] || c).join('، ') || '—'),
+        pn.el('td', {}, chip(u.status.refresh_at, u.status.refresh_ok)),
+        pn.el('td', {}, chip(u.status.content_at, u.status.content_ok)),
+        pn.el('td', {}, pn.el('div', { class: 'pn-row' }, reset, del, msg)));
+    }));
+  };
+  $('save').addEventListener('click', (e) => pn.run(e.currentTarget, $('save-msg'), async () => {
+    await pn.api('POST', '/api/admin/settings', { ai_provider: $('ai_provider').value, ai_model: $('ai_model').value.trim(), ai_key: $('ai_key').value.trim(),
+      telegram_bot: $('telegram_bot').value.trim(), public_url: $('public_url').value.trim(), allow_signup: $('allow_signup').checked });
+    await load(); return { ok: true, message: 'ذخیره شد ✓' };
+  }));
+  $('add').addEventListener('click', (e) => pn.run(e.currentTarget, $('add-msg'), async () => {
+    await pn.api('POST', '/api/admin/users', { username: $('nu-name').value.trim(), password: $('nu-pw').value, is_admin: $('nu-admin').checked });
+    $('nu-name').value = ''; $('nu-pw').value = ''; await load(); return { ok: true, message: 'ساخته شد ✓' };
+  }));
+  load();
+})();
+</script>
+</body>
+</html>

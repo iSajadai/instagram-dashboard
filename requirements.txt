@@ -1,0 +1,6 @@
+fastapi>=0.161
+uvicorn[standard]>=0.54
+cryptography>=50
+mcp>=2.3,<3
+anthropic>=2.2
+openai>=3.37

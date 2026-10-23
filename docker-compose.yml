@@ -1,0 +1,13 @@
+# The panel with its data in ./var. Open http://localhost:8000 and create the admin account.
+# On a server, put it behind HTTPS (deploy/nginx-panel.conf) and set SAJADAI_SECURE_COOKIES=1 in .env.
+services:
+  panel:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./var:/data
+    env_file:
+      - path: .env
+        required: false

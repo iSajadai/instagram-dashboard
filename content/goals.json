@@ -1,0 +1,26 @@
+[
+ {
+  "id": "followers",
+  "label": "۱۰۰۰ فالوئر",
+  "metric": "followers",
+  "target": 1000,
+  "deadline": null,
+  "why": "هدف نمونه؛ از تنظیمات عوضش کن."
+ },
+ {
+  "id": "reels-week",
+  "label": "۴ ریل در هفته",
+  "metric": "reels_7d",
+  "target": 4,
+  "deadline": null,
+  "why": "ریل‌های منتشرشده در ۷ روز گذشته."
+ },
+ {
+  "id": "views-week",
+  "label": "۱۰ هزار بازدید در هفته",
+  "metric": "views_7d",
+  "target": 10000,
+  "deadline": null,
+  "why": "جمع بازدید ریل‌ها در ۷ روز گذشته."
+ }
+]

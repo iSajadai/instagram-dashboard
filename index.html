@@ -1,0 +1,1530 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>داشبورد اینستاگرام</title>
+<link rel="stylesheet" href="assets/theme.css">
+<style>
+.sj { --sj-fa: var(--font-anthropic-sans), "Vazirmatn", "Noto Sans Arabic", Tahoma, sans-serif; font-family: var(--sj-fa); display: flex; flex-direction: column; gap: var(--cds-gap-xl); }
+.sj-head { display: flex; flex-direction: column; gap: var(--cds-gap-xs); }
+.sj-title { font-family: var(--font-anthropic-serif), var(--sj-fa); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; text-wrap: balance; }
+.sj-take { margin: 0; font-size: var(--cds-font-size-body); line-height: 1.8; max-width: 65ch; }
+.sj-take b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.sj-window { margin: 0; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.sj-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--cds-gap-md); }
+@media (max-width: 40rem) { .sj-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sj-tile, .sj-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; }
+.sj-tile { display: flex; flex-direction: column; gap: var(--cds-gap-xs); }
+.sj-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.sj-num { font-family: var(--font-anthropic-serif), var(--sj-fa); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; direction: ltr; text-align: right; min-height: 1.3em; }
+.sj-def { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); line-height: 1.6; }
+.sj-sec { display: flex; flex-direction: column; gap: var(--cds-gap-md); }
+.sj-h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+.sj-note { margin: 0; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); line-height: 1.7; max-width: 70ch; }
+.sj-card h3 { margin: 0 0 var(--cds-gap-xs); font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); }
+.sj-chart { position: relative; min-height: 220px; direction: ltr; }
+.sj-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; }
+.sj-tip .k { color: var(--cds-text-secondary); }
+.sj-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); min-height: inherit; }
+.sj-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+.sj-tablewrap { overflow-x: auto; }
+.sj-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.sj-table th, .sj-table td { text-align: right; padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+.sj-table th { color: var(--color-fg-muted); font-weight: var(--cds-font-weight-medium); white-space: nowrap; }
+.sj-table td.n { direction: ltr; text-align: right; white-space: nowrap; }
+.sj-table td.cap { min-width: 14rem; max-width: 26rem; line-height: 1.7; }
+.sj-ideas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: var(--cds-gap-md); }
+.sj-idea { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+.sj-idea-top { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); align-items: center; }
+.sj-chip { font-size: var(--cds-font-size-caption); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--color-border-line); color: var(--color-fg-muted); }
+.sj-chip.p { color: var(--color-fg); border-color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+.sj-hook { margin: 0; font-size: var(--cds-font-size-body); line-height: 1.8; padding-inline-start: var(--cds-pad-sm); border-inline-start: 2px solid var(--color-border-line); }
+.sj-small { margin: 0; font-size: var(--cds-font-size-caption); line-height: 1.8; color: var(--color-fg-muted); }
+.sj-small strong { color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+.sj-idea a, .sj-table a { color: var(--color-fg); }
+.sj-insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: var(--cds-gap-md); }
+.sj-sev-مهم { color: var(--color-warn); border-color: currentColor; }
+.sj-sev-خوب { color: var(--color-ok); border-color: currentColor; }
+.sj-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--cds-gap-md); }
+#growth .sj-grid2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); }
+.sj-inl { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-fg); }
+.sj-heat { position: relative; min-height: 240px; overflow-x: auto; }
+.sj-heat svg { min-width: 560px; display: block; }
+.sj-short { min-height: 160px; }
+.sj-check { margin: 0; padding-inline-start: 1.2em; display: flex; flex-direction: column; gap: var(--cds-gap-sm); line-height: 1.8; max-width: 70ch; }
+.sj-table tr.top td { font-weight: var(--cds-font-weight-medium); }
+.sj-stale { margin: 0; padding: var(--cds-pad-sm) var(--cds-pad-md); border: 1px solid var(--color-warn); color: var(--color-warn); border-radius: var(--cds-radius); font-size: var(--cds-font-size-caption); line-height: 1.7; }
+.sj-stale a { color: inherit; }
+.sj-seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: 999px; overflow: hidden; }
+.sj-seg button { font: inherit; font-size: var(--cds-font-size-caption); background: transparent; color: var(--color-fg-muted); border: 0; padding: 4px 12px; cursor: pointer; }
+.sj-seg button[aria-pressed=true] { background: var(--color-fg); color: var(--color-panel); }
+.sj-delta { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; min-height: 1.2em; }
+.sj-delta.up { color: var(--color-ok); }
+.sj-delta.down { color: var(--color-bad); }
+.sj-goal { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+.sj-goal-num { font-variant-numeric: tabular-nums; font-size: var(--cds-font-size-body); }
+.sj-bar { height: 8px; border-radius: 999px; background: var(--color-border-line); overflow: hidden; }
+.sj-bar > i { display: block; height: 100%; border-radius: inherit; }
+.sj-thumb { width: 36px; height: 64px; object-fit: cover; border-radius: 6px; display: block; background: var(--color-border-line); }
+.sj-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-top: var(--cds-gap-sm); }
+.sj-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-inline-end: 6px; vertical-align: middle; }
+.sj-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.sj-table td.ok { color: var(--color-ok); }
+.sj-table td.warn { color: var(--color-warn); }
+.sj-badge { display: inline-block; font-size: var(--cds-font-size-caption); padding: 0 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; margin-inline-start: 6px; }
+.sj-badge.rising { color: var(--color-ok); }
+.sj-badge.weak { color: var(--color-bad); }
+.sj-badge.normal { color: var(--color-fg-muted); }
+.sj-funnel { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+.sj-step { display: grid; grid-template-columns: minmax(8rem, 12rem) 1fr; gap: var(--cds-gap-sm); align-items: center; font-size: var(--cds-font-size-caption); }
+.sj-step .bar { height: 22px; border-radius: 6px; background: var(--series-1); opacity: .85; min-width: 4px; }
+.sj-step .val { font-variant-numeric: tabular-nums; color: var(--color-fg); }
+.sj-step .conv { color: var(--color-fg-muted); }
+.sj-cal { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr)); gap: var(--cds-gap-sm); }
+@media (max-width: 40rem) { .sj-cal { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sj-day { border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-sm); display: flex; flex-direction: column; gap: 4px; font-size: var(--cds-font-size-caption); line-height: 1.6; min-height: 3.5rem; }
+.sj-day.today { border-color: var(--color-fg-muted); }
+.sj-day b { font-weight: var(--cds-font-weight-medium); }
+.sj-day .ev { border-inline-start: 3px solid var(--series-2); padding-inline-start: 6px; }
+.sj-day .ev.plan { border-color: var(--series-1); color: var(--color-fg-muted); }
+.sj-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: var(--cds-gap-sm); }
+.sj-form label { display: flex; flex-direction: column; gap: 4px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.sj-form input, .sj-form select { font: inherit; color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+.sj-out { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; }
+.sj-out code { direction: ltr; overflow-wrap: anywhere; font-size: var(--cds-font-size-caption); background: var(--color-border-line); padding: 4px 8px; border-radius: 6px; }
+.sj [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+.sj [data-dash-source-state=empty] { color: transparent; }
+</style>
+</head>
+<body>
+<div id="dash-root">
+<div class="sj" dir="rtl" lang="fa">
+  <header class="sj-head" id="top">
+    <h1 class="sj-title">داشبورد اینستاگرام</h1>
+    <p class="sj-take dash-skeleton" id="takeaway">—</p>
+    <div class="sj-topbar"><p class="sj-window">آمار از Metricool، هر ۶ ساعت · آخرین به‌روزرسانی: <span id="sj-updated">…</span> · پیشنهادها هر شنبه صبح</p><button class="sj-btn" id="sj-refresh" type="button">تازه‌سازی</button>
+      <div class="sj-seg" id="sj-range" role="group" aria-label="بازهٔ زمانی"><button type="button" data-range="7">۷ روز</button><button type="button" data-range="30">۳۰ روز</button><button type="button" data-range="all">همه</button></div></div>
+    <p class="sj-stale" id="sj-stale" hidden>داده <span id="sj-stale-hours">…</span> ساعته تازه نشده (معمولاً هر ۶ ساعت). احتمالاً همگام‌سازی خودکار خطا خورده یا اتصال اینستاگرام تو Metricool قطع شده: <a href="https://app.metricool.com/" target="_blank" rel="noopener">بررسی اتصال در Metricool</a></p>
+  </header>
+
+  <section class="sj-tiles" id="kpis" aria-label="عددهای اصلی">
+    <div class="sj-tile"><div class="sj-label">فالوئر</div><div class="sj-num dash-skeleton" data-source="kpis" data-field="followers" data-row="0">—</div><div class="sj-delta" data-delta="followers"></div><div class="sj-def">آخرین عددی که Metricool ثبت کرده.</div></div>
+    <div class="sj-tile"><div class="sj-label">بازدید ریل‌ها</div><div class="sj-num dash-skeleton" data-source="kpis" data-field="views" data-row="0">—</div><div class="sj-delta" data-delta="views"></div><div class="sj-def">جمع بازدید همهٔ ریل‌های این بازه.</div></div>
+    <div class="sj-tile"><div class="sj-label">ماندن بعد از ۳ ثانیه</div><div class="sj-num dash-skeleton" data-source="kpis" data-field="view_rate" data-row="0">—</div><div class="sj-delta" data-delta="view_rate"></div><div class="sj-def">درصد بیننده‌هایی که از ۳ ثانیهٔ اول رد شدن. محک مستقیم هوک.</div></div>
+    <div class="sj-tile"><div class="sj-label">نرخ ذخیره</div><div class="sj-num dash-skeleton" data-source="kpis" data-field="save_rate" data-row="0">—</div><div class="sj-delta" data-delta="save_rate"></div><div class="sj-def">ذخیره تقسیم بر بازدید.</div></div>
+    <div class="sj-tile"><div class="sj-label">اشتراک در هر ۱۰۰۰ نفر</div><div class="sj-num dash-skeleton" data-source="kpis" data-field="shares_per_1k" data-row="0">—</div><div class="sj-delta" data-delta="shares_per_1k"></div><div class="sj-def">فرستادن برای دیگران به ازای هر ۱۰۰۰ نفر reach؛ قوی‌ترین سیگنال برای رسیدن به غریبه‌ها.</div></div>
+    <div class="sj-tile"><div class="sj-label">دسترسی به غیرفالوئرها</div><div class="sj-num dash-skeleton" data-source="kpis" data-field="non_follower_share" data-row="0">—</div><div class="sj-delta" data-delta="non_follower_share"></div><div class="sj-def">سهم reach از کسایی که فالوت نمی‌کنن؛ یعنی چقدر به اکسپلور و ریلزِ غریبه‌ها رسیدی. خالی یعنی Metricool هنوز این تفکیک رو نداده.</div></div>
+    <div class="sj-tile"><div class="sj-label">فالوئر از ریل‌ها</div><div class="sj-num dash-skeleton" data-source="kpis" data-field="follows" data-row="0">—</div><div class="sj-delta" data-delta="follows"></div><div class="sj-def">فالوهایی که اینستاگرام مستقیم به ریل‌ها نسبت داده. خالی یعنی Metricool هنوز این عدد رو نداده.</div></div>
+    <div class="sj-tile"><div class="sj-label">حساب‌های درگیر</div><div class="sj-num dash-skeleton" data-source="kpis" data-field="engaged" data-row="0">—</div><div class="sj-delta" data-delta="engaged"></div><div class="sj-def">جمع روزانهٔ حساب‌هایی که لایک، کامنت، ذخیره یا اشتراک کردن.</div></div>
+  </section>
+
+  <section class="sj-sec" id="goals">
+    <h2 class="sj-h2">هدف‌ها</h2>
+    <p class="sj-note">از <code>content/goals.json</code> خونده می‌شه؛ هدف‌ها رو همون‌جا عوض کن.</p>
+    <div class="sj-insights" id="goals-list" data-source="goal_progress"></div>
+  </section>
+
+  <section class="sj-sec" id="plan">
+    <h2 class="sj-h2">برنامهٔ انتشار این هفته</h2>
+    <div class="sj-card" id="plan-card">
+      <p class="sj-note">چهار ایدهٔ اول، هر کدوم در بهترین ساعت یکی از چهار روز پرمخاطب هفتهٔ پیش رو. خودکار از پیشنهادها و تخمین ساعت Metricool چیده می‌شه.</p>
+      <div class="sj-tablewrap">
+        <table class="sj-table" id="plan-table" data-source="week_plan" data-row-key="slot">
+          <thead><tr>
+            <th data-field="day_label">روز</th>
+            <th data-field="time_label">ساعت</th>
+            <th data-field="title">ریل</th>
+            <th data-field="hook">جملهٔ اول</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sj-card" id="actual-card">
+      <h3>۷ روز گذشته: برنامه در برابر اجرا</h3>
+      <p class="sj-note">هر روز، بهترین ساعتِ Metricool برای اون روز هفته در برابر ساعتی که واقعاً منتشر کردی و نتیجه‌اش. <b class="sj-inl" id="actual-sum" data-source="plan_actual">—</b></p>
+      <div class="sj-tablewrap">
+        <table class="sj-table" id="actual-table" data-source="plan_actual" data-row-key="key">
+          <thead><tr>
+            <th data-field="day_label">روز</th>
+            <th data-field="best_label">بهترین ساعت</th>
+            <th data-field="time_label">ساعت انتشار</th>
+            <th data-field="offset">فاصله</th>
+            <th data-field="caption">ریل</th>
+            <th data-field="multiple">چند برابر میانه</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sj-card" id="cal-card">
+      <h3>تقویم ۱۴ روز آینده</h3>
+      <p class="sj-note">نوار پررنگ: پست‌هایی که واقعاً تو Metricool زمان‌بندی شدن. نوار کم‌رنگ: پیشنهاد برنامهٔ بالا که هنوز زمان‌بندی نشده. برای زمان‌بندی یه ایده، تو کارت همون ایده «کپی برای Metricool» رو بزن.</p>
+      <div class="sj-cal" id="cal-grid" data-source="calendar"></div>
+      <p class="sj-small" id="cal-empty" hidden>هنوز چیزی تو Metricool زمان‌بندی نشده.</p>
+    </div>
+  </section>
+
+  <section class="sj-sec" id="reels">
+    <h2 class="sj-h2">ریل‌ها</h2>
+    <div class="sj-card" id="views-card">
+      <h3>بازدید هر ریل</h3>
+      <p class="sj-note">خط‌چین میانهٔ بازدید پیجه. هر ریل با میانهٔ خودِ پیج سنجیده می‌شه، نه با عدد خام.</p>
+      <div class="sj-chart dash-skeleton" id="views-chart" data-source="reel_scores"></div>
+    </div>
+    <div class="sj-card" id="curve-card">
+      <h3>منحنی بازدید بعد از انتشار</h3>
+      <p class="sj-note">بازدید تجمعی هر ریل بر حسب ساعت‌های بعد از انتشار، از عکس‌هایی که داشبورد هر ۶ ساعت از عددها می‌گیره (و آمار روزانهٔ Metricool وقتی بده). خطی که بعد از ۴۸ ساعت هنوز بالا می‌ره یعنی اینستاگرام داره ریل رو به آدم‌های تازه نشون می‌ده.</p>
+      <div class="sj-chart dash-skeleton" id="curve-chart" data-source="reel_curves"></div>
+      <div class="sj-legend" id="curve-legend"></div>
+    </div>
+    <div class="sj-card" id="reels-card">
+      <div class="sj-tools"><h3>جزئیات</h3><span><button class="sj-btn" id="csv-reels" type="button">CSV ریل‌ها</button> <button class="sj-btn" id="csv-days" type="button">CSV آمار روزانه</button></span></div>
+      <p class="sj-note">«چند برابر میانه» = بازدید ریل تقسیم بر میانهٔ بازدید همهٔ ریل‌ها. بالای ۲ یعنی یه چیزی جواب داده. «کل تماشا» جمع زمانیه که همه روی ریل گذروندن. ریل‌های ۳ تا ۷۲ ساعته برچسب می‌خورن: «داره اوج می‌گیره» یعنی ۱٫۵ برابر ریل‌های قبلی در همین سن، «ضعیفه» یعنی نصف یا کمتر.</p>
+      <div class="sj-tablewrap">
+        <table class="sj-table" id="reels-table" data-source="reel_scores" data-row-key="url">
+          <thead><tr>
+            <th data-field="published">تاریخ</th>
+            <th data-field="cover">کاور</th>
+            <th data-field="caption">کپشن</th>
+            <th data-field="topic">موضوع</th>
+            <th data-field="views">بازدید</th>
+            <th data-field="multiple">چند برابر میانه</th>
+            <th data-field="view_rate">ماندن ۳ ثانیه</th>
+            <th data-field="avg_watch">میانگین تماشا</th>
+            <th data-field="watch_total">کل تماشا</th>
+            <th data-field="save_rate">نرخ ذخیره</th>
+            <th data-field="shares_per_1k">اشتراک/۱۰۰۰</th>
+            <th data-field="follows">فالوئر از ریل</th>
+            <th data-field="follows_per_1k">فالو/۱۰۰۰ بازدید</th>
+            <th data-field="url">لینک</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sj-card" id="posts-card">
+      <h3>پست‌ها و کاروسل‌ها</h3>
+      <p class="sj-note">پست‌های فید (عکس و کاروسل). کاروسل آموزشی معمولاً بیشتر از ریل ذخیره می‌گیره.</p>
+      <div class="sj-tablewrap">
+        <table class="sj-table" id="posts-table" data-source="posts_r" data-row-key="url">
+          <thead><tr>
+            <th data-field="published">تاریخ</th>
+            <th data-field="type">نوع</th>
+            <th data-field="caption">کپشن</th>
+            <th data-field="reach">دسترسی</th>
+            <th data-field="saves">ذخیره</th>
+            <th data-field="shares">اشتراک</th>
+            <th data-field="follows">فالوئر</th>
+            <th data-field="url">لینک</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="sj-small" id="posts-empty" hidden>تو این بازه پست یا کاروسلی منتشر نشده. یه کاروسل «خلاصهٔ قسمت‌ها» از سری آموزشی می‌تونه چیز نگه‌داشتنی و قابل ذخیره باشه.</p>
+    </div>
+  </section>
+
+  <section class="sj-sec" id="works">
+    <h2 class="sj-h2">چی جواب می‌ده؟</h2>
+    <p class="sj-note">ریل‌های این بازه، گروه‌بندی‌شده. «میانهٔ چند برابر» یعنی ریل معمولیِ اون گروه چند برابر میانهٔ کل پیج بازدید گرفته. با کمتر از ۳ ریل در یه گروه، عدد فقط یه نشونه‌ست، نه نتیجه.</p>
+    <div class="sj-grid2">
+      <div class="sj-card" id="topics-card">
+        <h3>بر اساس موضوع</h3>
+        <p class="sj-note">موضوع هر ریل از کلمه‌های کپشنش حدس زده می‌شه (<code>content/topics.json</code>). اگه اشتباه بود، تو <code>content/reel_topics.json</code> لینک ریل رو به موضوع درست وصل کن.</p>
+        <div class="sj-tablewrap">
+          <table class="sj-table" id="topics-table" data-source="topic_stats" data-row-key="topic">
+            <thead><tr>
+              <th data-field="label">موضوع</th>
+              <th data-field="n">ریل</th>
+              <th data-field="multiple">میانهٔ چند برابر</th>
+              <th data-field="view_rate">ماندن ۳ ثانیه</th>
+              <th data-field="save_rate">نرخ ذخیره</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="sj-card" id="hooks-card">
+        <h3>هوک و کپشن</h3>
+        <p class="sj-note">هوک = خط اول کپشن. هر ردیف ریل‌هایی که این ویژگی رو دارن با بقیه مقایسه می‌کنه.</p>
+        <div class="sj-tablewrap">
+          <table class="sj-table" id="hooks-table" data-source="caption_stats" data-row-key="feature">
+            <thead><tr>
+              <th data-field="label">ویژگی</th>
+              <th data-field="n_with">دارن / ندارن</th>
+              <th data-field="multiple_with">میانهٔ چند برابر</th>
+              <th data-field="view_rate_with">ماندن ۳ ثانیه</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sj-sec" id="experiments">
+    <h2 class="sj-h2">دفترچهٔ آزمایش</h2>
+    <p class="sj-note">دو هوک یا دو کاور رو روی دو ریل امتحان کن و اینجا ثبتش کن. آزمایش‌ها تو <code>content/experiments.json</code> هستن (مثل هدف‌ها، Claude بهش دست نمی‌زنه). برای هر کدوم فرضیه، معیار (<code>multiple</code>، <code>view_rate</code>، <code>save_rate</code>، <code>shares_per_1k</code> یا <code>avg_watch</code>) و لینک دو ریل رو بنویس؛ نتیجه خودش حساب می‌شه، وقتی هر دو ریل دست‌کم ۴۸ ساعته منتشر شده باشن.</p>
+    <div class="sj-insights" id="exp-list" data-source="experiment_results"></div>
+  </section>
+
+  <section class="sj-sec" id="growth">
+    <h2 class="sj-h2">رشد پیج</h2>
+    <div class="sj-card" id="funnel-card">
+      <h3>قیف: از بازدید تا کلیک لینک</h3>
+      <p class="sj-note">برای همین بازه. اینستاگرام دیگه «بازدید پروفایل» رو به Metricool نمی‌ده، پس قیف از «حساب‌های درگیر» مستقیم به فالو می‌ره. عرض نوارها لگاریتمیه تا مرحله‌های کوچیک هم دیده بشن. <b class="sj-inl" id="funnel-key" data-source="funnel">—</b></p>
+      <div class="sj-funnel" id="funnel" data-source="funnel"></div>
+    </div>
+    <div class="sj-grid2">
+      <div class="sj-card" id="followers-card">
+        <h3>فالوئرها</h3>
+        <p class="sj-note">روزهایی که Metricool عدد فالوئر ثبت کرده. خالص این بازه: <b class="sj-inl" data-source="kpis" data-field="net" data-row="0">—</b></p>
+        <div class="sj-chart dash-skeleton" id="followers-chart" data-source="account"></div>
+      </div>
+      <div class="sj-card" id="reach-card">
+        <h3>دسترسی روزانهٔ ریل‌ها</h3>
+        <p class="sj-note">تعداد آدم‌هایی که هر روز ریل‌هات رو دیدن.</p>
+        <div class="sj-chart dash-skeleton" id="reach-chart" data-source="account"></div>
+      </div>
+      <div class="sj-card" id="engaged-card">
+        <h3>حساب‌های درگیر</h3>
+        <p class="sj-note">حساب‌هایی که هر روز با محتوات تعامل کردن. کلیک روی لینک بایو در این بازه: <b class="sj-inl" id="taps-total" data-source="taps_sum">—</b></p>
+        <div class="sj-chart dash-skeleton" id="engaged-chart" data-source="account"></div>
+      </div>
+      <div class="sj-card" id="ftype-card">
+        <h3>دسترسی: فالوئرها در برابر غیرفالوئرها</h3>
+        <p class="sj-note">پیج تازه با غیرفالوئرها رشد می‌کنه؛ هر چی سهمشون بیشتر، ریل بیشتر به اکسپلور رسیده.</p>
+        <div class="sj-chart sj-short" id="ftype-chart" data-source="ftype_sum"></div>
+      </div>
+    </div>
+    <div class="sj-card" id="utm-card">
+      <h3>لینک ردیابی‌دار برای بایو، استوری و کپشن</h3>
+      <p class="sj-note">اینستاگرام فقط تعداد کلیک لینک بایو رو می‌ده، نه اینکه بعدش تو سایت چی شد. با این لینک‌ها Google Analytics (GA4) می‌فهمه بازدیدکننده از اینستاگرام اومده و از کدوم جا.</p>
+      <div class="sj-form">
+        <label>آدرس صفحه<input id="utm-url" type="url" dir="ltr" value="https://example.com"></label>
+        <label>کجا می‌ذاریش<select id="utm-campaign"><option value="bio">لینک بایو</option><option value="story">استوری</option><option value="reel">کپشن یا کامنت ریل</option><option value="dm">دایرکت</option></select></label>
+        <label>برچسب (اختیاری، مثلاً اسم ریل)<input id="utm-content" dir="ltr" placeholder="token-reel"></label>
+      </div>
+      <p class="sj-out"><code id="utm-out"></code><button class="sj-btn" id="utm-copy" type="button">کپی</button></p>
+      <p class="sj-small">نتیجه تو GA4: Reports ← Acquisition ← Traffic acquisition، و بُعد «Session source / medium» رو روی <code>instagram / social</code> فیلتر کن. «Session campaign» نشون می‌ده از بایو بوده یا استوری.</p>
+    </div>
+  </section>
+
+  <section class="sj-sec" id="besttime">
+    <h2 class="sj-h2">بهترین ساعت انتشار</h2>
+    <div class="sj-card" id="besttime-card">
+      <h3>هفتهٔ پیش رو، به وقت تهران</h3>
+      <p class="sj-note">تخمین Metricool از فعالیت مخاطب‌ها؛ هر چی پررنگ‌تر، بهتر. برای پیج تازه این تخمین بیشتر از داده‌های عمومی میاد تا مخاطب‌های خودت، پس با عددهای ریل‌هات مقایسه‌اش کن. بهترین زمان‌ها: <b class="sj-inl" id="besttime-top" data-source="best_top">—</b></p>
+      <div class="sj-heat dash-skeleton" id="besttime-chart" data-source="best_time"></div>
+    </div>
+    <div class="sj-card" id="hour-card">
+      <h3>ساعت انتشار خودت در برابر نتیجهٔ واقعی</h3>
+      <p class="sj-note">هر نقطه یه ریله: ساعت انتشار (به وقت تهران) و چند برابر میانه‌ای که گرفت. ستون‌های کم‌رنگ پشت نقطه‌ها میانگین تخمین Metricool برای اون ساعته. وقتی نقطه‌ها زیاد بشن، معلوم می‌شه تخمین Metricool با مخاطب خودت می‌خونه یا نه.</p>
+      <div class="sj-chart dash-skeleton" id="hour-chart" data-source="hour_result"></div>
+    </div>
+  </section>
+
+  <section class="sj-sec" id="insights">
+    <h2 class="sj-h2">تحلیل این هفته</h2>
+    <div class="sj-insights" id="insights-list" data-source="insights"></div>
+  </section>
+
+  <section class="sj-sec" id="ideas">
+    <h2 class="sj-h2">پیشنهاد محتوا از روی ترندهای خارجی</h2>
+    <p class="sj-note">قالب‌هایی که الان تو محتوای AI انگلیسی‌زبان جواب می‌دن، فارسی و متناسب با سری آموزشی و سبک داستانی پیج. به ترتیب اولویت.</p>
+    <div class="sj-ideas" id="ideas-list" data-source="ideas"></div>
+  </section>
+
+  <section class="sj-sec" id="competitors">
+    <h2 class="sj-h2">رقبا و پیج‌های الگو</h2>
+    <div class="sj-grid2">
+      <div class="sj-card" id="comp-card">
+        <h3>رقبای ثبت‌شده در Metricool</h3>
+        <p class="sj-note">فالوئر، تعداد ریل و تعامل هر رقیب در همین بازه. تعامل = تعامل به ازای هر ۱۰۰۰ فالوئر.</p>
+        <div class="sj-tablewrap">
+          <table class="sj-table" id="comp-table" data-source="competitors" data-row-key="screen_name">
+            <thead><tr>
+              <th data-field="screen_name">پیج</th>
+              <th data-field="followers">فالوئر</th>
+              <th data-field="reels">ریل</th>
+              <th data-field="posts">پست</th>
+              <th data-field="engagement">تعامل</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="sj-small" id="comp-empty" hidden>هنوز رقیبی اضافه نشده. تو Metricool از بخش Competitors تا ۵ پیج اینستاگرام اضافه کن تا اینجا زنده نشون داده بشن: <a href="https://app.metricool.com/" target="_blank" rel="noopener">باز کردن Metricool</a></p>
+      </div>
+      <div class="sj-card" id="comp-reels-card">
+        <h3>پرتعامل‌ترین ریل‌های رقبا</h3>
+        <p class="sj-note">ده ریل اول رقبا بر اساس تعامل؛ هوک و موضوعشون رو برای ایده‌های خودت بخون.</p>
+        <div class="sj-tablewrap">
+          <table class="sj-table" id="comp-reels-table" data-source="competitor_reels" data-row-key="url">
+            <thead><tr>
+              <th data-field="competitor">پیج</th>
+              <th data-field="text">متن</th>
+              <th data-field="interactions">تعامل</th>
+              <th data-field="url">لینک</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="sj-small" id="comp-reels-empty" hidden>وقتی رقبا رو تو Metricool اضافه کنی، ریل‌هاشون اینجا رتبه‌بندی می‌شن.</p>
+      </div>
+      <div class="sj-card" id="comp-posts-card">
+        <h3>پرتعامل‌ترین پست‌ها و کاروسل‌های رقبا</h3>
+        <p class="sj-note">ده پست فید اول رقبا بر اساس تعامل.</p>
+        <div class="sj-tablewrap">
+          <table class="sj-table" id="comp-posts-table" data-source="competitor_posts" data-row-key="url">
+            <thead><tr>
+              <th data-field="competitor">پیج</th>
+              <th data-field="text">متن</th>
+              <th data-field="interactions">تعامل</th>
+              <th data-field="url">لینک</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="sj-small" id="comp-posts-empty" hidden>وقتی رقبا رو تو Metricool اضافه کنی، پست‌هاشون هم اینجا میان.</p>
+      </div>
+    </div>
+    <div class="sj-card" id="bench-card">
+      <h3>پیج‌های الگوی خارجی</h3>
+      <p class="sj-note">از فهرست پرتعامل‌ترین سازنده‌های AI اینستاگرام، نزدیک‌ترین‌ها به آموزش AI و ایجنت. ستون آخر می‌گه از هر کدوم چی برداری.</p>
+      <div class="sj-ideas" id="bench-list" data-source="benchmarks"></div>
+    </div>
+  </section>
+
+  <section class="sj-sec" id="audience">
+    <h2 class="sj-h2">مخاطب‌ها و استوری‌ها</h2>
+    <div class="sj-grid2">
+      <div class="sj-card" id="country-card">
+        <h3>فالوئرها بر اساس کشور</h3>
+        <div class="sj-chart sj-short" id="country-chart" data-source="countries"></div>
+      </div>
+      <div class="sj-card" id="age-card">
+        <h3>سن و جنسیت فالوئرها</h3>
+        <div class="sj-chart sj-short" id="age-chart" data-source="age_gender"></div>
+      </div>
+    </div>
+    <p class="sj-note">اینستاگرام آمار سن، جنسیت و کشور رو معمولاً از حدود ۱۰۰ فالوئر به بعد می‌ده؛ تا اون موقع این دو کارت خالی می‌مونن.</p>
+    <div class="sj-card" id="stories-card">
+      <h3>استوری‌ها</h3>
+      <p class="sj-note">خروج یعنی کسایی که وسط استوری‌ها بیرون رفتن؛ برگشت یعنی دوباره دیدن، که نشونهٔ علاقه‌ست.</p>
+      <div class="sj-tablewrap">
+        <table class="sj-table" id="stories-table" data-source="stories" data-row-key="permalink">
+          <thead><tr>
+            <th data-field="published">تاریخ</th>
+            <th data-field="type">نوع</th>
+            <th data-field="reach">دسترسی</th>
+            <th data-field="exits">خروج</th>
+            <th data-field="taps_back">برگشت</th>
+            <th data-field="replies">پاسخ</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="sj-small" id="stories-empty" hidden>هنوز استوری‌ای تو این بازه ثبت نشده. استوری روزانه (پشت صحنهٔ ساخت ریل، نظرسنجی دربارهٔ قسمت بعد) فالوئرهای فعلی رو نگه می‌داره.</p>
+    </div>
+  </section>
+
+  <section class="sj-sec" id="checklist">
+    <h2 class="sj-h2">چک‌لیست قبل از انتشار</h2>
+    <div class="sj-card">
+      <ul class="sj-check">
+        <li>ثانیهٔ اول: صورت خودت و یه متن درشت روی صفحه؛ جملهٔ اول نتیجه یا غافلگیریه، نه سلام و مقدمه.</li>
+        <li>هر ۳ تا ۴ ثانیه یه چیزی روی صفحه عوض بشه: زاویه، متن، گرافیک یا اسکرین‌شات.</li>
+        <li>یه چیز «نگه‌داشتنی» تو ریل باشه (پرامپت، فهرست، جدول) و آخرش بگی ذخیره کن.</li>
+        <li>جملهٔ آخر به هوک برگرده تا ریل دوباره پخش بشه.</li>
+        <li>کپشن: ۱۲۵ کاراکتر اول (قبل از «بیشتر») خودش یه هوک کامل باشه؛ حداکثر ۵ هشتگ.</li>
+        <li>شمارهٔ قسمت سری روی کاور و تو کپشن («قسمت ۳») تا بیننده دنبال بقیه بره.</li>
+        <li>زیرنویس فارسی روی کل ویدیو؛ خیلی‌ها بی‌صدا نگاه می‌کنن.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+</div>
+<script src="assets/d3.min.js"></script>
+<script src="assets/shim.js"></script>
+<script>
+(function () {
+  const iso = (d) => d.toISOString().slice(0, 19) + '+00:00';
+  const now = new Date();
+  dash.setParams({ from: iso(new Date(now.getTime() - 60 * 864e5)), to: iso(now), bt_from: iso(now), bt_to: iso(new Date(now.getTime() + 7 * 864e5 - 6e4)) });
+
+  dash.loader('best_time', {
+    description: 'Metricool’s best-time answer (per weekday, a list of hours) as one row per weekday and hour.',
+    fn: ({ answer }) => {
+      const a = typeof answer === 'string' ? JSON.parse(answer) : answer;
+      if (!a || !Array.isArray(a.data)) throw new Error((a && (a.error || a.message)) || 'Metricool returned no best-time data');
+      const rows = [];
+      a.data.forEach((d) => (d.bestTimesByHour || []).forEach((h) => rows.push({ day_of_week: Number(d.dayOfWeek), hour: Number(h.hourOfDay), value: Number(h.value) })));
+      return { columns: ['day_of_week', 'hour', 'value'], rows };
+    },
+  });
+
+  dash.calc('best_top', {
+    inputs: ['best_time'],
+    title: 'Top 3 posting slots',
+    description: 'The three weekday-and-hour slots with the highest Metricool best-time value.',
+    fn: (best_time) => best_time.slice().sort((a, b) => b.value - a.value).slice(0, 3).map((r, i) => ({ rank: i + 1, day_of_week: r.day_of_week, hour: r.hour, value: r.value })),
+  });
+
+  const reelCols = ['published', 'caption', 'url', 'views', 'reach', 'avg_watch', 'retention', 'view_rate', 'shares', 'saves', 'likes', 'comments', 'reposts'];
+  dash.loader('reels', {
+    description: 'Metricool’s answer (one array per reel) as rows with named columns, numbers as numbers and the publish time as a date.',
+    fn: ({ answer }) => {
+      const a = typeof answer === 'string' ? JSON.parse(answer) : answer;
+      if (!a || !Array.isArray(a.rows)) throw new Error((a && (a.error || a.message)) || 'Metricool returned no rows');
+      const cols = ['published', 'caption', 'url', 'views', 'reach', 'avg_watch', 'retention', 'view_rate', 'shares', 'saves', 'likes', 'comments', 'reposts'];
+      const num = (x) => (x === null || x === undefined || x === '' ? null : Number(x));
+      const when = (s) => (s ? String(s).replace(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}).*$/, '$1-$2-$3T$4:$5:$6') : null);
+      const rows = a.rows.map((r) => {
+        const o = {};
+        cols.forEach((c, i) => { o[c] = c === 'caption' || c === 'url' ? (r[i] ?? '') : c === 'published' ? when(r[i]) : num(r[i]); });
+        return o;
+      });
+      return { columns: cols, rows };
+    },
+  });
+
+  dash.loader('account', {
+    description: 'Metricool’s daily account answer (one array per day, date last) as rows with named columns.',
+    fn: ({ answer }) => {
+      const a = typeof answer === 'string' ? JSON.parse(answer) : answer;
+      if (!a || !Array.isArray(a.rows)) throw new Error((a && (a.error || a.message)) || 'Metricool returned no rows');
+      const cols = ['followers', 'gained', 'lost', 'reels', 'reels_views', 'reels_reach', 'reels_shares', 'day'];
+      const num = (x) => (x === null || x === undefined || x === '' ? null : Number(x));
+      const rows = a.rows.map((r) => {
+        const o = {};
+        cols.forEach((c, i) => { o[c] = c === 'day' ? String(r[i]).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3') : num(r[i]); });
+        return o;
+      }).sort((x, y) => x.day.localeCompare(y.day));
+      return { columns: cols, rows };
+    },
+  });
+
+  // ---------- date range (7 / 30 days / all) and the window before it, in Tehran days ----------
+  const tehDay = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  const daysAgo = (n) => tehDay(new Date(Date.now() - n * 864e5));
+  const rangeN = () => { const r = dash.params().range; return r === 'all' ? null : Number(r) || 30; };
+  // which = 0: the chosen range; 1: the same length just before it (null when range is "all")
+  const win = (which) => {
+    const n = rangeN();
+    if (n == null) return which ? null : { start: '', end: null };
+    return which ? { start: daysAgo(2 * n - 1), end: daysAgo(n - 1) } : { start: daysAgo(n - 1), end: null };
+  };
+  const inWin = (w, day) => !!w && !!day && day >= w.start && (!w.end || day < w.end);
+  const keep = (rows, dayOf, which = 0) => { const w = win(which); return rows.filter((r) => inWin(w, dayOf(r))); };
+  const pubDay = (r) => (r.published ? String(r.published).slice(0, 10) : null);
+  ['account', 'follower_type', 'profile_taps'].forEach((id) => dash.calc(id + '_r', { inputs: [id], fn: (rows) => keep(rows, (r) => r.day) }));
+  dash.calc('posts_r', { inputs: ['posts'], fn: (rows) => keep(rows, pubDay) });
+
+  // ---------- fresh reels against older ones at the same age (same rule as scripts/notify.py) ----------
+  const med = (a) => { const v = a.slice().sort((x, y) => x - y), n = v.length; return n ? (n % 2 ? v[(n - 1) / 2] : (v[n / 2 - 1] + v[n / 2]) / 2) : null; };
+  const pubMs = (r) => Date.parse(String(r.published).slice(0, 19) + '+03:30');
+  const curveOf = (r, snaps) => {
+    const pub = pubMs(r);
+    if (!Number.isFinite(pub)) return [];
+    return [[0, 0]].concat(snaps.filter((s) => s.url === r.url && s.views != null).map((s) => [(Date.parse(s.at) - pub) / 36e5, s.views]).filter((p) => p[0] > 0)).sort((a, b) => a[0] - b[0]);
+  };
+  // views at age h, interpolated between two points no more than max(12h, h) apart
+  const viewsAt = (pts, h) => {
+    for (let i = 1; i < pts.length; i++) {
+      const [h0, v0] = pts[i - 1], [h1, v1] = pts[i];
+      if (h0 <= h && h <= h1 && h1 - h0 <= Math.max(12, h)) return h1 > h0 ? v0 + (v1 - v0) * (h - h0) / (h1 - h0) : v1;
+    }
+    return null;
+  };
+  const paceOf = (r, reels, snaps) => {
+    const age = (Date.now() - pubMs(r)) / 36e5;
+    if (r.views == null || !(age >= 3 && age <= 72)) return null;
+    const others = reels.filter((o) => o.url !== r.url && o.views != null);
+    const ref = others.map((o) => viewsAt(curveOf(o, snaps), age)).filter((v) => v);
+    let ratio = null;
+    if (ref.length >= 3) ratio = r.views / med(ref);
+    else if (age >= 24 && others.length >= 3) { const m = med(others.map((o) => o.views)); ratio = m ? r.views / m : null; }
+    if (ratio == null) return null;
+    return { ratio: Math.round(ratio * 10) / 10, age: Math.round(age), kind: ratio >= 1.5 ? 'rising' : ratio <= 0.5 ? 'weak' : 'normal' };
+  };
+  const paceText = { rising: 'داره اوج می‌گیره', weak: 'ضعیفه', normal: 'تازه · عادی' };
+
+  dash.calc('reel_scores_all', {
+    inputs: ['reels', 'reel_snapshots'],
+    title: 'Reels against the page median',
+    description: 'Each reel’s views divided by the median views of all reels, plus save rate (saves ÷ views, %), shares per 1,000 reached, follows per 1,000 views, its topic, and for reels 3–72 hours old the pace against other reels at the same age.',
+    fn: (reels, snaps) => {
+      const median = med(reels.map((r) => r.views).filter((x) => x != null));
+      return reels.map((r) => { const p = paceOf(r, reels, snaps); return {
+        pace: p ? p.kind : '', pace_ratio: p ? p.ratio : null, pace_age: p ? p.age : null,
+        topic: r.topic || 'other', follows_per_1k: r.follows != null && r.views ? Math.round((r.follows / r.views) * 10000) / 10 : null,
+        url: r.url, published: r.published, caption: r.caption, views: r.views, median,
+        multiple: median && r.views != null ? Math.round((r.views / median) * 10) / 10 : null,
+        view_rate: r.view_rate, avg_watch: r.avg_watch,
+        save_rate: r.views ? Math.round((r.saves / r.views) * 1000) / 10 : null,
+        shares_per_1k: r.reach ? Math.round((r.shares / r.reach) * 10000) / 10 : null,
+        reel_id: r.reel_id || '', cover: r.cover || '', watch_total: r.watch_total ?? null, follows: r.follows ?? null,
+        reach: r.reach, saves: r.saves, shares: r.shares, likes: r.likes, comments: r.comments, engagement: r.engagement ?? null,
+      }; }).sort((a, b) => String(b.published).localeCompare(String(a.published)));
+    },
+  });
+  // the median stays the whole page's; the range only picks which reels are shown
+  dash.calc('reel_scores', { inputs: ['reel_scores_all'], fn: (rows) => keep(rows, pubDay) });
+
+  // page totals for one window; followers are the last count up to the window's end
+  const kpiOf = (w, allReels, allAccount, allFtype) => {
+    if (!w) return [];
+    const reels = allReels.filter((r) => inWin(w, pubDay(r)));
+    const account = allAccount.filter((d) => inWin(w, d.day));
+    const ftype = allFtype.filter((d) => inWin(w, d.day));
+    const sum = (rows, f) => rows.reduce((s, r) => s + (r[f] || 0), 0);
+    const sumOrNull = (rows, f) => (rows.some((r) => r[f] != null) ? sum(rows, f) : null);
+    const views = sum(reels, 'views'), reach = sum(reels, 'reach');
+    const vr = reels.filter((r) => r.view_rate != null);
+    const fols = allAccount.filter((d) => d.followers != null && (!w.end || d.day < w.end)).sort((a, b) => a.day.localeCompare(b.day));
+    const fol = fols[fols.length - 1];
+    const before = fols.filter((d) => d.day < w.start).pop();
+    const first = fols.find((d) => d.day >= w.start);
+    const gl = account.reduce((s, d) => s + (d.gained || 0) - (d.lost || 0), 0);
+    const nonF = ftype.filter((d) => /non/i.test(d.type)).reduce((s, d) => s + (d.reach || 0), 0);
+    const allF = sum(ftype, 'reach');
+    return [{
+      followers: fol ? fol.followers : null,
+      // count before the range if there is one, else the first count inside it; Metricool rarely fills gained/lost
+      net: fol && (before || first) ? fol.followers - (before || first).followers : gl,
+      reels: reels.length,
+      views,
+      view_rate: vr.length ? Math.round((vr.reduce((s, r) => s + r.view_rate, 0) / vr.length) * 10) / 10 : null,
+      save_rate: views ? Math.round((sum(reels, 'saves') / views) * 1000) / 10 : null,
+      shares_per_1k: reach ? Math.round((sum(reels, 'shares') / reach) * 10000) / 10 : null,
+      non_follower_share: allF ? Math.round((nonF / allF) * 1000) / 10 : null,
+      follows: sumOrNull(reels, 'follows'),
+      engaged: sumOrNull(account, 'engaged'),
+    }];
+  };
+  dash.calc('kpis', {
+    inputs: ['reels', 'account', 'follower_type'],
+    title: 'Page totals',
+    description: 'For the chosen range: latest follower count; total reel views; average 3-second view rate; saves ÷ views (%); shares per 1,000 reached; non-follower share of reach; follows from reels; accounts engaged.',
+    fn: (reels, account, ftype) => kpiOf(win(0), reels, account, ftype),
+  });
+  dash.calc('kpis_prev', {
+    inputs: ['reels', 'account', 'follower_type'],
+    title: 'Page totals, previous window',
+    description: 'The same totals for the window of equal length just before the chosen range (empty for "all").',
+    fn: (reels, account, ftype) => kpiOf(win(1), reels, account, ftype),
+  });
+
+  const fmtInt = d3.format(',');
+  const fmtPct = (x) => (x == null ? '—' : x + '%');
+  const fmtDate = (s) => (s ? d3.timeFormat('%Y-%m-%d')(new Date(s)) : '—');
+  const fmtSec = (x) => (x == null ? '—' : x + 's');
+  const fmtDur = (x) => (x == null ? '—' : x >= 3600 ? (Math.round(x / 360) / 10) + 'h' : Math.round(x / 60) + 'm');
+  const fail = (el) => { el.replaceChildren(); const d = document.createElement('div'); d.className = 'sj-fail'; d.textContent = 'Failed to load'; el.append(d); };
+
+  // headline tiles + takeaway
+  const tileFmt = { followers: (x) => (x == null ? '—' : fmtInt(x)), views: (x) => (x == null ? '—' : fmtInt(x)), view_rate: fmtPct, save_rate: fmtPct, shares_per_1k: (x) => (x == null ? '—' : String(x)),
+    non_follower_share: fmtPct, follows: (x) => (x == null ? '—' : fmtInt(x)), engaged: (x) => (x == null ? '—' : fmtInt(x)) };
+  const take = document.getElementById('takeaway');
+  const mark = (field, text) => { const b = document.createElement('b'); b.dataset.source = 'kpis'; b.dataset.field = field; b.dataset.row = '0'; b.textContent = text; return b; };
+
+  dash.onData(() => {
+    const k = dash.data('kpis');
+    const tiles = document.querySelectorAll('#kpis [data-source="kpis"]');
+    if (k.status !== 'ok' || !k.data.length) {
+      tiles.forEach((t) => { t.textContent = '—'; t.classList.toggle('dash-skeleton', k.status === 'loading'); });
+      take.textContent = '—';
+      take.classList.toggle('dash-skeleton', k.status === 'loading');
+      return;
+    }
+    const r = k.data[0];
+    tiles.forEach((t) => { t.classList.remove('dash-skeleton'); t.textContent = tileFmt[t.dataset.field](r[t.dataset.field]); });
+    take.classList.remove('dash-skeleton');
+    const parts = [];
+    parts.push(mark('views', fmtInt(r.views)), ' بازدید و ', mark('followers', r.followers == null ? '—' : fmtInt(r.followers)), ' فالوئر. ');
+    if (r.view_rate != null && r.view_rate < 50) {
+      parts.push('فقط ', mark('view_rate', fmtPct(r.view_rate)), ' بیننده‌ها از ۳ ثانیهٔ اول رد شدن؛ اولویت این هفته هوکه.');
+    } else if (r.save_rate != null && r.save_rate < 1) {
+      parts.push('نرخ ذخیره ', mark('save_rate', fmtPct(r.save_rate)), ' هست؛ اولویت این هفته محتوای نگه‌داشتنیه.');
+    } else {
+      parts.push('ماندن ۳ ثانیه ', mark('view_rate', fmtPct(r.view_rate)), ' و نرخ ذخیره ', mark('save_rate', fmtPct(r.save_rate)), '؛ همین مسیر رو ادامه بده.');
+    }
+    take.replaceChildren(...parts);
+  });
+
+  // change against the previous window of the same length
+  const deltaKind = { followers: 'abs', views: 'rel', view_rate: 'pts', save_rate: 'pts', shares_per_1k: 'pts', non_follower_share: 'pts', follows: 'abs', engaged: 'rel' };
+  dash.onData(() => {
+    const k = dash.data('kpis'), p = dash.data('kpis_prev');
+    const n = rangeN();
+    document.querySelectorAll('#kpis [data-delta]').forEach((el) => {
+      el.className = 'sj-delta';
+      el.textContent = '';
+      if (k.status !== 'ok' || !k.data.length || n == null) return;
+      const f = el.dataset.delta, cur = k.data[0][f], prev = p.data.length ? p.data[0][f] : null;
+      if (cur == null) return;
+      if (prev == null) { el.textContent = n + ' روز قبلش داده نداره'; return; }
+      const d = cur - prev;
+      const kind = deltaKind[f];
+      let t;
+      if (kind === 'rel') t = prev ? Math.abs(Math.round((d / prev) * 100)) + '%' : 'از صفر';
+      else if (kind === 'pts') t = Math.abs(Math.round(d * 10) / 10) + ' واحد';
+      else t = fmtInt(Math.abs(d));
+      el.textContent = (d > 0 ? '↑ ' : d < 0 ? '↓ ' : 'بدون تغییر ') + (d ? t + ' ' : '') + 'نسبت به ' + n + ' روز قبلش';
+      if (d) el.classList.add(d > 0 ? 'up' : 'down');
+    });
+  });
+
+  // chart
+  const chart = document.getElementById('views-chart');
+  dash.onData(() => {
+    const d = dash.data('reel_scores');
+    if (d.status === 'error') { chart.classList.remove('dash-skeleton'); fail(chart); return; }
+    if (d.status !== 'ok') { chart.replaceChildren(); chart.classList.toggle('dash-skeleton', d.status === 'loading'); return; }
+    chart.classList.remove('dash-skeleton');
+    chart.replaceChildren();
+    const rows = d.data.filter((r) => r.views != null).slice().sort((a, b) => String(a.published).localeCompare(String(b.published)));
+    if (!rows.length) { const p = document.createElement('div'); p.className = 'sj-fail'; p.textContent = 'هنوز ریلی تو این بازه نیست'; chart.append(p); return; }
+    const W = chart.clientWidth || 600, H = 220, m = { t: 22, r: 12, b: 28, l: 12 };
+    const svg = d3.select(chart).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'بازدید هر ریل');
+    const yMax = d3.max(rows, (r) => r.views) * 1.15;
+    const y = d3.scaleLinear([0, yMax], [H - m.b, m.t]);
+    const ticks = y.ticks(4);
+    const tg = svg.append('g');
+    ticks.forEach((t) => tg.append('line').attr('x1', 0).attr('x2', W).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', 'var(--cds-chart-grid)'));
+    const tl = svg.append('g');
+    let lw = 0;
+    ticks.forEach((t) => { const n = tl.append('text').attr('x', 0).attr('y', y(t) - 4).attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.format('~s')(t)); lw = Math.max(lw, n.node().getComputedTextLength()); });
+    m.l = Math.ceil(lw) + 8;
+    const x = d3.scaleBand(rows.map((r) => r.url), [m.l, W - m.r]).padding(0.35);
+    const bw = Math.min(32, x.bandwidth());
+    const tip = document.createElement('div'); tip.className = 'sj-tip'; tip.hidden = true; chart.append(tip);
+    svg.append('g').selectAll('rect').data(rows).join('rect')
+      .attr('x', (r) => x(r.url) + (x.bandwidth() - bw) / 2).attr('width', bw)
+      .attr('y', (r) => y(r.views)).attr('height', (r) => y(0) - y(r.views)).attr('rx', 4)
+      .attr('fill', dash.colors[0])
+      .on('mousemove', (ev, r) => {
+        tip.hidden = false;
+        tip.replaceChildren();
+        const a = document.createElement('div'); a.className = 'k'; a.textContent = fmtDate(r.published);
+        const b = document.createElement('div'); b.textContent = fmtInt(r.views) + ' views · ' + (r.multiple ?? '—') + '×';
+        tip.append(a, b);
+        const [px, py] = d3.pointer(ev, chart);
+        const tw = tip.offsetWidth;
+        tip.style.left = Math.max(0, Math.min(W - tw, px - tw / 2)) + 'px';
+        tip.style.top = Math.max(0, py - 44) + 'px';
+      })
+      .on('mouseleave', () => { tip.hidden = true; });
+    svg.append('g').selectAll('text').data(rows).join('text')
+      .attr('x', (r) => x(r.url) + x.bandwidth() / 2).attr('y', (r) => y(r.views) - 6).attr('text-anchor', 'middle')
+      .attr('fill', 'var(--color-fg)').attr('font-size', 11).text((r) => fmtInt(r.views));
+    const med = rows[0].median;
+    if (med != null) svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(med)).attr('y2', y(med)).attr('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '4 4');
+    const every = Math.max(1, Math.ceil(rows.length / Math.max(1, Math.floor((W - m.l) / 80))));
+    svg.append('g').selectAll('text').data(rows.filter((_, i) => i % every === 0)).join('text')
+      .attr('x', (r) => x(r.url) + x.bandwidth() / 2).attr('y', H - 8).attr('text-anchor', 'middle')
+      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((r) => d3.timeFormat('%b %-d')(new Date(r.published)));
+  });
+
+  // net followers inline
+  dash.onData(() => {
+    const k = dash.data('kpis');
+    const el = document.querySelector('#followers-card [data-field="net"]');
+    el.textContent = k.status === 'ok' && k.data.length ? (k.data[0].net > 0 ? '+' : '') + fmtInt(k.data[0].net) : '—';
+  });
+
+  // small time charts from the daily account rows
+  const timeChart = (el, field, kind) => {
+    const d = dash.data('account_r');
+    if (d.status === 'error') { el.classList.remove('dash-skeleton'); fail(el); return; }
+    if (d.status !== 'ok') { el.replaceChildren(); el.classList.toggle('dash-skeleton', d.status === 'loading'); return; }
+    el.classList.remove('dash-skeleton');
+    el.replaceChildren();
+    const rows = d.data.filter((r) => r[field] != null).map((r) => ({ day: new Date(r.day + 'T00:00:00'), v: r[field] }));
+    if (!rows.length) { const p = document.createElement('div'); p.className = 'sj-fail'; p.textContent = 'هنوز داده‌ای ثبت نشده'; el.append(p); return; }
+    const W = el.clientWidth || 400, H = 200, m = { t: 22, r: 16, b: 28, l: 12 };
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+    const all = d.data.map((r) => new Date(r.day + 'T00:00:00'));
+    const yMax = (d3.max(rows, (r) => r.v) || 1) * 1.2;
+    const y = d3.scaleLinear([0, yMax], [H - m.b, m.t]);
+    const ticks = y.ticks(4);
+    let lw = 0;
+    ticks.forEach((t) => {
+      svg.append('line').attr('x1', 0).attr('x2', W).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', 'var(--cds-chart-grid)');
+      const n = svg.append('text').attr('x', 0).attr('y', y(t) - 4).attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.format('~s')(t));
+      lw = Math.max(lw, n.node().getComputedTextLength());
+    });
+    m.l = Math.ceil(lw) + 10;
+    const lo = d3.min(all), hi = d3.max(all);
+    const x = d3.scaleUtc([d3.timeDay.offset(lo, -1), d3.timeDay.offset(hi, 1)], [m.l, W - m.r]);
+    if (kind === 'bar') {
+      const bw = Math.max(4, Math.min(32, (W - m.l - m.r) / (all.length + 2) * 0.6));
+      svg.append('g').selectAll('rect').data(rows).join('rect').attr('x', (r) => x(r.day) - bw / 2).attr('width', bw)
+        .attr('y', (r) => y(r.v)).attr('height', (r) => y(0) - y(r.v)).attr('rx', 4).attr('fill', dash.colors[1]);
+    } else {
+      if (rows.length > 1) svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', dash.colors[0]).attr('stroke-width', 2)
+        .attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round').attr('d', d3.line((r) => x(r.day), (r) => y(r.v)));
+      svg.append('g').selectAll('circle').data(rows).join('circle').attr('cx', (r) => x(r.day)).attr('cy', (r) => y(r.v)).attr('r', 4).attr('fill', dash.colors[0]);
+    }
+    const last = rows[rows.length - 1];
+    svg.append('text').attr('x', Math.min(W - m.r, Math.max(m.l, x(last.day)))).attr('y', y(last.v) - 8).attr('text-anchor', 'middle')
+      .attr('fill', 'var(--color-fg)').attr('font-size', 11).text(fmtInt(last.v));
+    const xt = x.ticks(Math.max(2, Math.min(6, Math.floor((W - m.l) / 70))));
+    svg.append('g').selectAll('text').data(xt).join('text').attr('x', (t) => x(t)).attr('y', H - 8).attr('text-anchor', 'middle')
+      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((t) => d3.timeFormat('%b %-d')(t));
+  };
+  const fChart = document.getElementById('followers-chart');
+  const rChart = document.getElementById('reach-chart');
+  const eChart = document.getElementById('engaged-chart');
+  dash.onData(() => { timeChart(fChart, 'followers', 'line'); timeChart(rChart, 'reels_reach', 'bar'); timeChart(eChart, 'engaged', 'bar'); });
+
+  // best time heatmap — Metricool weekday 1 = Monday … 7 = Sunday; shown in the Persian week order
+  const faDay = { 6: 'شنبه', 7: 'یکشنبه', 1: 'دوشنبه', 2: 'سه‌شنبه', 3: 'چهارشنبه', 4: 'پنجشنبه', 5: 'جمعه' };
+  const order = [6, 7, 1, 2, 3, 4, 5];
+  const heat = document.getElementById('besttime-chart');
+  const topEl = document.getElementById('besttime-top');
+  dash.onData(() => {
+    const t = dash.data('best_top');
+    topEl.textContent = t.status === 'ok' && t.data.length ? t.data.map((r) => faDay[r.day_of_week] + ' ' + String(r.hour).padStart(2, '0') + ':00').join('، ') : '—';
+    const d = dash.data('best_time');
+    if (d.status === 'error') { heat.classList.remove('dash-skeleton'); fail(heat); return; }
+    if (d.status !== 'ok') { heat.replaceChildren(); heat.classList.toggle('dash-skeleton', d.status === 'loading'); return; }
+    heat.classList.remove('dash-skeleton');
+    heat.replaceChildren();
+    if (!d.data.length) { const p = document.createElement('div'); p.className = 'sj-fail'; p.textContent = 'Metricool هنوز تخمینی نداده'; heat.append(p); return; }
+    const W = Math.max(560, heat.clientWidth || 560), H = 230, m = { t: 8, r: 8, b: 22, l: 70 };
+    const svg = d3.select(heat).append('svg').attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).attr('direction', 'ltr');
+    const x = d3.scaleBand(d3.range(24), [m.l, W - m.r]).padding(0.08);
+    const y = d3.scaleBand(order, [m.t, H - m.b]).padding(0.08);
+    const vmax = d3.max(d.data, (r) => r.value) || 1;
+    const op = d3.scaleLinear([0, vmax], [0.06, 1]);
+    const tip = document.createElement('div'); tip.className = 'sj-tip'; tip.hidden = true; heat.append(tip);
+    svg.append('g').selectAll('rect').data(d.data.filter((r) => faDay[r.day_of_week])).join('rect')
+      .attr('x', (r) => x(r.hour)).attr('y', (r) => y(r.day_of_week)).attr('width', x.bandwidth()).attr('height', y.bandwidth()).attr('rx', 3)
+      .attr('fill', dash.colors[0]).attr('fill-opacity', (r) => op(r.value))
+      .on('mousemove', (ev, r) => {
+        tip.hidden = false; tip.replaceChildren();
+        const a = document.createElement('div'); a.className = 'k'; a.textContent = faDay[r.day_of_week] + ' ' + String(r.hour).padStart(2, '0') + ':00';
+        const b = document.createElement('div'); b.textContent = fmtInt(r.value);
+        tip.append(a, b);
+        const [px, py] = d3.pointer(ev, heat);
+        tip.style.left = Math.max(0, Math.min(W - tip.offsetWidth, px - tip.offsetWidth / 2)) + 'px';
+        tip.style.top = Math.max(0, py - 44) + 'px';
+      })
+      .on('mouseleave', () => { tip.hidden = true; });
+    svg.append('g').selectAll('text').data(order).join('text').attr('x', m.l - 8).attr('y', (k) => y(k) + y.bandwidth() / 2 + 4)
+      .attr('text-anchor', 'end').attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((k) => faDay[k]);
+    svg.append('g').selectAll('text').data(d3.range(0, 24, 3)).join('text').attr('x', (h) => x(h) + x.bandwidth() / 2).attr('y', H - 6)
+      .attr('text-anchor', 'middle').attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((h) => String(h).padStart(2, '0'));
+  });
+
+  const topicLabel = (id) => { const t = dash.data('topics').data.find((x) => x.id === id); return t ? t.label : 'سایر'; };
+
+  // table
+  const tbody = document.querySelector('#reels-table tbody');
+  dash.onData(() => {
+    const d = dash.data('reel_scores');
+    tbody.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.forEach((r) => {
+      const tr = document.createElement('tr'); tr.dataset.key = r.url;
+      const cell = (t, cls) => { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = t; tr.append(td); return td; };
+      cell(fmtDate(r.published), 'n');
+      const cv = cell('', '');
+      if (/^https:\/\//.test(r.cover)) {
+        const img = document.createElement('img'); img.className = 'sj-thumb'; img.loading = 'lazy'; img.alt = ''; img.referrerPolicy = 'no-referrer';
+        img.onerror = () => img.remove(); // Instagram's image links expire after a few days
+        img.src = r.cover;
+        cv.append(img);
+      }
+      const cap = cell((r.caption || '').split('\n')[0].slice(0, 90), 'cap');
+      if (r.pace) {
+        const b = document.createElement('span'); b.className = 'sj-badge ' + r.pace; b.textContent = paceText[r.pace];
+        b.title = r.pace_ratio + ' برابر ریل‌های قبلی، ' + r.pace_age + ' ساعت بعد از انتشار';
+        cap.append(b);
+      }
+      cell(topicLabel(r.topic));
+      cell(r.views == null ? '—' : fmtInt(r.views), 'n');
+      cell(r.multiple == null ? '—' : r.multiple + '×', 'n');
+      cell(fmtPct(r.view_rate), 'n');
+      cell(fmtSec(r.avg_watch), 'n');
+      cell(fmtDur(r.watch_total), 'n');
+      cell(fmtPct(r.save_rate), 'n');
+      cell(r.shares_per_1k == null ? '—' : String(r.shares_per_1k), 'n');
+      cell(r.follows == null ? '—' : fmtInt(r.follows), 'n');
+      cell(r.follows_per_1k == null ? '—' : String(r.follows_per_1k), 'n');
+      const td = cell('', 'n');
+      if (/^https:\/\/(www\.)?instagram\.com\//.test(r.url)) { const a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'باز کردن'; td.append(a); }
+      tbody.append(tr);
+    });
+  });
+
+  // insights
+  const ins = document.getElementById('insights-list');
+  dash.onData(() => {
+    const d = dash.data('insights');
+    if (d.status === 'error') { fail(ins); return; }
+    ins.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.forEach((r) => {
+      const w = 'id=' + encodeURIComponent(r.id);
+      const card = document.createElement('div'); card.className = 'sj-card sj-idea'; card.id = 'insight-' + r.id;
+      const top = document.createElement('div'); top.className = 'sj-idea-top';
+      const area = document.createElement('h3'); area.style.margin = '0'; area.textContent = r.area; area.dataset.source = 'insights'; area.dataset.field = 'area'; area.dataset.where = w;
+      const sev = document.createElement('span'); sev.className = 'sj-chip sj-sev-' + r.severity; sev.textContent = r.severity; sev.dataset.source = 'insights'; sev.dataset.field = 'severity'; sev.dataset.where = w;
+      top.append(area, sev);
+      const f = document.createElement('p'); f.className = 'sj-small'; f.style.color = 'var(--color-fg)'; f.textContent = r.finding; f.dataset.source = 'insights'; f.dataset.field = 'finding'; f.dataset.where = w;
+      const a = document.createElement('p'); a.className = 'sj-small'; const s = document.createElement('strong'); s.textContent = 'کار این هفته: ';
+      const at = document.createElement('span'); at.textContent = r.action; at.dataset.source = 'insights'; at.dataset.field = 'action'; at.dataset.where = w;
+      a.append(s, at);
+      card.append(top, f, a);
+      ins.append(card);
+    });
+  });
+
+  // ideas
+  const ideas = document.getElementById('ideas-list');
+  dash.onData(() => {
+    const d = dash.data('ideas');
+    if (d.status === 'error') { fail(ideas); return; }
+    ideas.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.slice().sort((a, b) => Number(a.priority) - Number(b.priority)).forEach((r) => {
+      const w = 'id=' + encodeURIComponent(r.id);
+      const el = (tag, cls, field, text) => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; e.dataset.source = 'ideas'; e.dataset.field = field; e.dataset.where = w; return e; };
+      const card = document.createElement('article'); card.className = 'sj-card sj-idea'; card.id = 'idea-' + r.id;
+      const top = document.createElement('div'); top.className = 'sj-idea-top';
+      top.append(el('span', 'sj-chip p', 'priority', '#' + r.priority), el('span', 'sj-chip', 'format', r.format), el('span', 'sj-chip', 'length', r.length));
+      const h = el('h3', '', 'title', r.title); h.style.margin = '0';
+      const hook = el('p', 'sj-hook', 'hook', r.hook);
+      const line = (label, field) => { const p = document.createElement('p'); p.className = 'sj-small'; const s = document.createElement('strong'); s.textContent = label; p.append(s, el('span', '', field, r[field])); return p; };
+      const insp = document.createElement('p'); insp.className = 'sj-small';
+      const s = document.createElement('strong'); s.textContent = 'الهام از: ';
+      insp.append(s, el('span', '', 'inspiration', r.inspiration));
+      if (/^https:\/\//.test(r.source_url || '')) { insp.append(' · '); const a = document.createElement('a'); a.href = r.source_url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'منبع'; insp.append(a); }
+      // a static page can't write to Metricool: copy the idea and open the planner to paste it in
+      const go = document.createElement('button'); go.type = 'button'; go.className = 'sj-btn'; go.textContent = 'کپی برای Metricool';
+      go.title = 'عنوان، هوک و ساختار کپی می‌شه و برنامه‌ریز Metricool باز می‌شه';
+      go.addEventListener('click', async () => {
+        // copy first: once the new tab opens this page loses focus and the clipboard refuses
+        try { await navigator.clipboard.writeText(r.hook + '\n\n' + r.title + '\n' + r.beats); go.textContent = 'کپی شد ✓'; } catch (e) { go.textContent = 'کپی نشد'; }
+        window.open('https://app.metricool.com/planner', '_blank', 'noopener');
+        setTimeout(() => { go.textContent = 'کپی برای Metricool'; }, 2500);
+      });
+      card.append(top, h, hook, line('ساختار: ', 'beats'), line('چرا: ', 'why'), insp, go);
+      ideas.append(card);
+    });
+  });
+  // ---------- more Metricool sources: competitors, their reels, stories, audience ----------
+  dash.loader('competitors', {
+    description: 'Metricool’s competitor answer (one array per competitor) as rows with named columns.',
+    fn: ({ answer }) => {
+      const a = typeof answer === 'string' ? JSON.parse(answer) : answer;
+      if (!a || !Array.isArray(a.rows)) throw new Error((a && (a.error || a.message)) || 'Metricool returned no rows');
+      const num = (x) => (x === null || x === undefined || x === '' ? null : Number(x));
+      const rows = a.rows.map((r) => ({ screen_name: String(r[0] ?? ''), display_name: r[1] ?? '', followers: num(r[2]), posts: num(r[3]), reels: num(r[4]), likes: num(r[5]), engagement: num(r[6]) }));
+      return { columns: ['screen_name', 'display_name', 'followers', 'posts', 'reels', 'likes', 'engagement'], rows };
+    },
+  });
+  dash.loader('competitor_reels', {
+    description: 'Metricool’s competitor-reels answer (one array per reel) as rows with named columns.',
+    fn: ({ answer }) => {
+      const a = typeof answer === 'string' ? JSON.parse(answer) : answer;
+      if (!a || !Array.isArray(a.rows)) throw new Error((a && (a.error || a.message)) || 'Metricool returned no rows');
+      const num = (x) => (x === null || x === undefined || x === '' ? null : Number(x));
+      const rows = a.rows.map((r) => ({ competitor: String(r[0] ?? ''), text: r[1] ?? '', url: String(r[2] ?? ''), published: r[3] ?? null, likes: num(r[4]), comments: num(r[5]), interactions: num(r[6]), engagement: num(r[7]) }));
+      return { columns: ['competitor', 'text', 'url', 'published', 'likes', 'comments', 'interactions', 'engagement'], rows };
+    },
+  });
+  dash.loader('stories', {
+    description: 'Metricool’s stories answer (one array per story) as rows with named columns.',
+    fn: ({ answer }) => {
+      const a = typeof answer === 'string' ? JSON.parse(answer) : answer;
+      if (!a || !Array.isArray(a.rows)) throw new Error((a && (a.error || a.message)) || 'Metricool returned no rows');
+      const num = (x) => (x === null || x === undefined || x === '' ? null : Number(x));
+      const when = (s) => (s ? String(s).replace(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}).*$/, '$1-$2-$3T$4:$5:$6') : null);
+      const rows = a.rows.map((r) => ({ published: when(r[0]), type: r[1] ?? '', permalink: String(r[2] ?? ''), reach: num(r[3]), impressions: num(r[4]), exits: num(r[5]), replies: num(r[6]), taps_back: num(r[7]), taps_forward: num(r[8]) }));
+      return { columns: ['published', 'type', 'permalink', 'reach', 'impressions', 'exits', 'replies', 'taps_back', 'taps_forward'], rows };
+    },
+  });
+  dash.loader('countries', {
+    description: 'Metricool’s followers-by-country answer as rows.',
+    fn: ({ answer }) => {
+      const a = typeof answer === 'string' ? JSON.parse(answer) : answer;
+      if (!a || !Array.isArray(a.rows)) throw new Error((a && (a.error || a.message)) || 'Metricool returned no rows');
+      return { columns: ['country', 'followers'], rows: a.rows.map((r) => ({ country: String(r[0] ?? ''), followers: r[1] == null ? null : Number(r[1]) })) };
+    },
+  });
+  dash.loader('age_gender', {
+    description: 'Metricool’s followers-by-age-and-gender answer as rows.',
+    fn: ({ answer }) => {
+      const a = typeof answer === 'string' ? JSON.parse(answer) : answer;
+      if (!a || !Array.isArray(a.rows)) throw new Error((a && (a.error || a.message)) || 'Metricool returned no rows');
+      return { columns: ['age', 'gender', 'followers'], rows: a.rows.map((r) => ({ age: String(r[0] ?? ''), gender: String(r[1] ?? ''), followers: r[2] == null ? null : Number(r[2]) })) };
+    },
+  });
+
+  dash.calc('week_plan', {
+    inputs: ['ideas', 'best_time'],
+    title: 'This week’s posting plan',
+    description: 'For each weekday, its best hour from Metricool; the four strongest days get the four top-priority ideas, listed in Persian week order (Saturday first).',
+    fn: (ideas, best_time) => {
+      const faDay = { 6: 'شنبه', 7: 'یکشنبه', 1: 'دوشنبه', 2: 'سه‌شنبه', 3: 'چهارشنبه', 4: 'پنجشنبه', 5: 'جمعه' };
+      const weekPos = { 6: 0, 7: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
+      const bestByDay = {};
+      best_time.forEach((r) => { if (!bestByDay[r.day_of_week] || r.value > bestByDay[r.day_of_week].value) bestByDay[r.day_of_week] = r; });
+      const days = Object.values(bestByDay).sort((a, b) => b.value - a.value).slice(0, 4);
+      const top = ideas.slice().sort((a, b) => Number(a.priority) - Number(b.priority));
+      return days.map((d, i) => ({ d, idea: top[i] })).filter((x) => x.idea)
+        .sort((a, b) => weekPos[a.d.day_of_week] - weekPos[b.d.day_of_week])
+        .map((x, i) => ({ slot: i + 1, day_of_week: x.d.day_of_week, day_label: faDay[x.d.day_of_week], hour: x.d.hour, time_label: String(x.d.hour).padStart(2, '0') + ':00', idea_id: x.idea.id, title: x.idea.title, hook: x.idea.hook }));
+    },
+  });
+
+  const fillTable = (tbodySel, id, emptySel, rowFn) => {
+    const tb = document.querySelector(tbodySel);
+    const empty = emptySel ? document.querySelector(emptySel) : null;
+    const d = dash.data(id);
+    tb.replaceChildren();
+    if (d.status === 'error') { const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 9; fail(td); tr.append(td); tb.append(tr); if (empty) empty.hidden = true; return; }
+    if (d.status !== 'ok') { if (empty) empty.hidden = true; return; }
+    if (empty) empty.hidden = d.data.length > 0;
+    rowFn(d.data).forEach(([key, cells]) => {
+      const tr = document.createElement('tr'); tr.dataset.key = key;
+      cells.forEach(([t, cls, href]) => {
+        const td = document.createElement('td'); if (cls) td.className = cls;
+        if (href) { if (/^https:\/\//.test(href)) { const a = document.createElement('a'); a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = t; td.append(a); } }
+        else td.textContent = t;
+        tr.append(td);
+      });
+      tb.append(tr);
+    });
+  };
+  const n0 = (x) => (x == null ? '—' : fmtInt(x));
+
+  dash.onData(() => {
+    fillTable('#plan-table tbody', 'week_plan', null, (rows) => rows.map((r) => [String(r.slot), [[r.day_label], [r.time_label, 'n'], [r.title], [r.hook, 'cap']]]));
+    fillTable('#comp-table tbody', 'competitors', '#comp-empty', (rows) => rows.slice().sort((a, b) => (b.followers || 0) - (a.followers || 0))
+      .map((r) => [r.screen_name, [[r.screen_name, 'n'], [n0(r.followers), 'n'], [n0(r.reels), 'n'], [n0(r.posts), 'n'], [r.engagement == null ? '—' : d3.format('.1f')(r.engagement), 'n']]]));
+    fillTable('#comp-reels-table tbody', 'competitor_reels', '#comp-reels-empty', (rows) => rows.slice().sort((a, b) => (b.interactions || 0) - (a.interactions || 0)).slice(0, 10)
+      .map((r) => [r.url, [[r.competitor, 'n'], [(r.text || '').split('\n')[0].slice(0, 90), 'cap'], [n0(r.interactions), 'n'], ['باز کردن', 'n', r.url]]]));
+    fillTable('#comp-posts-table tbody', 'competitor_posts', '#comp-posts-empty', (rows) => rows.slice().sort((a, b) => (b.interactions || 0) - (a.interactions || 0)).slice(0, 10)
+      .map((r) => [r.url, [[r.competitor, 'n'], [(r.text || '').split('\n')[0].slice(0, 90), 'cap'], [n0(r.interactions), 'n'], ['باز کردن', 'n', r.url]]]));
+    fillTable('#posts-table tbody', 'posts_r', '#posts-empty', (rows) => rows.slice().sort((a, b) => String(b.published).localeCompare(String(a.published)))
+      .map((r) => [r.url, [[fmtDate(r.published), 'n'], [r.type], [(r.caption || '').split('\n')[0].slice(0, 90), 'cap'], [n0(r.reach), 'n'], [n0(r.saves), 'n'], [n0(r.shares), 'n'], [n0(r.follows), 'n'], ['باز کردن', 'n', r.url]]]));
+    fillTable('#stories-table tbody', 'stories', '#stories-empty', (rows) => rows.slice().sort((a, b) => String(b.published).localeCompare(String(a.published)))
+      .map((r) => [r.permalink, [[fmtDate(r.published), 'n'], [r.type], [n0(r.reach), 'n'], [n0(r.exits), 'n'], [n0(r.taps_back), 'n'], [n0(r.replies), 'n']]]));
+  });
+
+  // horizontal bars for audience
+  const hbars = (el, id, labelFn, valueKey, emptyText) => {
+    const d = dash.data(id);
+    if (d.status === 'error') { el.classList.remove('dash-skeleton'); fail(el); return; }
+    if (d.status !== 'ok') { el.replaceChildren(); el.classList.toggle('dash-skeleton', d.status === 'loading'); return; }
+    el.classList.remove('dash-skeleton'); el.replaceChildren();
+    const rows = d.data.filter((r) => r[valueKey] != null && r[valueKey] > 0).sort((a, b) => b[valueKey] - a[valueKey]).slice(0, 8);
+    if (!rows.length) { const p = document.createElement('div'); p.className = 'sj-fail'; p.textContent = emptyText; el.append(p); return; }
+    const W = el.clientWidth || 400, rowH = 26, H = rows.length * rowH + 8, lab = 110;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`);
+    const x = d3.scaleLinear([0, d3.max(rows, (r) => r[valueKey])], [0, W - lab - 50]);
+    rows.forEach((r, i) => {
+      const y0 = i * rowH + 4;
+      svg.append('text').attr('x', W).attr('y', y0 + 15).attr('text-anchor', 'end').attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(labelFn(r));
+      const w = Math.max(2, x(r[valueKey]));
+      svg.append('rect').attr('x', W - lab - w).attr('y', y0 + 3).attr('width', w).attr('height', 16).attr('rx', 4).attr('fill', dash.colors[2]);
+      svg.append('text').attr('x', W - lab - w - 6).attr('y', y0 + 15).attr('text-anchor', 'end').attr('fill', 'var(--color-fg)').attr('font-size', 11).text(fmtInt(r[valueKey]));
+    });
+  };
+  const cChart = document.getElementById('country-chart');
+  const aChart = document.getElementById('age-chart');
+  dash.onData(() => {
+    hbars(cChart, 'countries', (r) => r.country, 'followers', 'هنوز آماری نیست');
+    hbars(aChart, 'age_gender', (r) => r.age + ' · ' + (r.gender === 'F' ? 'زن' : r.gender === 'M' ? 'مرد' : r.gender), 'followers', 'هنوز آماری نیست');
+  });
+
+  // benchmark pages
+  const bench = document.getElementById('bench-list');
+  dash.onData(() => {
+    const d = dash.data('benchmarks');
+    if (d.status === 'error') { fail(bench); return; }
+    bench.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.forEach((r) => {
+      const w = 'handle=' + encodeURIComponent(r.handle);
+      const el = (tag, cls, field, text) => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; e.dataset.source = 'benchmarks'; e.dataset.field = field; e.dataset.where = w; return e; };
+      const card = document.createElement('div'); card.className = 'sj-idea'; card.id = 'bench-' + r.handle.replace(/[^a-z0-9_-]/gi, '-');
+      const top = document.createElement('div'); top.className = 'sj-idea-top';
+      const h = document.createElement('h3'); h.style.margin = '0';
+      if (/^https:\/\/www\.instagram\.com\//.test(r.url)) { const a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener'; a.dir = 'ltr'; a.append(el('span', '', 'handle', '@' + r.handle)); h.append(a); } else h.append(el('span', '', 'handle', '@' + r.handle));
+      top.append(h, el('span', 'sj-chip', 'region', r.region));
+      const p1 = el('p', 'sj-small', 'focus', r.focus); p1.style.color = 'var(--color-fg)';
+      const p2 = document.createElement('p'); p2.className = 'sj-small'; const s = document.createElement('strong'); s.textContent = 'چی برداری: '; p2.append(s, el('span', '', 'learn', r.learn));
+      card.append(top, p1, p2);
+      bench.append(card);
+    });
+  });
+
+  // ---------- range switch: 7 / 30 days / all, remembered per browser ----------
+  const seg = document.getElementById('sj-range');
+  let saved = null;
+  try { saved = localStorage.getItem('sj-range'); } catch (e) { /* private window */ }
+  const setRange = (r) => {
+    seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.range === r)));
+    try { localStorage.setItem('sj-range', r); } catch (e) { /* ignore */ }
+    dash.setParams({ range: r });
+  };
+  seg.addEventListener('click', (e) => { const b = e.target.closest('button[data-range]'); if (b) setRange(b.dataset.range); });
+  setRange(['7', '30', 'all'].includes(saved) ? saved : '30');
+
+  // ---------- goals ----------
+  const tehNow = () => tehDay(new Date());
+  const dayDiff = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 864e5);
+  dash.calc('goal_progress', {
+    inputs: ['goals', 'reels', 'account'],
+    title: 'Goal progress',
+    description: 'Each goal from content/goals.json against its current value: latest followers, reels published in the last 7 days, or reel views in the last 7 days; for dated follower goals, the daily pace needed and the pace of the last 7 days.',
+    fn: (goals, reels, account) => {
+      const today = tehNow(), wk = daysAgo(6);
+      const fols = account.filter((d) => d.followers != null).sort((a, b) => a.day.localeCompare(b.day));
+      const last = fols[fols.length - 1];
+      return goals.map((g) => {
+        let cur = null;
+        if (g.metric === 'followers') cur = last ? last.followers : null;
+        else if (g.metric === 'reels_7d') cur = reels.filter((r) => (pubDay(r) || '') >= wk).length;
+        else if (g.metric === 'views_7d') cur = account.filter((d) => d.day >= wk).reduce((s, d) => s + (d.reels_views || 0), 0);
+        const pct = cur == null || !g.target ? null : Math.min(100, Math.round((cur / g.target) * 100));
+        let need = null, pace = null, left = null;
+        if (g.deadline && cur != null) {
+          left = dayDiff(today, g.deadline);
+          need = left > 0 ? Math.max(0, (g.target - cur) / left) : null;
+        }
+        if (g.metric === 'followers' && last) {
+          const first = fols.find((d) => d.day >= daysAgo(7));
+          if (first && first.day < last.day) pace = (last.followers - first.followers) / dayDiff(first.day, last.day);
+        }
+        return { id: g.id, label: g.label, why: g.why || '', metric: g.metric, target: g.target, deadline: g.deadline || null, current: cur, pct, days_left: left, need_per_day: need, pace_per_day: pace };
+      });
+    },
+  });
+  const goalsEl = document.getElementById('goals-list');
+  const r1 = (x) => (Math.round(x * 10) / 10).toString();
+  dash.onData(() => {
+    const d = dash.data('goal_progress');
+    if (d.status === 'error') { fail(goalsEl); return; }
+    goalsEl.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.forEach((g) => {
+      const card = document.createElement('div'); card.className = 'sj-card sj-goal'; card.id = 'goal-' + g.id;
+      const h = document.createElement('h3'); h.style.margin = '0'; h.textContent = g.label;
+      const num = document.createElement('div'); num.className = 'sj-goal-num';
+      num.textContent = (g.current == null ? '—' : fmtInt(g.current)) + ' از ' + fmtInt(g.target) + (g.pct == null ? '' : ' · ' + g.pct + '%');
+      const bar = document.createElement('div'); bar.className = 'sj-bar'; bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuenow', String(g.pct ?? 0)); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100');
+      const fill = document.createElement('i'); fill.style.width = (g.pct ?? 0) + '%'; fill.style.background = g.pct >= 100 ? 'var(--color-ok)' : dash.colors[1]; bar.append(fill);
+      card.append(h, num, bar);
+      const lines = [];
+      if (g.pct >= 100) lines.push('رسیدی ✓');
+      else if (g.days_left != null) {
+        if (g.days_left <= 0) lines.push('مهلت تموم شده.');
+        else lines.push(g.days_left + ' روز مونده؛ روزی ' + r1(g.need_per_day) + ' لازمه' + (g.pace_per_day != null ? '، سرعت ۷ روز اخیر روزی ' + r1(g.pace_per_day) + '.' : '.'));
+      }
+      if (g.why) lines.push(g.why);
+      lines.forEach((t) => { const p = document.createElement('p'); p.className = 'sj-small'; p.textContent = t; card.append(p); });
+      goalsEl.append(card);
+    });
+  });
+
+  // ---------- last 7 days: Metricool's best hour against when a reel actually went out ----------
+  const wdOf = (day) => { const js = new Date(day + 'T12:00:00Z').getUTCDay(); return js === 0 ? 7 : js; };
+  const hourOf = (pub) => { const m = String(pub || '').match(/T(\d{2}):(\d{2})/); return m ? Number(m[1]) + Number(m[2]) / 60 : null; };
+  const hhmm = (h) => String(Math.floor(h)).padStart(2, '0') + ':' + String(Math.round((h % 1) * 60)).padStart(2, '0');
+  dash.calc('plan_actual', {
+    inputs: ['reel_scores_all', 'best_time'],
+    title: 'Plan against what was published, last 7 days',
+    description: 'For each of the last 7 Tehran days: the best hour Metricool gives for that weekday, each reel published that day (Tehran time), the gap in hours and the reel’s multiple of the page median.',
+    fn: (reels, best) => {
+      const bestBy = {};
+      best.forEach((r) => { if (!bestBy[r.day_of_week] || r.value > bestBy[r.day_of_week].value) bestBy[r.day_of_week] = r; });
+      const out = [];
+      for (let i = 6; i >= 0; i--) {
+        const day = daysAgo(i), wd = wdOf(day), b = bestBy[wd];
+        const mine = reels.filter((r) => pubDay(r) === day).sort((a, c) => String(a.published).localeCompare(String(c.published)));
+        const base = { day, day_of_week: wd, day_label: faDay[wd] + ' ' + day.slice(5).replace('-', '/'), best_hour: b ? b.hour : null, best_label: b ? String(b.hour).padStart(2, '0') + ':00' : '—' };
+        if (!mine.length) out.push({ ...base, key: day, url: '', hour: null, time_label: '—', offset: null, caption: '', multiple: null });
+        mine.forEach((r) => {
+          const h = hourOf(r.published);
+          out.push({ ...base, key: r.url, url: r.url, hour: h, time_label: h == null ? '—' : hhmm(h), offset: b && h != null ? Math.round((h - b.hour) * 10) / 10 : null, caption: (r.caption || '').split('\n')[0].slice(0, 60), multiple: r.multiple });
+        });
+      }
+      return out;
+    },
+  });
+  dash.onData(() => {
+    const d = dash.data('plan_actual');
+    const sumEl = document.getElementById('actual-sum');
+    if (d.status === 'ok') {
+      const days = new Set(d.data.filter((r) => r.url).map((r) => r.day)).size;
+      const near = d.data.filter((r) => r.offset != null && Math.abs(r.offset) <= 2).length;
+      const n = d.data.filter((r) => r.url).length;
+      sumEl.textContent = days + ' روز از ۷ روز ریل داشتی؛ ' + near + ' از ' + n + ' ریل در فاصلهٔ ۲ ساعتیِ بهترین ساعت منتشر شد.';
+    } else sumEl.textContent = '—';
+    const tb = document.querySelector('#actual-table tbody');
+    tb.replaceChildren();
+    if (d.status !== 'ok') return;
+    d.data.forEach((r) => {
+      const tr = document.createElement('tr'); tr.dataset.key = r.key;
+      const td = (t, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = t; tr.append(c); return c; };
+      td(r.day_label); td(r.best_label, 'n'); td(r.time_label, 'n');
+      td(r.offset == null ? '—' : !r.offset ? 'سر وقت' : Math.abs(r.offset) + ' ساعت ' + (r.offset > 0 ? 'دیرتر' : 'زودتر'), r.offset == null ? '' : Math.abs(r.offset) <= 2 ? 'ok' : 'warn');
+      const c = td(r.url ? '' : 'ریلی منتشر نشد', 'cap');
+      if (r.url && /^https:\/\/(www\.)?instagram\.com\//.test(r.url)) { const a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = r.caption || 'باز کردن'; c.append(a); }
+      td(r.multiple == null ? '—' : r.multiple + '×', 'n');
+      tb.append(tr);
+    });
+  });
+
+  // ---------- view curves after publishing ----------
+  dash.calc('reel_curves', {
+    inputs: ['reel_scores', 'reel_snapshots', 'reel_daily'],
+    title: 'Cumulative views by hours since publishing',
+    description: 'For the six newest reels in range: views at each 6-hourly snapshot (and at the end of each day from Metricool’s per-day performance when present), by hours since the reel went out; starts at 0 and never goes down.',
+    fn: (reels, snaps, daily) => reels.slice(0, 6).flatMap((r, idx) => {
+      const pub = Date.parse(String(r.published) + '+03:30');
+      if (!Number.isFinite(pub)) return [];
+      const pts = [{ h: 0, v: 0 }];
+      snaps.filter((s) => s.url === r.url && s.views != null).forEach((s) => pts.push({ h: (Date.parse(s.at) - pub) / 36e5, v: s.views }));
+      let cum = 0;
+      daily.filter((d) => r.reel_id && d.id === r.reel_id).sort((a, b) => a.day.localeCompare(b.day)).forEach((d) => {
+        cum += d.views || 0;
+        pts.push({ h: (Date.parse(d.day + 'T00:00:00+03:30') + 864e5 - pub) / 36e5, v: cum });
+      });
+      let top = 0;
+      return pts.filter((p) => p.h >= 0).sort((a, b) => a.h - b.h).map((p) => { top = Math.max(top, p.v); return { url: r.url, idx, caption: (r.caption || '').split('\n')[0].slice(0, 40), published: r.published, hours: Math.round(p.h * 10) / 10, views: top }; });
+    }),
+  });
+  const curve = document.getElementById('curve-chart');
+  const legend = document.getElementById('curve-legend');
+  dash.onData(() => {
+    const d = dash.data('reel_curves');
+    legend.replaceChildren();
+    if (d.status === 'error') { curve.classList.remove('dash-skeleton'); fail(curve); return; }
+    if (d.status !== 'ok') { curve.replaceChildren(); curve.classList.toggle('dash-skeleton', d.status === 'loading'); return; }
+    curve.classList.remove('dash-skeleton'); curve.replaceChildren();
+    const groups = d3.groups(d.data, (r) => r.url).filter(([, pts]) => pts.length > 1);
+    if (!groups.length) { const p = document.createElement('div'); p.className = 'sj-fail'; p.textContent = 'هنوز عکسی از عددها جمع نشده؛ بعد از چند همگام‌سازی پر می‌شه'; curve.append(p); return; }
+    const W = curve.clientWidth || 600, H = 220, m = { t: 16, r: 16, b: 28, l: 12 };
+    const svg = d3.select(curve).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'منحنی بازدید بعد از انتشار');
+    const y = d3.scaleLinear([0, (d3.max(d.data, (r) => r.views) || 1) * 1.1], [H - m.b, m.t]);
+    let lw = 0;
+    y.ticks(4).forEach((t) => {
+      svg.append('line').attr('x1', 0).attr('x2', W).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', 'var(--cds-chart-grid)');
+      const n = svg.append('text').attr('x', 0).attr('y', y(t) - 4).attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(d3.format('~s')(t));
+      lw = Math.max(lw, n.node().getComputedTextLength());
+    });
+    m.l = Math.ceil(lw) + 10;
+    const hMax = Math.max(24, d3.max(d.data, (r) => r.hours));
+    const x = d3.scaleLinear([0, hMax], [m.l, W - m.r]);
+    const step = hMax > 96 ? 24 : hMax > 48 ? 12 : 6;
+    svg.append('g').selectAll('text').data(d3.range(0, hMax + 0.01, step)).join('text').attr('x', (h) => x(h)).attr('y', H - 8).attr('text-anchor', 'middle')
+      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((h) => (h % 24 === 0 && h ? h / 24 + 'd' : h + 'h'));
+    groups.forEach(([url, pts]) => {
+      const c = dash.colors[pts[0].idx % dash.colors.length];
+      svg.append('path').datum(pts).attr('fill', 'none').attr('stroke', c).attr('stroke-width', 2).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+        .attr('d', d3.line((p) => x(p.hours), (p) => y(p.views)));
+      svg.append('g').selectAll('circle').data(pts.slice(1)).join('circle').attr('cx', (p) => x(p.hours)).attr('cy', (p) => y(p.views)).attr('r', 3).attr('fill', c);
+      const last = pts[pts.length - 1];
+      svg.append('text').attr('x', Math.min(W - m.r, x(last.hours) + 4)).attr('y', y(last.views) - 6).attr('text-anchor', 'end').attr('fill', 'var(--color-fg)').attr('font-size', 11).text(fmtInt(last.views));
+      const li = document.createElement('span'); const sw = document.createElement('i'); sw.style.background = c;
+      li.append(sw, fmtDate(pts[0].published) + ' · ' + pts[0].caption); li.dataset.key = url; legend.append(li);
+    });
+  });
+
+  // ---------- your publish hour against the result ----------
+  dash.calc('hour_result', {
+    inputs: ['reel_scores', 'best_time'],
+    title: 'Publish hour against result',
+    description: 'One row per reel in range with its Tehran publish hour and multiple of the page median, plus one row per hour with Metricool’s best-time value averaged over the weekdays.',
+    fn: (reels, best) => {
+      const out = reels.filter((r) => r.multiple != null).map((r) => ({ kind: 'reel', url: r.url, hour: hourOf(r.published), multiple: r.multiple, caption: (r.caption || '').split('\n')[0].slice(0, 50), published: r.published }))
+        .filter((r) => r.hour != null);
+      d3.range(24).forEach((h) => { const v = best.filter((b) => b.hour === h); if (v.length) out.push({ kind: 'bt', hour: h, value: d3.mean(v, (b) => b.value) }); });
+      return out;
+    },
+  });
+  const hourEl = document.getElementById('hour-chart');
+  dash.onData(() => {
+    const d = dash.data('hour_result');
+    if (d.status === 'error') { hourEl.classList.remove('dash-skeleton'); fail(hourEl); return; }
+    if (d.status !== 'ok') { hourEl.replaceChildren(); hourEl.classList.toggle('dash-skeleton', d.status === 'loading'); return; }
+    hourEl.classList.remove('dash-skeleton'); hourEl.replaceChildren();
+    const pts = d.data.filter((r) => r.kind === 'reel'), bt = d.data.filter((r) => r.kind === 'bt');
+    if (!pts.length) { const p = document.createElement('div'); p.className = 'sj-fail'; p.textContent = 'هنوز ریلی تو این بازه نیست'; hourEl.append(p); return; }
+    const W = hourEl.clientWidth || 600, H = 220, m = { t: 16, r: 12, b: 28, l: 34 };
+    const svg = d3.select(hourEl).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'ساعت انتشار در برابر نتیجه');
+    const x = d3.scaleLinear([0, 24], [m.l, W - m.r]);
+    const y = d3.scaleLinear([0, Math.max(2, d3.max(pts, (r) => r.multiple) * 1.15)], [H - m.b, m.t]);
+    const bv = d3.scaleLinear([0, d3.max(bt, (b) => b.value) || 1], [H - m.b, m.t]);
+    const bw = (x(1) - x(0)) * 0.8;
+    svg.append('g').selectAll('rect').data(bt).join('rect').attr('x', (b) => x(b.hour + 0.5) - bw / 2).attr('width', bw).attr('y', (b) => bv(b.value)).attr('height', (b) => bv(0) - bv(b.value))
+      .attr('rx', 2).attr('fill', dash.colors[0]).attr('fill-opacity', 0.12);
+    y.ticks(4).forEach((t) => {
+      svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', 'var(--cds-chart-grid)');
+      svg.append('text').attr('x', m.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text(t + '×');
+    });
+    svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(1)).attr('y2', y(1)).attr('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '4 4');
+    svg.append('g').selectAll('text').data(d3.range(0, 25, 3)).join('text').attr('x', (h) => x(h)).attr('y', H - 8).attr('text-anchor', 'middle')
+      .attr('fill', 'var(--color-fg-muted)').attr('font-size', 11).text((h) => String(h).padStart(2, '0'));
+    const tip = document.createElement('div'); tip.className = 'sj-tip'; tip.hidden = true; hourEl.append(tip);
+    svg.append('g').selectAll('circle').data(pts).join('circle').attr('cx', (r) => x(r.hour)).attr('cy', (r) => y(r.multiple)).attr('r', 6)
+      .attr('fill', dash.colors[1]).attr('stroke', 'var(--color-panel)').attr('stroke-width', 2)
+      .on('mousemove', (ev, r) => {
+        tip.hidden = false; tip.replaceChildren();
+        const a = document.createElement('div'); a.className = 'k'; a.textContent = fmtDate(r.published) + ' ' + hhmm(r.hour);
+        const b = document.createElement('div'); b.textContent = r.multiple + '× · ' + r.caption;
+        tip.append(a, b);
+        const [px, py] = d3.pointer(ev, hourEl);
+        tip.style.left = Math.max(0, Math.min(W - tip.offsetWidth, px - tip.offsetWidth / 2)) + 'px';
+        tip.style.top = Math.max(0, py - 48) + 'px';
+      })
+      .on('mouseleave', () => { tip.hidden = true; });
+  });
+
+  // ---------- reach by follower type, profile link taps ----------
+  dash.calc('ftype_sum', {
+    inputs: ['follower_type_r'],
+    title: 'Reach by follower type',
+    description: 'Reach in range summed per audience type (followers, non-followers, unknown).',
+    fn: (rows) => d3.rollups(rows, (v) => d3.sum(v, (r) => r.reach || 0), (r) => (/non/i.test(r.type) ? 'غیرفالوئر' : /follow/i.test(r.type) ? 'فالوئر' : 'نامشخص'))
+      .map(([label, reach]) => ({ label, reach })),
+  });
+  dash.calc('taps_sum', {
+    inputs: ['profile_taps_r'],
+    title: 'Profile link taps in range',
+    description: 'Taps on the profile’s links summed over the range; empty when Metricool returns none.',
+    fn: (rows) => (rows.some((r) => r.taps != null) ? [{ taps: d3.sum(rows, (r) => r.taps || 0) }] : []),
+  });
+  const ftEl = document.getElementById('ftype-chart');
+  dash.onData(() => {
+    hbars(ftEl, 'ftype_sum', (r) => r.label, 'reach', 'Metricool هنوز این تفکیک رو برنمی‌گردونه');
+    const t = dash.data('taps_sum');
+    document.getElementById('taps-total').textContent = t.status === 'ok' && t.data.length ? fmtInt(t.data[0].taps) : 'هنوز داده‌ای نیست';
+  });
+
+  // ---------- what works: by topic, and by hook / caption features ----------
+  const avg = (rows, f) => { const v = rows.map((r) => r[f]).filter((x) => x != null); return v.length ? Math.round((d3.mean(v)) * 10) / 10 : null; };
+  const groupStats = (rows) => ({ n: rows.length, multiple: med(rows.map((r) => r.multiple).filter((x) => x != null)), view_rate: avg(rows, 'view_rate'), save_rate: avg(rows, 'save_rate') });
+  dash.calc('topic_stats', {
+    inputs: ['reel_scores', 'topics'],
+    title: 'Reels by topic',
+    description: 'Reels in range grouped by topic: count, median multiple of the page median, average 3-second view rate and average save rate.',
+    fn: (reels, topics) => d3.groups(reels, (r) => r.topic || 'other')
+      .map(([topic, rows]) => ({ topic, label: (topics.find((t) => t.id === topic) || { label: 'سایر' }).label, ...groupStats(rows) }))
+      .sort((a, b) => (b.multiple ?? -1) - (a.multiple ?? -1)),
+  });
+  const hookOf = (r) => (String(r.caption || '').split('\n').find((l) => l.trim()) || '').trim();
+  const features = [
+    ['question', 'هوک سؤالی', (r) => /[؟?]/.test(hookOf(r))],
+    ['number', 'عدد در هوک', (r) => /[0-9۰-۹]/.test(hookOf(r))],
+    ['emoji', 'ایموجی در هوک', (r) => /\p{Extended_Pictographic}/u.test(hookOf(r))],
+    ['tool', 'اسم ابزار در هوک (ChatGPT، Claude…)', (r) => /chat ?gpt|چت ?جی ?پی ?تی|claude|کلود|gemini|جمینای/i.test(hookOf(r))],
+    ['short', 'هوک کوتاه (تا ۴۰ حرف)', (r) => hookOf(r).length <= 40],
+    ['series', 'اشاره به سری («قسمت»)', (r) => /قسمت/.test(r.caption || '')],
+    ['long', 'کپشن بلند (بیش از ۳۰۰ حرف)', (r) => String(r.caption || '').length > 300],
+    ['tags', 'هشتگ دارد', (r) => /#\S/.test(r.caption || '')],
+  ];
+  dash.calc('caption_stats', {
+    inputs: ['reel_scores'],
+    title: 'Hook and caption features',
+    description: 'For each caption feature (hook = first line): reels with and without it, their median multiple of the page median and average 3-second view rate.',
+    fn: (reels) => features.map(([feature, label, test]) => {
+      const yes = reels.filter(test), no = reels.filter((r) => !test(r));
+      const a = groupStats(yes), b = groupStats(no);
+      return { feature, label, n_with: a.n, n_without: b.n, multiple_with: a.multiple, multiple_without: b.multiple, view_rate_with: a.view_rate, view_rate_without: b.view_rate };
+    }),
+  });
+  const vs = (a, b, f) => (a == null ? '—' : f(a)) + ' / ' + (b == null ? '—' : f(b));
+  dash.onData(() => {
+    fillTable('#topics-table tbody', 'topic_stats', null, (rows) => rows.map((r) => [r.topic, [[r.label], [fmtInt(r.n), 'n'], [r.multiple == null ? '—' : r.multiple + '×', 'n'], [fmtPct(r.view_rate), 'n'], [fmtPct(r.save_rate), 'n']]]));
+    fillTable('#hooks-table tbody', 'caption_stats', null, (rows) => rows.map((r) => [r.feature, [[r.label], [r.n_with + ' / ' + r.n_without, 'n'],
+      [vs(r.multiple_with, r.multiple_without, (x) => x + '×'), 'n'], [vs(r.view_rate_with, r.view_rate_without, (x) => x + '%'), 'n']]]));
+  });
+
+  // ---------- funnel: views → people reached → engaged → net followers → link taps ----------
+  dash.calc('funnel', {
+    inputs: ['kpis', 'reel_scores', 'taps_sum'],
+    title: 'Funnel for the range',
+    description: 'Reel views, people reached by those reels, accounts engaged, net new followers and profile link taps in range, each with its share of the step before; plus net followers per 1,000 reel views.',
+    fn: (kpis, reels, taps) => {
+      const k = kpis[0];
+      if (!k) return [];
+      const steps = [
+        ['views', 'بازدید ریل‌ها', k.views],
+        ['reach', 'آدم‌هایی که ریل‌ها رو دیدن', reels.some((r) => r.reach != null) ? d3.sum(reels, (r) => r.reach || 0) : null],
+        ['engaged', 'حساب‌های درگیر', k.engaged],
+        ['follows', 'فالوئر خالص', k.net],
+        ['taps', 'کلیک لینک بایو', taps.length ? taps[0].taps : null],
+      ];
+      // a step without data is skipped: the next one is measured against the last step that has a number
+      let prev = null, prevLabel = '';
+      return steps.map(([step, label, value], i) => {
+        const conv = prev != null && value != null && prev > 0 ? Math.round((value / prev) * 1000) / 10 : null;
+        const of = conv == null ? '' : prevLabel;
+        if (value != null) { prev = value; prevLabel = label; }
+        return { step, idx: i, label, value, conv, conv_of: of, per_1k_views: step === 'follows' && value != null && k.views ? Math.round((value / k.views) * 10000) / 10 : null };
+      });
+    },
+  });
+  const funnelEl = document.getElementById('funnel');
+  dash.onData(() => {
+    const d = dash.data('funnel');
+    const key = document.getElementById('funnel-key');
+    funnelEl.replaceChildren();
+    if (d.status === 'error') { fail(funnelEl); key.textContent = '—'; return; }
+    if (d.status !== 'ok' || !d.data.length) { key.textContent = '—'; return; }
+    const f = d.data.find((r) => r.step === 'follows');
+    key.textContent = f && f.per_1k_views != null ? 'به ازای هر ۱۰۰۰ بازدید، ' + f.per_1k_views + ' فالوئر خالص.' : '';
+    const top = Math.log10((d.data[0].value || 0) + 1) || 1;
+    d.data.forEach((r) => {
+      const row = document.createElement('div'); row.className = 'sj-step'; row.dataset.key = r.step;
+      const lab = document.createElement('div'); lab.textContent = r.label;
+      const right = document.createElement('div'); right.style.display = 'flex'; right.style.alignItems = 'center'; right.style.gap = '8px';
+      const bar = document.createElement('div'); bar.className = 'bar'; bar.style.width = r.value == null || r.value <= 0 ? '4px' : Math.max(2, (Math.log10(r.value + 1) / top) * 70) + '%';
+      if (r.value == null) bar.style.opacity = '.25';
+      const val = document.createElement('span'); val.className = 'val'; val.textContent = r.value == null ? 'داده نیست' : fmtInt(r.value);
+      right.append(bar, val);
+      if (r.conv != null) { const c = document.createElement('span'); c.className = 'conv'; c.textContent = '(' + r.conv + '% از «' + r.conv_of + '»)'; right.append(c); }
+      row.append(lab, right);
+      funnelEl.append(row);
+    });
+  });
+
+  // ---------- calendar: Metricool's scheduled posts and the plan, next 14 days ----------
+  const faDate = (day) => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(day + 'T12:00:00Z'));
+  dash.calc('calendar', {
+    inputs: ['scheduled', 'week_plan'],
+    title: 'Next 14 days',
+    description: 'One row per item over the next 14 Tehran days: posts scheduled in Metricool (Tehran time), and this week’s plan slots placed on their next date.',
+    fn: (sched, plan) => {
+      const out = [];
+      for (let i = 0; i < 14; i++) {
+        const day = daysAgo(-i), wd = wdOf(day);
+        sched.filter((s) => String(s.when).slice(0, 10) === day).forEach((s) => out.push({ day, kind: 'scheduled', key: 's' + s.id + s.when, time: String(s.when).slice(11, 16), text: (s.text || '').split('\n')[0].slice(0, 60), type: s.type || '', draft: !!s.draft }));
+        if (i < 7) plan.filter((p) => p.day_of_week === wd).forEach((p) => out.push({ day, kind: 'plan', key: 'p' + p.slot, time: p.time_label, text: p.title, type: '', draft: false }));
+      }
+      return out;
+    },
+  });
+  const calEl = document.getElementById('cal-grid');
+  dash.onData(() => {
+    const d = dash.data('calendar');
+    calEl.replaceChildren();
+    if (d.status === 'error') { fail(calEl); return; }
+    if (d.status !== 'ok') return;
+    document.getElementById('cal-empty').hidden = d.data.some((r) => r.kind === 'scheduled');
+    for (let i = 0; i < 14; i++) {
+      const day = daysAgo(-i);
+      const cell = document.createElement('div'); cell.className = 'sj-day' + (i ? '' : ' today'); cell.dataset.key = day;
+      const h = document.createElement('b'); h.textContent = faDay[wdOf(day)] + ' ' + faDate(day) + (i ? '' : ' · امروز');
+      cell.append(h);
+      d.data.filter((r) => r.day === day).sort((a, b) => a.time.localeCompare(b.time)).forEach((r) => {
+        const ev = document.createElement('div'); ev.className = 'ev' + (r.kind === 'plan' ? ' plan' : '');
+        ev.textContent = r.time + ' ' + (r.kind === 'plan' ? 'پیشنهاد: ' : '') + r.text + (r.draft ? ' (پیش‌نویس)' : '');
+        cell.append(ev);
+      });
+      calEl.append(cell);
+    }
+  });
+
+  // ---------- experiment log ----------
+  const expMetric = { multiple: ['چند برابر میانه', (x) => x + '×'], view_rate: ['ماندن ۳ ثانیه', (x) => x + '%'], save_rate: ['نرخ ذخیره', (x) => x + '%'],
+    shares_per_1k: ['اشتراک در هر ۱۰۰۰ نفر', (x) => String(x)], avg_watch: ['میانگین تماشا', (x) => x + 's'] };
+  dash.calc('experiment_results', {
+    inputs: ['experiments', 'reel_scores_all'],
+    title: 'Experiment results',
+    description: 'Each experiment from content/experiments.json with the chosen metric for reel A and reel B, and the winner once both reels are at least 48 hours old (under 10% apart counts as a tie).',
+    fn: (exps, reels) => exps.map((e) => {
+      const metric = expMetric[e.metric] ? e.metric : 'multiple';
+      const side = (s) => { const r = s && s.url ? reels.find((x) => x.url === s.url) : null; return { label: (s && s.label) || '', reel: r, value: r ? r[metric] : null, age: r ? (Date.now() - pubMs(r)) / 36e5 : null }; };
+      const a = side(e.a), b = side(e.b);
+      let status, winner = '', diff = null;
+      if (!a.reel || !b.reel) status = 'waiting';
+      else if (a.age < 48 || b.age < 48) status = 'early';
+      else if (a.value == null || b.value == null) status = 'nodata';
+      else {
+        const hi = Math.max(a.value, b.value), lo = Math.min(a.value, b.value);
+        diff = lo > 0 ? Math.round(((hi - lo) / lo) * 100) : null;
+        status = 'done';
+        winner = diff != null && diff < 10 ? 'tie' : a.value >= b.value ? 'a' : 'b';
+      }
+      return { id: e.id, title: e.title || e.id, hypothesis: e.hypothesis || '', notes: e.notes || '', metric, a_label: a.label, b_label: b.label, a_url: a.reel ? a.reel.url : '', b_url: b.reel ? b.reel.url : '', a_value: a.value, b_value: b.value, status, winner, diff };
+    }),
+  });
+  const expEl = document.getElementById('exp-list');
+  dash.onData(() => {
+    const d = dash.data('experiment_results');
+    expEl.replaceChildren();
+    if (d.status === 'error') { fail(expEl); return; }
+    if (d.status !== 'ok') return;
+    if (!d.data.length) { const p = document.createElement('p'); p.className = 'sj-small'; p.textContent = 'هنوز آزمایشی ثبت نشده.'; expEl.append(p); return; }
+    d.data.forEach((e) => {
+      const [mLabel, mFmt] = expMetric[e.metric];
+      const card = document.createElement('div'); card.className = 'sj-card sj-idea'; card.id = 'exp-' + e.id;
+      const h = document.createElement('h3'); h.style.margin = '0'; h.textContent = e.title;
+      const hyp = document.createElement('p'); hyp.className = 'sj-hook'; hyp.textContent = e.hypothesis;
+      const side = (name, label, url, v, won) => {
+        const p = document.createElement('p'); p.className = 'sj-small';
+        const s = document.createElement('strong'); s.textContent = name + (won ? ' ✓ ' : ' ') ; p.append(s);
+        if (/^https:\/\/(www\.)?instagram\.com\//.test(url)) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = label || 'ریل'; p.append(a); } else p.append(label || '—');
+        p.append(' · ' + mLabel + ': ' + (v == null ? '—' : mFmt(v)));
+        return p;
+      };
+      const res = document.createElement('p'); res.className = 'sj-small'; res.style.color = 'var(--color-fg)';
+      res.textContent = { waiting: 'منتظر ریل: لینک هر دو ریل رو تو فایل بنویس (ریل باید تو جدول ریل‌ها باشه).', early: 'هنوز زوده: صبر کن هر دو ریل ۴۸ ساعته بشن.', nodata: 'Metricool برای این معیار عدد نداده.',
+        done: e.winner === 'tie' ? 'نتیجه: تقریباً برابر (کمتر از ۱۰٪ اختلاف).' : 'نتیجه: ' + (e.winner === 'a' ? 'A' : 'B') + ' برد' + (e.diff != null ? '، ' + e.diff + '٪ بهتر.' : '.') }[e.status];
+      card.append(h, hyp, side('A', e.a_label, e.a_url, e.a_value, e.winner === 'a'), side('B', e.b_label, e.b_url, e.b_value, e.winner === 'b'), res);
+      if (e.notes) { const n = document.createElement('p'); n.className = 'sj-small'; n.textContent = e.notes; card.append(n); }
+      expEl.append(card);
+    });
+  });
+
+  // ---------- UTM link builder ----------
+  const utmOut = document.getElementById('utm-out');
+  const utmBuild = () => {
+    let u;
+    try { u = new URL(document.getElementById('utm-url').value.trim()); } catch (e) { utmOut.textContent = 'آدرس معتبر نیست'; return; }
+    u.searchParams.set('utm_source', 'instagram');
+    u.searchParams.set('utm_medium', 'social');
+    u.searchParams.set('utm_campaign', document.getElementById('utm-campaign').value);
+    const c = document.getElementById('utm-content').value.trim().replace(/\s+/g, '-');
+    if (c) u.searchParams.set('utm_content', c); else u.searchParams.delete('utm_content');
+    utmOut.textContent = u.toString();
+  };
+  ['utm-url', 'utm-campaign', 'utm-content'].forEach((id) => document.getElementById(id).addEventListener('input', utmBuild));
+  utmBuild();
+  document.getElementById('utm-copy').addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    try { await navigator.clipboard.writeText(utmOut.textContent); b.textContent = 'کپی شد ✓'; } catch (err) { b.textContent = 'کپی نشد'; }
+    setTimeout(() => { b.textContent = 'کپی'; }, 2000);
+  });
+
+  // ---------- CSV downloads (what's in range) ----------
+  const csv = (name, rows, cols) => {
+    const esc = (v) => { const t = v == null ? '' : String(v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+    const body = [cols.join(',')].concat(rows.map((r) => cols.map((c) => esc(r[c])).join(','))).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['﻿' + body], { type: 'text/csv;charset=utf-8' })); // BOM so Excel reads Persian
+    a.download = name + '-' + tehNow() + '.csv';
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  document.getElementById('csv-reels').addEventListener('click', () => csv('sajadai-reels', dash.data('reel_scores').data,
+    ['published', 'url', 'caption', 'topic', 'views', 'reach', 'multiple', 'view_rate', 'avg_watch', 'watch_total', 'likes', 'comments', 'saves', 'shares', 'save_rate', 'shares_per_1k', 'follows', 'engagement']));
+  document.getElementById('csv-days').addEventListener('click', () => csv('sajadai-days', dash.data('account_r').data,
+    ['day', 'followers', 'gained', 'lost', 'reels', 'reels_views', 'reels_reach', 'reels_shares', 'views', 'reach', 'engaged']));
+})();
+</script>
+</body>
+</html>

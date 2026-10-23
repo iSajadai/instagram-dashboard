@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>ورود به داشبورد</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<link rel="stylesheet" href="/assets/panel.css">
+</head>
+<body>
+<main class="pn pn-auth">
+  <div class="pn-card">
+    <h2 id="title">ورود</h2>
+    <p class="pn-note" id="lead"></p>
+    <form id="form" class="pn" style="padding:0;gap:12px">
+      <label>نام کاربری<input id="username" dir="ltr" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_.\-]+"></label>
+      <label>رمز عبور<input id="password" type="password" dir="ltr" autocomplete="current-password" required minlength="8"></label>
+      <button class="primary" id="go" type="submit">ورود</button>
+      <p class="pn-msg" id="msg" role="status"></p>
+    </form>
+    <p class="pn-note" id="switch" hidden><a href="#" id="toggle">حساب نداری؟ ثبت‌نام کن</a></p>
+  </div>
+</main>
+<script src="/assets/panel.js"></script>
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const s = await pn.api('GET', '/api/state');
+  if (s.user && !s.setup_needed) { location.href = '/'; return; }
+  let mode = s.setup_needed ? 'setup' : 'login';
+  const show = () => {
+    const t = { setup: ['ساختن حساب ادمین', 'اولین بار است که پنل باز می‌شه. حسابی که الان می‌سازی ادمین پنله: کاربرها و کلیدهای مشترک رو مدیریت می‌کنه.', 'ساختن و ورود'],
+      login: ['ورود', '', 'ورود'], signup: ['ثبت‌نام', 'یه حساب بساز؛ بعد از ورود، از «تنظیمات» صفحهٔ اینستاگرامت رو وصل کن.', 'ثبت‌نام'] }[mode];
+    $('title').textContent = t[0]; $('lead').textContent = t[1]; $('lead').hidden = !t[1]; $('go').textContent = t[2];
+    $('password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+    $('switch').hidden = mode === 'setup' || !s.signup;
+    $('toggle').textContent = mode === 'signup' ? 'حساب داری؟ وارد شو' : 'حساب نداری؟ ثبت‌نام کن';
+  };
+  show();
+  $('toggle').addEventListener('click', (e) => { e.preventDefault(); mode = mode === 'signup' ? 'login' : 'signup'; pn.say($('msg'), ''); show(); });
+  $('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const r = await pn.run($('go'), $('msg'), () => pn.api('POST', '/api/' + mode, { username: $('username').value.trim(), password: $('password').value }));
+    if (r && r.ok) location.href = mode === 'login' ? '/' : '/settings';
+  });
+})();
+</script>
+</body>
+</html>

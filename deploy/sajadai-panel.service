@@ -1,0 +1,16 @@
+# systemd unit for the panel without Docker (deploy/panel.md).
+# Install: cp deploy/sajadai-panel.service /etc/systemd/system/ && systemctl enable --now sajadai-panel
+[Unit]
+Description=Sajadai dashboard panel
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/sajadai-panel
+Environment=SAJADAI_DATA_DIR=/var/lib/sajadai-panel
+EnvironmentFile=-/opt/sajadai-panel/.env
+ExecStart=/opt/sajadai-panel/venv/bin/python -m sajadai serve --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
