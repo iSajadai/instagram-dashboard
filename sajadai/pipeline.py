@@ -15,7 +15,6 @@ CONNECTIONS = {
     "buffer": {"label": "Buffer", "fields": {"api_key": "API key"}, "script": "fetch_buffer.py"},
     "instagram": {"label": "Instagram API", "fields": {"token": "Long-lived access token"}, "script": "fetch_instagram.py"},
 }
-AI_PROVIDERS = {"anthropic": "Claude (Anthropic)", "openai": "GPT (OpenAI)"}
 
 DEFAULT_GOALS = [
     {"id": "followers", "label": "۱۰۰۰ فالوئر", "metric": "followers", "target": 1000, "deadline": None, "why": "هدف نمونه؛ از تنظیمات عوضش کن."},
@@ -64,15 +63,35 @@ def import_legacy(user_id, src):
             shutil.copy2(os.path.join(src, f), d / f)
 
 
-def ai_config(user):
-    """The user's own AI provider and key if they set one, else the panel's."""
-    p, s = store.prefs(user), store.user_secrets(user)
-    panel = store.setting("ai", {}) or {}
+def ai_chain(user):
+    """The user's own AI providers, in the order they're tried. An older single key (ai_key with the
+    provider and model in prefs) reads as a one-entry chain."""
+    s = store.user_secrets(user)
+    if isinstance(s.get("ai_chain"), list):
+        return [c for c in s["ai_chain"] if isinstance(c, dict) and c.get("provider")]
     if s.get("ai_key"):
-        return {"provider": p.get("ai_provider") or "anthropic", "model": p.get("ai_model") or "", "key": s["ai_key"], "own": True}
-    if panel.get("key") and billing.may_use_panel_ai(user):  # with subscriptions on, the shared key is for paid plans
-        return {"provider": panel.get("provider") or "anthropic", "model": panel.get("model") or "", "key": panel["key"], "own": False}
-    return None
+        p = store.prefs(user)
+        return [{"id": "legacy", "provider": p.get("ai_provider") or "anthropic", "model": p.get("ai_model") or "", "key": s["ai_key"], "base_url": ""}]
+    return []
+
+
+def ai_config(user):
+    """The user's own providers if they set any, else the panel's. The first entry's fields sit at the
+    top level too, for the weekly content script."""
+    chain = ai_chain(user)
+    own = bool(chain)
+    if not chain:
+        panel = store.setting("ai", {}) or {}
+        if panel.get("key") or panel.get("base_url"):
+            if not billing.may_use_panel_ai(user):  # with subscriptions on, the shared key is for paid plans
+                return None
+            chain = [{"id": "panel", "provider": panel.get("provider") or "anthropic", "model": panel.get("model") or "", "key": panel.get("key") or "",
+                      "base_url": panel.get("base_url") or "", "private_ok": True}]
+    if not chain:
+        return None
+    first = chain[0]
+    return {"provider": first["provider"], "model": first.get("model") or "", "key": first.get("key") or "", "base_url": first.get("base_url") or "",
+            "own": own, "chain": chain}
 
 
 def public_url():
@@ -162,7 +181,12 @@ def write_content(user_id):
             store.update_status(user_id, content_at=time.time(), content_ok=False, content_log="کلید هوش مصنوعی تنظیم نشده.")
             return False
         p = store.prefs(user)
-        extra = {"SAJADAI_AI_PROVIDER": ai["provider"], "SAJADAI_AI_KEY": ai["key"], "SAJADAI_AI_MODEL": ai["model"]}
+        # the weekly research wants web search (Claude or GPT); other providers write from the page's own numbers
+        from .ai import PROVIDERS
+        pick = next((c for c in ai["chain"] if PROVIDERS.get(c["provider"], {}).get("kind") in ("anthropic", "openai")), ai["chain"][0])
+        spec = PROVIDERS.get(pick["provider"], {})
+        extra = {"SAJADAI_AI_PROVIDER": spec.get("kind", "compat") if spec.get("kind") != "compat" else "compat", "SAJADAI_AI_KEY": pick.get("key") or "",
+                 "SAJADAI_AI_MODEL": pick.get("model") or spec.get("default") or "", "SAJADAI_AI_BASE_URL": pick.get("base_url") or spec.get("base") or ""}
         if p.get("page_profile"):
             extra["SAJADAI_PAGE_PROFILE"] = p["page_profile"]
         ok, out = run_script(user_id, "write_content.py", extra, timeout=1800)

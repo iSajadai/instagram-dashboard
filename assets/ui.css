@@ -154,3 +154,55 @@ html[data-theme="dark"] .vf-skel::after { background: linear-gradient(to left, t
   .pn-toc a { flex: none; white-space: nowrap; scroll-snap-align: start; }
   .pn-main > section { scroll-margin-top: 76px; }
 }
+
+/* ---------- board: Jalali calendar view (Saturday first; a holiday is red and says «تعطیل») ---------- */
+#board-view { display: inline-flex; align-self: flex-start; margin-block-end: 12px; }
+#board-view [aria-selected="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.sj-jcal-head { display: flex; align-items: center; gap: 8px; margin-block-end: 8px; }
+.sj-jcal-head h3 { margin: 0; flex: 1; font-size: var(--fs-lg); text-align: center; }
+.sj-jcal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.sj-jcal-wd { text-align: center; font-size: var(--fs-xs); color: var(--text-muted); padding-block: 4px; }
+.sj-jcal-day { min-height: 104px; padding: 6px; border-radius: var(--shape-control); background: var(--surface); border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sj-jcal-day.is-today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.sj-jcal-num { align-self: flex-start; min-width: 32px; min-height: 32px; border-radius: 50%; border: 0; background: none; color: var(--text); font-weight: 600; font-size: var(--fs-sm); }
+.sj-jcal-num:hover { background: var(--accent-soft); }
+.sj-jcal-day.is-holiday .sj-jcal-num { color: var(--coral); }
+.sj-jcal-occ { font-size: var(--fs-xs); line-height: 1.5; color: var(--text-secondary); overflow-wrap: anywhere; }
+.sj-jcal-occ.is-holiday { color: var(--coral); font-weight: 600; }
+.sj-jcal-card { text-align: start; font-size: var(--fs-xs); line-height: 1.5; padding: 4px 6px; border-radius: 8px; border: 0; color: var(--text);
+  background: var(--accent-soft); border-inline-start: 3px solid var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 28px; }
+.sj-jcal-card[data-stage="published"] { border-inline-start-color: var(--good); }
+.sj-jcal-card[data-stage="script"], .sj-jcal-card[data-stage="filmed"] { border-inline-start-color: var(--orange, #c26a00); }
+@media (max-width: 640px) {
+  .sj-jcal-grid { grid-template-columns: minmax(0, 1fr); }
+  .sj-jcal-wd, .sj-jcal-pad { display: none; }
+  .sj-jcal-day { min-height: 0; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .sj-jcal-day:not(.is-today):not(:has(.sj-jcal-occ, .sj-jcal-card)) { display: none; }  /* phones list only days with something on them */
+}
+
+/* ---------- settings: AI providers, tried in order ---------- */
+.ai-chain { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ai-empty { padding: 16px; border: 1px dashed var(--border-strong); border-radius: var(--shape-control); color: var(--text-secondary); font-size: var(--fs-sm); }
+.ai-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 12px; border-radius: var(--shape-control);
+  background: var(--surface); border: 1px solid var(--border); }
+.ai-rank { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: var(--fs-sm); }
+.ai-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ai-tag { margin-inline-start: 8px; font-weight: 400; color: var(--good); }
+.ai-meta { font-size: var(--fs-xs); color: var(--text-muted); overflow-wrap: anywhere; text-align: start; }
+.ai-model { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); }
+.ai-model input { flex: 1; min-width: 0; }
+.ai-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.ai-mini { min-width: var(--tap); }
+.ai-h3 { margin: 20px 0 8px; font-size: var(--fs-base); }
+.ai-group { border: 0; padding: 0; margin: 0 0 12px; }
+.ai-group legend { font-size: var(--fs-xs); color: var(--text-muted); margin-block-end: 6px; padding: 0; }
+.ai-tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+.ai-tile { min-height: var(--tap); padding-inline: 14px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: var(--fs-sm); }
+.ai-tile[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ai-form { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; padding: 14px; border-radius: var(--shape-control); background: var(--accent-soft); }
+.ai-form label { display: flex; flex-direction: column; }
+.ai-keylink { align-self: flex-start; display: inline-flex; align-items: center; min-height: var(--tap); padding-inline: 14px; border-radius: var(--shape-control);
+  background: var(--surface); border: 1px solid var(--border-strong); color: var(--accent); text-decoration: none; font-weight: 600; }
+.ai-why { margin-top: 12px; }
+@media (max-width: 640px) { .ai-item { grid-template-columns: auto minmax(0, 1fr); } .ai-actions { grid-column: 1 / -1; } }

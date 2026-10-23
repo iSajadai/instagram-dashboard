@@ -2,7 +2,7 @@
 """Write the weekly AI content for the dashboard: content ideas, this week's analysis and (when
 something clearly better turns up) the benchmark pages. Works with Claude (Anthropic API, the
 default) or GPT (OpenAI API). Replaces the claude.ai "weekly analytics" routine; run Saturday
-mornings by the panel's scheduler for each user.
+mornings by cron (deploy/standalone.md) or by the panel's scheduler for each user.
 
 Numbers are computed here from data.json; the model only gets them as facts, does the outside
 research with web search, and returns the result held to a JSON schema (Claude through a strict
@@ -26,13 +26,14 @@ STATE = os.environ.get("SAJADAI_STATE", "")
 DATA = os.path.join(STATE, "data", "data.json") if STATE else os.path.join(ROOT, "data", "data.json")
 OUT_DIR = os.path.join(STATE, "content") if STATE else os.path.join(ROOT, "content")
 KEY_ENV = "/etc/sajadai-dashboard/anthropic.env"
-# the panel passes each user's choice: SAJADAI_AI_PROVIDER (anthropic | openai), SAJADAI_AI_KEY, SAJADAI_AI_MODEL,
+# the panel passes each user's choice: SAJADAI_AI_PROVIDER (anthropic | openai | compat, with SAJADAI_AI_BASE_URL
+# for any OpenAI-compatible service: Gemini, OpenRouter, Groq, the user's 9router…), SAJADAI_AI_KEY, SAJADAI_AI_MODEL,
 # SAJADAI_PAGE_PROFILE (who the page is for and its style, written by the user)
 PROVIDER = os.environ.get("SAJADAI_AI_PROVIDER", "anthropic")
 MODEL = os.environ.get("SAJADAI_AI_MODEL") or {"anthropic": "claude-opus-5-5", "openai": "gpt-5"}.get(PROVIDER, "claude-opus-5-5")
 TEH = timezone(timedelta(hours=3, minutes=30))
 
-PROFILE = os.environ.get("SAJADAI_PAGE_PROFILE") or """A Persian-language Instagram page (the owner hasn't described it yet in Settings; infer its niche and style from the captions)."""
+PROFILE = os.environ.get("SAJADAI_PAGE_PROFILE") or """"Sajadai" (handle isajadai), a Persian-language Instagram page that teaches AI from zero: a numbered series on ChatGPT/LLM basics, storytelling style, Sajad on camera with his own voice. Long-term goal: grow an audience, then introduce his AI-agent building/hiring platform — his own agents may be shown, but never name the platform."""
 
 SYSTEM = """You write the weekly content plan for this Instagram page:
 
@@ -53,7 +54,7 @@ Current benchmark pages (JSON):
 Return:
 - ideas: exactly 6 reel ideas. id = short unique latin slug; priority 1-6 (1 = film first; the dashboard puts 1-4 into this week's best posting slots); title; format; length (e.g. "30–45 ثانیه"); hook = the first spoken line; beats = the structure in one line using ←; why = why it should work, tied to this week's numbers and the outside pattern; inspiration = the foreign format or trend it adapts; source_url = an https URL from your research. Adapt foreign formats to the series and the storytelling style. If the page runs a numbered series, at least one idea continues it (the captions show what's already filmed), and follow any rule in the page description. Don't repeat a topic already filmed.
 - insights: 3 to 5 findings. id = latin slug; area (e.g. هوک / ذخیره / دسترسی / تعداد انتشار / رقبا); severity exactly "مهم" or "خوب"; finding = from this week's numbers, qualitative (no figures that could contradict the live tiles); action = one concrete thing to do this week.
-- benchmarks: only if you found a clearly better or more current page to follow than the current list, the full new list of 8-12 pages (handle without @, name, region "خارجی" or "فارسی", focus, learn = what the page owner should take from them, url "https://www.instagram.com/<handle>/", source_url = where you saw them named). Otherwise an empty list. Never invent handles.
+- benchmarks: only if you found a clearly better or more current page to follow than the current list, the full new list of 8-12 pages (handle without @, name, region "خارجی" or "فارسی", focus, learn = what Sajad should take from them, url "https://www.instagram.com/<handle>/", source_url = where you saw them named). Otherwise an empty list. Never invent handles.
 - summary: 2-3 sentences for the page owner's Telegram: the main lesson of the week and which idea to film first."""
 
 STR = {"type": "string"}
@@ -175,9 +176,53 @@ def ask_openai(client, prompt):
     return json.loads(r.output_text)
 
 
+def ask_compat(client, prompt):
+    """An OpenAI-compatible service has no web search, so the week is written from the page's own numbers.
+    Structured output where the service supports it, else JSON mode, else plain text with the schema spelled out."""
+    import openai
+    system = SYSTEM.format(profile=PROFILE) + (
+        "\n\nNo web search is available in this run: build every idea and insight on the page's own numbers above. "
+        "For benchmarks, give only widely known figures and say in the source that they're general knowledge, not a fresh search. "
+        "Answer with ONE JSON object only, no prose and no code fences, matching this JSON Schema (all properties required):\n"
+        + json.dumps(SCHEMA, ensure_ascii=False))
+    msgs = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
+    text = None
+    for fmt in ({"type": "json_schema", "json_schema": {"name": "weekly_content", "schema": SCHEMA, "strict": True}}, {"type": "json_object"}, None):
+        try:
+            r = client.chat.completions.create(model=MODEL, messages=msgs, max_tokens=16000, **({"response_format": fmt} if fmt else {}))
+            text = (r.choices[0].message.content or "").strip() if r.choices else ""
+            break
+        except openai.BadRequestError:
+            continue
+    if not text:
+        raise RuntimeError("the AI service returned no text")
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
+    m = re.search(r"```(?:json)?\s*(.*?)```", text, re.S)
+    if m:
+        text = m.group(1)
+    try:
+        return json.loads(text[text.find("{"): text.rfind("}") + 1])
+    except ValueError:
+        raise RuntimeError("the AI service's answer wasn't valid JSON")
+
+
 def ask(prompt):
     """The weekly content from the configured provider; failures end the script with a readable message."""
     key = os.environ.get("SAJADAI_AI_KEY")
+    if PROVIDER == "compat":
+        import openai
+        try:
+            return ask_compat(openai.OpenAI(api_key=key or "none", base_url=os.environ.get("SAJADAI_AI_BASE_URL"), max_retries=3, timeout=900), prompt)
+        except openai.AuthenticationError:
+            sys.exit("the AI service's key is missing or invalid")
+        except openai.RateLimitError as e:
+            sys.exit(f"the AI service's free limit is used up for now ({e.message})")
+        except openai.APIStatusError as e:
+            sys.exit(f"AI service error {e.status_code}: {e.message}")
+        except openai.APIConnectionError:
+            sys.exit("couldn't reach the AI service (network or address)")
+        except RuntimeError as e:
+            sys.exit(str(e))
     if PROVIDER == "openai":
         import openai
         try:

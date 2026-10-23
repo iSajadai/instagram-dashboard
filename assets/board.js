@@ -83,6 +83,7 @@
           ${k === 'idea' ? '<button type="button" class="sj-iconbtn" data-new aria-label="کارت تازه">+</button>' : ''}</div>
         <div class="sj-col-list">${list.map(cardHtml).join('') || '<p class="sj-col-empty">کارتی نیست</p>'}</div></div>`;
     }).join('');
+    if (view === 'cal') drawCal();
   }
 
   const move = (id, stage, before) => {
@@ -228,6 +229,65 @@
       } catch (err) { $('buffer-msg').textContent = err.message; }
       btn.disabled = false;
     });
+  }
+
+  // calendar view: the Jalali month (Saturday first) with each card on its due day and Iran's
+  // occasions; a holiday is marked in colour and in words. Click a day to add a card due that day.
+  const calBox = $('board-cal'), viewSeg = $('board-view');
+  let view = 'cols', month = null, ym = null;
+  const FA = (t) => String(t).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  async function loadMonth(jy, jm) {
+    month = await api('GET', '/api/me/calendar' + (jy ? `?jy=${jy}&jm=${jm}` : ''));
+    ym = [month.jy, month.jm];
+    drawCal();
+  }
+  function drawCal() {
+    if (!month || !items) return;
+    const due = {};
+    items.forEach((it) => { if (it.due) (due[it.due] = due[it.due] || []).push(it); });
+    const head = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'].map((d, i) => `<div class="sj-jcal-wd" aria-hidden="true">${d}</div>`).join('');
+    const pad = '<div class="sj-jcal-pad"></div>'.repeat(month.lead);
+    const cells = month.days.map((d) => {
+      const occ = d.occasions, hol = d.weekday === 6 || occ.some((o) => o.holiday);
+      const cards = due[d.date] || [];
+      const label = `${FA(d.jd)} ${month.title.split(' ')[0]}${hol ? '، تعطیل' : ''}${occ.length ? '، ' + occ.map((o) => o.title).join('، ') : ''}${cards.length ? '، ' + FA(cards.length) + ' کارت' : ''}`;
+      return `<div class="sj-jcal-day${hol ? ' is-holiday' : ''}${d.date === month.today ? ' is-today' : ''}" role="gridcell">
+        <button type="button" class="sj-jcal-num" data-day="${d.date}" aria-label="${esc(label)} — کارت تازه برای این روز">${FA(d.jd)}</button>
+        ${occ.map((o) => `<span class="sj-jcal-occ${o.holiday ? ' is-holiday' : ''}" title="${o.approximate ? 'تاریخ تقریبی' : ''}">${esc(o.title)}${o.holiday ? ' · تعطیل' : ''}${o.approximate ? '؟' : ''}</span>`).join('')}
+        ${cards.map((it) => `<button type="button" class="sj-jcal-card" data-card="${esc(it.id)}" data-stage="${esc(it.stage)}">${esc(it.title)}</button>`).join('')}
+      </div>`;
+    }).join('');
+    calBox.innerHTML = `<div class="sj-jcal-head"><button type="button" class="sj-iconbtn" data-mon="-1" aria-label="ماه قبل">›</button>
+      <h3 aria-live="polite">${esc(month.title)}</h3><button type="button" class="sj-iconbtn" data-mon="1" aria-label="ماه بعد">‹</button>
+      <button type="button" class="sj-btn" data-mon="0">امروز</button></div>
+      <div class="sj-jcal-grid" role="grid" aria-label="${esc(month.title)}">${head}${pad}${cells}</div>
+      <p class="sj-small">مناسبت‌های مذهبی ۱۴۰۴ و ۱۴۰۵ از تقویم رسمی‌اند؛ سال‌های دیگه با «؟» تقریبی‌اند. قرمز یعنی تعطیل.</p>`;
+  }
+  if (calBox && viewSeg) {
+    viewSeg.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-view]'); if (!b) return;
+      view = b.dataset.view;
+      viewSeg.querySelectorAll('[data-view]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+      calBox.hidden = view !== 'cal'; cols.hidden = view === 'cal';
+      try { localStorage.setItem('sj-board-view', view); } catch (err) { /* private window */ }
+      if (view === 'cal') (month ? Promise.resolve(drawCal()) : loadMonth()).catch((err) => msg(err.message, true));
+    });
+    calBox.addEventListener('click', (e) => {
+      const m = e.target.closest('[data-mon]');
+      if (m) {
+        const step = Number(m.dataset.mon);
+        if (!step) { loadMonth().catch((err) => msg(err.message, true)); return; }
+        let [y, mo] = ym; mo += step;
+        if (mo < 1) { mo = 12; y -= 1; } else if (mo > 12) { mo = 1; y += 1; }
+        loadMonth(y, mo).catch((err) => msg(err.message, true));
+        return;
+      }
+      const c = e.target.closest('[data-card]'); if (c) { edit(c.dataset.card); return; }
+      const d = e.target.closest('[data-day]'); if (d) { edit(null); form.elements.due.value = d.dataset.day; }
+    });
+    let saved = null;
+    try { saved = localStorage.getItem('sj-board-view'); } catch (err) { /* private window */ }
+    if (saved === 'cal') setTimeout(() => viewSeg.querySelector('[data-view="cal"]').click(), 0);
   }
 
   // other pages (an idea card) add to the board through this

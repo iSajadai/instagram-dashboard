@@ -6,10 +6,13 @@ timed, captions are linted and repaired, and everything shown is passed through 
 
 Nothing here posts anything. The agents write; the user posts."""
 import json, re, time
+from datetime import datetime, timedelta, timezone
 
-from . import ai, analysis, config
+from . import ai, analysis, calendar_fa, config
 from .fa import beats, caption, hooks, human, viral
 from .fa.text import data, fa_digits, words
+
+TEHRAN = timezone(timedelta(hours=3, minutes=30))
 
 # ---------- shared ----------
 
@@ -107,7 +110,15 @@ def page_numbers(user):
             "best_times": analysis.best_times(d, 5)}
 
 
-def context(user, *, numbers=False, swipe=False, plan=False, audit=False):
+def upcoming_occasions(days=16):
+    """Iran's occasions from today (Tehran) for the next days, as lines the planner can read."""
+    start = datetime.now(TEHRAN).date()
+    return [f"{calendar_fa.WEEKDAYS[calendar_fa.weekday(o['date'])]} {calendar_fa.jfmt(o['date'])}: {o['title']}"
+            + (" (تعطیل رسمی)" if o["holiday"] else "") + (" (تاریخ تقریبی)" if o["approximate"] else "")
+            for o in calendar_fa.occasions_between(start, start + timedelta(days=days))]
+
+
+def context(user, *, numbers=False, swipe=False, plan=False, audit=False, occasions=False):
     parts = ["پروفایل صدا و پیج:\n" + voice_text(user)]
     if numbers:
         parts.append("عددهای خود پیج: " + json.dumps(page_numbers(user), ensure_ascii=False))
@@ -118,6 +129,9 @@ def context(user, *, numbers=False, swipe=False, plan=False, audit=False):
     if audit and load(user, "audit.json", {}):
         a = load(user, "audit.json", {})
         parts.append("نتیجهٔ آخرین تحلیل پست‌های خود پیج: " + json.dumps({k: a.get(k) for k in ("findings", "stop", "do_more")}, ensure_ascii=False))
+    if occasions and upcoming_occasions():
+        parts.append("مناسبت‌های دو هفتهٔ آینده در ایران (فقط اگه به موضوع پیج می‌خوره یه پست رو بهش گره بزن؛ تو روزهای عزاداری لحن شوخ و فروش مستقیم نذار):\n"
+                     + "\n".join(upcoming_occasions()))
     if plan and load(user, "plan.json", {}):
         parts.append("برنامهٔ هفتهٔ قبل (موضوع‌ها تکرار نشن): " + json.dumps(load(user, "plan.json", {}).get("days", []), ensure_ascii=False)[:2500])
     return "\n\n".join(parts)
@@ -384,7 +398,7 @@ def run_plan(user, inp):
                                                                    ("happened", "این هفته واقعاً چی شد"), ("accounts", "حساب‌هایی که می‌خوام دیده بشم")))
     if not str(inp.get("happened") or "").strip():
         raise InputError("بنویس این هفته واقعاً چی شد؛ پست‌ها از همین درمیان")
-    out = ask(user, PLAN_SYS + formulas_brief() + "\n\n" + context(user, numbers=True, swipe=True, plan=True, audit=True), task, PLAN_SCHEMA, 8000)
+    out = ask(user, PLAN_SYS + formulas_brief() + "\n\n" + context(user, numbers=True, swipe=True, plan=True, audit=True, occasions=True), task, PLAN_SCHEMA, 8000)
     days, warns, last = [], [], None
     for d in out["days"]:
         f = hooks.formula(d["formula_id"]) if d["kind"] in ("reel", "carousel") else None

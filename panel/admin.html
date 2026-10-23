@@ -28,7 +28,8 @@
     <p class="pn-note">کلید هوش مصنوعی مشترک برای کاربرهایی استفاده می‌شه که کلید خودشون رو نگذاشتن. کلیدها رمزنگاری‌شده ذخیره می‌شن و دوباره نشون داده نمی‌شن؛ برای عوض کردن، مقدار تازه بنویس.</p>
     <div class="pn-grid">
       <label>ارائه‌دهندهٔ هوش مصنوعی<select id="ai_provider"></select></label>
-      <label>مدل (اختیاری)<input id="ai_model" dir="ltr" placeholder="claude-opus-5-5 / gpt-5"></label>
+      <label>مدل (اختیاری)<input id="ai_model" dir="ltr" placeholder="claude-opus-5-5 / gpt-5 / gemini-2.5-flash"></label>
+      <label>آدرس سرویس (برای 9router، Ollama یا سفارشی)<input id="ai_base_url" dir="ltr" placeholder="http://9router:20128/v1"></label>
     </div>
     <label>کلید API هوش مصنوعی<input id="ai_key" dir="ltr" autocomplete="off"></label>
     <label>توکن ربات تلگرام (از @BotFather)<input id="telegram_bot" dir="ltr" autocomplete="off"></label>
@@ -91,7 +92,7 @@
     st = await pn.api('GET', '/api/admin');
     $('ai_provider').replaceChildren(...Object.entries(st.providers).map(([k, v]) => pn.el('option', { value: k }, v)));
     $('ai_provider').value = st.settings.ai_provider;
-    ['ai_model', 'ai_key', 'telegram_bot', 'public_url'].forEach((k) => { $(k).value = st.settings[k] || ''; });
+    ['ai_model', 'ai_key', 'ai_base_url', 'telegram_bot', 'public_url'].forEach((k) => { $(k).value = st.settings[k] || ''; });
     $('allow_signup').checked = st.settings.allow_signup;
     $('max_pages').value = st.settings.max_pages;
     drawOps();
@@ -152,7 +153,7 @@
     await load(); return { ok: true, message: 'ذخیره شد ✓' };
   }));
   $('save').addEventListener('click', (e) => pn.run(e.currentTarget, $('save-msg'), async () => {
-    await pn.api('POST', '/api/admin/settings', { ai_provider: $('ai_provider').value, ai_model: $('ai_model').value.trim(), ai_key: $('ai_key').value.trim(),
+    await pn.api('POST', '/api/admin/settings', { ai_provider: $('ai_provider').value, ai_model: $('ai_model').value.trim(), ai_key: $('ai_key').value.trim(), ai_base_url: $('ai_base_url').value.trim(),
       telegram_bot: $('telegram_bot').value.trim(), public_url: $('public_url').value.trim(), allow_signup: $('allow_signup').checked,
       max_pages: Number($('max_pages').value) || 5 });
     await load(); return { ok: true, message: 'ذخیره شد ✓' };

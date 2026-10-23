@@ -3,8 +3,8 @@ Claude/ChatGPT token), the admin page, a read-only JSON API for ChatGPT Actions,
 
 Run: uvicorn sajadai.web:app --host 0.0.0.0 --port 8000   (or `python -m sajadai serve`, or docker compose up)
 """
-import contextlib, json, re, threading, time, urllib.parse
-from datetime import datetime, timezone
+import contextlib, json, re, secrets, threading, time, urllib.parse
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -12,8 +12,9 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
-from . import agents, ai, analysis, billing, config, mcp_server, ops, pages, pipeline, publish, store
+from . import agents, ai, analysis, billing, calendar_fa, config, mcp_server, ops, pages, pipeline, publish, store
 from .fa import beats as fa_beats, caption as fa_caption, hooks as fa_hooks, human as fa_human, text as fa_text, viral as fa_viral
+AI = ai  # the module, for functions with a local named ai
 
 COOKIE = "sj_session"
 USERNAME = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
@@ -463,15 +464,16 @@ def me(user=Depends(need_user)):
         "username": person["username"], "is_admin": bool(user["is_admin"]), "role": user["role"],
         "page": {"id": user["id"], "name": p.get("page_name") or user["username"], "own": user["id"] == person["id"]},
         "pages": store.pages_for(person),
-        "prefs": {k: p.get(k, "") for k in ("page_name", "page_profile", "telegram_chat", "ai_provider", "ai_model")},
+        "prefs": {k: p.get(k, "") for k in ("page_name", "page_profile", "telegram_chat")},
         "kit": {"enabled": bool(p.get("kit_enabled")), "slug": p.get("kit_slug", ""), "bio": p.get("kit_bio", ""), "contact": p.get("kit_contact", ""),
                 "handle": p.get("kit_handle", ""), "url": (base or "") + "/kit/" + p["kit_slug"] if p.get("kit_enabled") and p.get("kit_slug") else None},
         "connections": {name: {"label": spec["label"], "connected": name in conns,
                                "fields": {f: {"label": lbl, "value": (mask(conns[name].get(f)) if f in ("token", "api_key") else conns[name].get(f, "")) if name in conns else ""}
                                           for f, lbl in spec["fields"].items()}}
                         for name, spec in pipeline.CONNECTIONS.items()},
-        "ai": {"own_key": mask(s.get("ai_key")) if s.get("ai_key") else "", "panel_provider": panel_ai.get("provider") if panel_ai.get("key") else None,
-               "providers": pipeline.AI_PROVIDERS},
+        "ai": {"chain": [chain_view(c) for c in pipeline.ai_chain(user)] if owner else [{"provider": c["provider"]} for c in pipeline.ai_chain(user)],
+               "panel_provider": panel_ai.get("provider") if (panel_ai.get("key") or panel_ai.get("base_url")) and billing.may_use_panel_ai(user) else None,
+               **ai.public_catalog()},
         "telegram_ready": bool(store.setting("telegram_bot")),
         "has_token": bool(user["api_token"]),
         "urls": {"base": base, "mcp": (base or "") + "/mcp", "api": (base or "") + "/api/v1", "openapi": (base or "") + "/openapi.json"},
@@ -489,11 +491,9 @@ def me(user=Depends(need_user)):
 async def save_prefs(request: Request, user=Depends(need_owner)):
     b = await body(request)
     p = store.prefs(user)
-    for k in ("page_name", "page_profile", "telegram_chat", "ai_provider", "ai_model"):
+    for k in ("page_name", "page_profile", "telegram_chat"):
         if k in b:
             p[k] = str(b[k] or "").strip()[:4000]
-    if p.get("ai_provider") and p["ai_provider"] not in pipeline.AI_PROVIDERS:
-        raise HTTPException(400, "ارائه‌دهندهٔ هوش مصنوعی نامعتبر")
     if p.get("telegram_chat") and not re.match(r"^-?\d{3,20}$", p["telegram_chat"]):
         raise HTTPException(400, "chat id تلگرام باید عدد باشه")
     store.set_prefs(user["id"], p)
@@ -530,17 +530,86 @@ def remove_connection(name: str, user=Depends(need_owner)):
     return {"ok": True}
 
 
-@api.post("/api/me/ai_key", include_in_schema=False, dependencies=[Depends(same_site)])
-async def save_ai_key(request: Request, user=Depends(need_owner)):
-    b = await body(request)
+def chain_view(c):
+    spec = ai.PROVIDERS.get(c["provider"], {})
+    return {"id": c.get("id"), "provider": c["provider"], "label": spec.get("label", c["provider"]), "model": c.get("model") or "",
+            "base_url": c.get("base_url") or "", "key": mask(c.get("key")) if c.get("key") else "", "group": spec.get("group", "own")}
+
+
+def save_chain(user, chain):
     s = store.user_secrets(user)
-    key = str(b.get("key") or "").strip()
-    if key:
-        s["ai_key"] = key
-    else:
-        s.pop("ai_key", None)
+    s["ai_chain"] = chain[:ai.MAX_CHAIN]
+    s.pop("ai_key", None)  # the old single key now lives in the chain
     store.set_secrets(user["id"], s)
-    return {"ok": True}
+
+
+@api.post("/api/me/ai/connect", include_in_schema=False, dependencies=[Depends(same_site)])
+async def ai_connect(request: Request, user=Depends(need_owner)):
+    """Add (or re-test) one provider: check the key, find the models, pick one, ask a test question.
+    The entry is saved only when the test answer comes back."""
+    b = await body(request)
+    prov = str(b.get("provider") or "")
+    spec = ai.PROVIDERS.get(prov)
+    if not spec:
+        raise HTTPException(400, "سرویس نامعتبره")
+    chain = pipeline.ai_chain(user)
+    old = next((c for c in chain if c.get("id") == b.get("id")), None) if b.get("id") else None
+    key = str(b.get("key") or "").strip()
+    if key.startswith("•"):
+        key = (old or {}).get("key", "")
+    if not key and not spec.get("key_optional"):
+        raise HTTPException(400, "کلید لازمه")
+    entry = {"id": old["id"] if old and old["id"] != "legacy" else "p" + secrets.token_hex(4), "provider": prov, "key": key[:400],
+             "model": str(b.get("model") or "").strip()[:120], "base_url": "", "private_ok": bool(user["person"]["is_admin"])}
+    if spec.get("needs_url"):
+        try:
+            entry["base_url"] = ai.check_url(b.get("base_url"), entry["private_ok"])
+        except ai.AIError as e:
+            raise HTTPException(400, str(e))
+    try:
+        entry, models, message = await run_in_threadpool(lambda: ai.connect(entry))
+    except ai.AIError as e:
+        return {"ok": False, "message": str(e)}
+    chain = [entry if c.get("id") == old["id"] else c for c in chain] if old else chain + [entry]
+    if len(chain) > ai.MAX_CHAIN:
+        raise HTTPException(400, f"حداکثر {ai.MAX_CHAIN} سرویس")
+    save_chain(user, chain)
+    return {"ok": True, "message": message, "models": models, "entry": chain_view(entry)}
+
+
+@api.post("/api/me/ai/chain", include_in_schema=False, dependencies=[Depends(same_site)])
+async def ai_chain_order(request: Request, user=Depends(need_owner)):
+    """Reorder, remove or change a provider's model: {"items": [{"id", "model"?}, …]} in the new order;
+    entries left out are removed."""
+    b = await body(request)
+    items = b.get("items")
+    if not isinstance(items, list):
+        raise HTTPException(400, "فهرست نامعتبره")
+    have = {c.get("id"): c for c in pipeline.ai_chain(user)}
+    chain = []
+    for it in items:
+        c = have.get(str((it or {}).get("id")))
+        if not c or c in chain:
+            continue
+        if isinstance(it.get("model"), str) and it["model"].strip():
+            c = {**c, "model": it["model"].strip()[:120]}
+        chain.append(c)
+    save_chain(user, chain)
+    return {"ok": True, "chain": [chain_view(c) for c in chain]}
+
+
+@api.post("/api/me/ai/test", include_in_schema=False, dependencies=[Depends(same_site)])
+async def ai_test(request: Request, user=Depends(need_owner)):
+    """Ask each provider in the chain a short question and say which answer."""
+    out = []
+    for c in pipeline.ai_chain(user):
+        t = time.time()
+        try:
+            r = await run_in_threadpool(lambda c=c: ai.call(c, "Reply in Persian with one short word.", [{"role": "user", "content": "سلام! فقط بنویس: آماده"}], None, 400, "low"))
+            out.append({"id": c.get("id"), "ok": True, "message": f"جواب داد در {time.time() - t:.1f} ثانیه: «{str(r)[:40]}»"})
+        except ai.AIError as e:
+            out.append({"id": c.get("id"), "ok": False, "message": str(e)})
+    return {"ok": True, "results": out}
 
 
 @api.post("/api/me/goals", include_in_schema=False, dependencies=[Depends(same_site)])
@@ -656,6 +725,17 @@ async def save_topics(request: Request, user=Depends(need_editor)):
 
 
 BOARD_STAGES = ("idea", "script", "filmed", "published")
+
+
+@api.get("/api/me/calendar", include_in_schema=False)
+def jalali_month(jy: int = 0, jm: int = 0, user=Depends(need_user)):
+    """A Jalali month with Iran's occasions, for the board's calendar view (this month by default)."""
+    today = datetime.now(timezone(timedelta(hours=3, minutes=30))).date()
+    if not jy or not 1 <= jm <= 12:
+        jy, jm, _ = calendar_fa.to_jalali(today)
+    if not 1300 <= jy <= 1500:
+        raise HTTPException(400, "سال نامعتبره")
+    return {**calendar_fa.month(jy, jm), "today": today.isoformat()}
 
 
 @api.get("/api/me/board", include_in_schema=False)
@@ -1086,13 +1166,14 @@ def admin_state(admin=Depends(need_admin)):
     ai = store.setting("ai", {}) or {}
     return {
         "settings": {"ai_provider": ai.get("provider", "anthropic"), "ai_model": ai.get("model", ""), "ai_key": mask(ai.get("key")) if ai.get("key") else "",
+                     "ai_base_url": ai.get("base_url", ""),
                      "telegram_bot": mask(store.setting("telegram_bot")) if store.setting("telegram_bot") else "",
                      "allow_signup": bool(store.setting("allow_signup", False)), "public_url": store.setting("public_url") or config.PUBLIC_URL,
                      "max_pages": max_pages()},
         "ops": {**(store.setting("ops", {}) or {}), "backups": ops.describe()},
         "billing": {**{k: v for k, v in billing.config().items() if k != "merchant"}, "merchant": mask(billing.config()["merchant"])},
         "payments": [{k: r[k] for k in ("authority", "username", "plan_id", "amount", "status", "ref_id", "created_at")} for r in store.payments()],
-        "providers": pipeline.AI_PROVIDERS,
+        "providers": {k: v["label"] for k, v in AI.PROVIDERS.items()},
         "users": [{"id": u["id"], "username": u["username"], "is_admin": bool(u["is_admin"]), "created_at": u["created_at"],
                    "kind": u["kind"], "owner_id": u["owner_id"], "page_name": store.prefs(u).get("page_name") or "",
                    "connections": sorted(store.user_secrets(u).get("connections", {}).keys()),
@@ -1105,9 +1186,15 @@ async def admin_settings(request: Request, admin=Depends(need_admin)):
     b = await body(request)
     ai = store.setting("ai", {}) or {}
     if "ai_provider" in b:
-        if b["ai_provider"] not in pipeline.AI_PROVIDERS:
+        if b["ai_provider"] not in AI.PROVIDERS:
             raise HTTPException(400, "ارائه‌دهندهٔ نامعتبر")
         ai["provider"] = b["ai_provider"]
+    if "ai_base_url" in b:
+        url = str(b["ai_base_url"] or "").strip()
+        try:
+            ai["base_url"] = AI.check_url(url, True) if url else ""
+        except AI.AIError as e:
+            raise HTTPException(400, str(e))
     if "ai_model" in b:
         ai["model"] = str(b["ai_model"] or "").strip()
     if b.get("ai_key") is not None and not str(b["ai_key"]).startswith("•"):

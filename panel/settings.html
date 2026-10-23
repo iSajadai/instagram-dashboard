@@ -54,13 +54,24 @@
 
   <section id="ai-card" class="pn-card" data-min="owner">
     <h2>هوش مصنوعی</h2>
+    <p class="pn-note">مغز دستیار، استودیو و ایده‌های هفتگی. می‌تونی چند سرویس وصل کنی؛ به همین ترتیب امتحان می‌شن و اگه یکی جواب نداد یا سقف رایگانش پر بود، بعدی جواب می‌ده.</p>
     <p class="pn-note" id="ai-panel-note"></p>
-    <div class="pn-grid">
-      <label>ارائه‌دهنده<select id="ai_provider"></select></label>
-      <label>مدل (اختیاری)<input id="ai_model" dir="ltr" placeholder="پیش‌فرض: claude-opus-5-5 یا gpt-5"></label>
+    <ol class="ai-chain" id="ai-chain" aria-label="سرویس‌های وصل‌شده، به ترتیب"></ol>
+    <div class="pn-row"><button id="ai-test-all" type="button" hidden>آزمایش همه</button><span class="pn-msg" id="ai-msg" role="status"></span></div>
+    <h3 class="ai-h3">اضافه کردن سرویس</h3>
+    <div id="ai-picks"></div>
+    <div id="ai-form" class="ai-form" hidden>
+      <p class="pn-note" id="ai-help"></p>
+      <a id="ai-keylink" class="ai-keylink" target="_blank" rel="noopener noreferrer" hidden></a>
+      <label id="ai-url-l" hidden>آدرس سرویس (تا /v1)<input id="ai-url" dir="ltr" inputmode="url" autocomplete="off"></label>
+      <label><span id="ai-key-label">کلید</span><input id="ai-newkey" type="password" dir="ltr" autocomplete="off"></label>
+      <label>مدل (اختیاری)<input id="ai-newmodel" dir="ltr" autocomplete="off"></label>
+      <div class="pn-row"><button class="primary" id="ai-connect" type="button">وصل کن و آزمایش کن</button><span class="pn-msg" id="ai-add-msg" role="status"></span></div>
     </div>
-    <label>کلید API خودت (اختیاری)<input id="ai_key" dir="ltr" autocomplete="off" placeholder="sk-ant-… یا sk-…"></label>
-    <div class="pn-row"><button class="primary" id="save-ai" type="button">ذخیره</button><button id="clear-ai" type="button">حذف کلید خودم</button><span class="pn-msg" id="ai-msg"></span></div>
+    <details class="ai-why">
+      <summary>چرا ورود مستقیم با حساب Claude یا ChatGPT نیست؟</summary>
+      <p class="pn-note">Anthropic از فوریهٔ ۲۰۲۶ اجازه نمی‌ده حساب اشتراکی Claude (Pro/Max) جایی جز Claude Code و claude.ai استفاده بشه و حساب‌هایی که این کار رو می‌کنن بسته می‌شن؛ برای همین Claude اینجا فقط با کلید API وصل می‌شه. برای استفاده از اشتراک ChatGPT یا Gemini خودت، 9router رو (روی سرور یا Railway خودت) راه بنداز، حساب‌هات رو اونجا وصل کن و آدرسش رو اینجا بذار؛ مسئولیت قوانین هر سرویس با خودته. راه بی‌دردسر و رایگان: کلید Gemini با حساب گوگل.</p>
+    </details>
   </section>
 
   <section class="pn-card" data-min="editor" id="voice-card">
@@ -189,6 +200,7 @@
 </main>
 <script src="/assets/ui.js"></script>
 <script src="/assets/panel.js"></script>
+<script src="/assets/ai-settings.js"></script>
 <script>
 (async function () {
   const $ = (id) => document.getElementById(id);
@@ -242,13 +254,8 @@
         pn.el('div', { class: 'pn-row' }, testBtn, forceBtn, del), msg));
     });
 
-    ['page_name', 'page_profile', 'telegram_chat', 'ai_model'].forEach((k) => { $(k).value = me.prefs[k] || ''; });
-    $('ai_provider').replaceChildren(...Object.entries(me.ai.providers).map(([k, v]) => pn.el('option', { value: k }, v)));
-    $('ai_provider').value = me.prefs.ai_provider || 'anthropic';
-    $('ai_key').value = me.ai.own_key || '';
-    $('ai-panel-note').textContent = me.ai.panel_provider
-      ? 'ادمین یه کلید مشترک (' + me.ai.providers[me.ai.panel_provider] + ') گذاشته؛ اگه کلید خودت رو بذاری، ایده‌ها با کلید و ارائه‌دهندهٔ خودت نوشته می‌شن.'
-      : 'ادمین کلید مشترکی نگذاشته؛ برای ایده‌ها و تحلیل هفتگی کلید خودت (Claude یا GPT) رو بذار.';
+    ['page_name', 'page_profile', 'telegram_chat'].forEach((k) => { $(k).value = me.prefs[k] || ''; });
+    window.sjAiCard(me, load);
     $('tg-note').textContent = me.telegram_ready
       ? 'هشدار ریل‌های تازه، کم شدن فالوئر و گزارش شنبه‌ها به تلگرامت میاد. به ربات پنل یه پیام بده (هر چیزی)، بعد chat id خودت رو از @userinfobot بگیر و اینجا بذار.'
       : 'ادمین هنوز ربات تلگرام پنل رو تنظیم نکرده؛ chat id رو الان بذار، از وقتی ربات تنظیم بشه پیام‌ها میان.';
@@ -416,13 +423,6 @@
       target: Number(tr.querySelector('[data-k=target]').value), deadline: tr.querySelector('[data-k=deadline]').value || null, why: tr._why })) })));
   $('save-page').addEventListener('click', (e) => pn.run(e.currentTarget, $('page-msg'), () => pn.api('POST', '/api/me/prefs', { page_name: $('page_name').value, page_profile: $('page_profile').value })));
   $('save-tg').addEventListener('click', (e) => pn.run(e.currentTarget, $('tg-msg'), () => pn.api('POST', '/api/me/prefs', { telegram_chat: $('telegram_chat').value.trim() })));
-  $('save-ai').addEventListener('click', (e) => pn.run(e.currentTarget, $('ai-msg'), async () => {
-    await pn.api('POST', '/api/me/prefs', { ai_provider: $('ai_provider').value, ai_model: $('ai_model').value.trim() });
-    const k = $('ai_key').value.trim();
-    if (k && !k.startsWith('•')) await pn.api('POST', '/api/me/ai_key', { key: k });
-    await load(); return { ok: true, message: 'ذخیره شد ✓' };
-  }));
-  $('clear-ai').addEventListener('click', (e) => pn.run(e.currentTarget, $('ai-msg'), async () => { await pn.api('POST', '/api/me/ai_key', { key: '' }); await load(); return { ok: true, message: 'کلید خودت حذف شد' }; }));
   $('do-refresh').addEventListener('click', (e) => pn.run(e.currentTarget, $('do-msg'), () => pn.api('POST', '/api/me/refresh')).then(() => setTimeout(load, 30000)));
   $('do-content').addEventListener('click', (e) => pn.run(e.currentTarget, $('do-msg'), () => pn.api('POST', '/api/me/content')).then(() => setTimeout(load, 120000)));
   $('save-pw').addEventListener('click', (e) => pn.run(e.currentTarget, $('pw-msg'), () => pn.api('POST', '/api/me/password', { current: $('pw-cur').value, new: $('pw-new').value })));
