@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <defs>
+    <linearGradient id="glass-mask" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A84FF"/>
+      <stop offset="1" stop-color="#5856D6"/>
+    </linearGradient>
+  </defs>
+  <rect width="40" height="40" fill="url(#glass-mask)"/>
+  <path transform="translate(20 19.25) scale(0.68) translate(-20 -19.25)" d="M10 27.5 8.6 15.2l6.1 4.6L20 11l5.3 8.8 6.1-4.6L30 27.5H10Z" fill="#fff"/>
+</svg>

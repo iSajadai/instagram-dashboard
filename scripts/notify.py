@@ -17,6 +17,8 @@ No config file means nothing is sent and the script exits quietly.
 Usage: python3 scripts/notify.py [--dry-run] [--weekly-now] [--state PATH]
   --dry-run     print the messages instead of sending; don't touch the state file
   --weekly-now  send the weekly report now, whatever the day
+  --inbox PATH  also keep each message in this JSON file (newest first, last 100) for the panel's bell;
+                with it, messages are kept even when Telegram isn't set up
 """
 import json, os, re, sys, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone
@@ -312,11 +314,29 @@ def send(env, text):
                 raise RuntimeError(f"telegram HTTP {r.status}")
 
 
+def keep(path, text, now):
+    """Add a message to the inbox file the panel's notification bell reads."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            items = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        items = []
+    first = text.splitlines()[0] if text else ""
+    kind = "weekly" if first.startswith("📊") else "alert"
+    items.insert(0, {"at": now.isoformat(timespec="seconds"), "kind": kind, "title": first[:120], "text": text[:4000]})
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(items[:100], f, ensure_ascii=False, indent=1)
+    os.replace(tmp, path)
+
+
 def main(argv):
     dry = "--dry-run" in argv
     state_path = argv[argv.index("--state") + 1] if "--state" in argv else STATE
+    inbox = argv[argv.index("--inbox") + 1] if "--inbox" in argv else None
     env = load_env()
-    if not env and not dry:
+    if not env and not dry and not inbox:
         return
     try:
         with open(DATA, encoding="utf-8") as f:
@@ -341,7 +361,10 @@ def main(argv):
     for m in msgs:
         if dry:
             print(m, end="\n\n-----\n\n")
-        else:
+            continue
+        if inbox:
+            keep(inbox, m, now)
+        if env:
             send(env, m)
             print(f"{now.isoformat(timespec='seconds')} sent: {m.splitlines()[0]}")
     if not dry:

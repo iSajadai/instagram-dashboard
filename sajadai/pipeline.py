@@ -117,7 +117,7 @@ def refresh(user_id):
         user = store.get_user(user_id)
         ensure_user_dir(user_id)
         conns = store.user_secrets(user).get("connections", {})
-        log, worked = [], []
+        log, worked, failed = [], [], []
         for name, spec in CONNECTIONS.items():
             vals = conns.get(name)
             if not vals or not all(vals.get(f) for f in spec["fields"]):
@@ -126,6 +126,10 @@ def refresh(user_id):
             log.append(f"[{spec['label']}] {'✓' if ok else '✗'} {out}")
             if ok:
                 worked.append(name)
+            else:
+                failed.append(name)
+                if name not in store.status(user).get("refresh_failed", []):  # tell once, when a source starts failing
+                    add_notice(user_id, f"⚠️ گرفتن داده از {spec['label']} ناموفق بود", out[-600:] + "\n\nاتصال رو تو تنظیمات چک کن.")
         if not log:
             store.update_status(user_id, refresh_at=time.time(), refresh_ok=False, refresh_log="هنوز هیچ منبعی وصل نشده.")
             return False
@@ -134,8 +138,20 @@ def refresh(user_id):
             log.append(f"[data.json] {'✓' if ok else '✗'} {out}")
         else:
             ok = False
-        store.update_status(user_id, refresh_at=time.time(), refresh_ok=bool(worked) and ok, refresh_log="\n".join(log))
+        store.update_status(user_id, refresh_at=time.time(), refresh_ok=bool(worked) and ok, refresh_log="\n".join(log), refresh_failed=failed)
         return bool(worked) and ok
+
+
+def add_notice(user_id, title, text, kind="system"):
+    """A message for the bell on the user's dashboard (notify.py adds alerts and weekly reports to the same file)."""
+    path = config.user_dir(user_id) / "content" / "notifications.json"
+    try:
+        items = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        items = []
+    items.insert(0, {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "kind": kind, "title": title[:120], "text": text[:4000]})
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(items[:100], ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def write_content(user_id):
@@ -152,19 +168,25 @@ def write_content(user_id):
         ok, out = run_script(user_id, "write_content.py", extra, timeout=1800)
         if ok:
             run_script(user_id, "shape.py", {})
+            add_notice(user_id, "💡 ایده‌ها و تحلیل این هفته آماده‌ست", "تو «تحلیل و ایده‌ها» ببینشون؛ هر کدوم رو می‌تونی به بُرد تولید ببری.", "content")
+        else:
+            add_notice(user_id, "⚠️ نوشتن ایده‌های هفته ناموفق بود", out[-600:])
         store.update_status(user_id, content_at=time.time(), content_ok=ok, content_log=out,
                             content_week=week_key())
         return ok
 
 
 def notify(user_id):
+    """Alerts and the weekly report: always kept in the user's inbox (the bell on the dashboard), and
+    sent to Telegram too when the admin set up the bot and the user gave a chat id."""
     user = store.get_user(user_id)
-    if not user or not store.setting("telegram_bot") or not store.prefs(user).get("telegram_chat"):
+    if not user:
         return
-    state = config.user_dir(user_id) / "notify-state.json"
+    d = config.user_dir(user_id)
     env = base_env(user)
     try:
-        subprocess.run([sys.executable, str(config.SCRIPTS / "notify.py"), "--state", str(state)], env=env,
+        subprocess.run([sys.executable, str(config.SCRIPTS / "notify.py"), "--state", str(d / "notify-state.json"),
+                        "--inbox", str(d / "content" / "notifications.json")], env=env,
                        cwd=str(config.ROOT), capture_output=True, text=True, timeout=120)
     except subprocess.TimeoutExpired:
         pass

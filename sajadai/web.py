@@ -12,7 +12,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
-from . import ai, analysis, config, mcp_server, pipeline, publish, store
+from . import ai, analysis, config, mcp_server, pages, pipeline, publish, store
 
 COOKIE = "sj_session"
 USERNAME = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
@@ -188,7 +188,86 @@ def logout(request: Request):
     store.end_session(request.cookies.get(COOKIE))
     r = RedirectResponse("/login")
     r.delete_cookie(COOKIE)
+    r.headers["Clear-Site-Data"] = '"cache"'  # the installed app's offline copy of this user's data goes too
     return r
+
+
+# ---------- installable app, media kit, printable report ----------
+
+@api.get("/sw.js", include_in_schema=False)
+def service_worker():
+    # served from the root so it may control the whole site
+    return FileResponse(config.ROOT / "assets" / "sw.js", media_type="text/javascript",
+                        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
+
+
+@api.get("/manifest.webmanifest", include_in_schema=False)
+def manifest():
+    return FileResponse(config.ROOT / "assets" / "manifest.webmanifest", media_type="application/manifest+json",
+                        headers={"Cache-Control": "public, max-age=86400"})
+
+
+KIT_SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{2,29}$")
+
+
+def kit_owner(slug):
+    for u in store.users():
+        p = store.prefs(u)
+        if p.get("kit_enabled") and p.get("kit_slug") == slug:
+            return u, p
+    return None, None
+
+
+@api.get("/kit/{slug}", include_in_schema=False)
+def media_kit(slug: str):
+    u, p = kit_owner(slug.lower()) if KIT_SLUG.match(slug.lower()) else (None, None)
+    if not u:
+        return HTMLResponse("<!doctype html><meta charset=utf-8><title>پیدا نشد</title><p style='font-family:sans-serif;text-align:center;margin-top:20vh' dir=rtl>این مدیاکیت وجود نداره یا خاموش شده.</p>", 404)
+    return HTMLResponse(versioned(pages.kit(user_json(u), p, u["username"])), headers={"Cache-Control": "public, max-age=600"})
+
+
+@api.get("/report", include_in_schema=False)
+def printable_report(request: Request, days: int = 7):
+    u = current_user(request)
+    if not u:
+        return RedirectResponse("/login")
+    days = days if days in (7, 30, 90) else 7
+    return HTMLResponse(versioned(pages.report(user_json(u), store.prefs(u), u["username"], days)), headers={"Cache-Control": "no-store"})
+
+
+@api.post("/api/me/kit", include_in_schema=False, dependencies=[Depends(same_site)])
+async def save_kit(request: Request, user=Depends(need_user)):
+    b = await body(request)
+    slug = str(b.get("slug") or "").strip().lower()
+    on = bool(b.get("enabled"))
+    if on and not KIT_SLUG.match(slug):
+        raise HTTPException(400, "آدرس مدیاکیت: ۳ تا ۳۰ حرف انگلیسی کوچک، عدد یا خط تیره")
+    if on:
+        other, _ = kit_owner(slug)
+        if other and other["id"] != user["id"]:
+            raise HTTPException(400, "این آدرس رو یکی دیگه برداشته")
+    p = store.prefs(user)
+    p.update(kit_enabled=on, kit_slug=slug, kit_bio=str(b.get("bio") or "").strip()[:400],
+             kit_contact=str(b.get("contact") or "").strip()[:200], kit_handle=str(b.get("handle") or "").strip().lstrip("@")[:40])
+    store.set_prefs(user["id"], p)
+    return {"ok": True, "url": (pipeline.public_url() or "") + "/kit/" + slug if on else None}
+
+
+# ---------- notifications (the bell) ----------
+
+@api.get("/api/me/notifications", include_in_schema=False)
+def notifications(user=Depends(need_user)):
+    items = load_content(user, "notifications.json", [])[:50]
+    seen = store.prefs(user).get("notifications_seen") or ""
+    return {"items": items, "unread": sum(1 for i in items if str(i.get("at") or "") > seen)}
+
+
+@api.post("/api/me/notifications/seen", include_in_schema=False, dependencies=[Depends(same_site)])
+def notifications_seen(user=Depends(need_user)):
+    p = store.prefs(user)
+    p["notifications_seen"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    store.set_prefs(user["id"], p)
+    return {"ok": True}
 
 
 # ---------- sign-in ----------
@@ -246,6 +325,8 @@ def me(user=Depends(need_user)):
     return {
         "username": user["username"], "is_admin": bool(user["is_admin"]),
         "prefs": {k: p.get(k, "") for k in ("page_name", "page_profile", "telegram_chat", "ai_provider", "ai_model")},
+        "kit": {"enabled": bool(p.get("kit_enabled")), "slug": p.get("kit_slug", ""), "bio": p.get("kit_bio", ""), "contact": p.get("kit_contact", ""),
+                "handle": p.get("kit_handle", ""), "url": (base or "") + "/kit/" + p["kit_slug"] if p.get("kit_enabled") and p.get("kit_slug") else None},
         "connections": {name: {"label": spec["label"], "connected": name in conns,
                                "fields": {f: {"label": lbl, "value": (mask(conns[name].get(f)) if f in ("token", "api_key") else conns[name].get(f, "")) if name in conns else ""}
                                           for f, lbl in spec["fields"].items()}}

@@ -204,6 +204,35 @@
     });
     document.title = (first.slice(0, 40) || 'ریل') + ' · ' + document.title.split(' · ').slice(-1)[0];
   }
+  // ---------- the bell: alerts, weekly reports and panel notices (content/notifications.json) ----------
+  const bellList = $('notif-list'), badge = $('notif-count');
+  const faNum = (t) => String(t).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);  // the top bar is outside the page's digit converter
+  const jAgo = (iso) => {
+    const m = Math.round((Date.now() - Date.parse(iso)) / 6e4);
+    if (!(m >= 0)) return '';
+    return faNum(m < 60 ? Math.max(1, m) + ' دقیقه پیش' : m < 1440 ? Math.round(m / 60) + ' ساعت پیش' : Math.round(m / 1440) + ' روز پیش');
+  };
+  async function bell() {
+    if (!bellList) return;
+    let r;
+    try { r = await api('GET', '/api/me/notifications'); } catch (e) { return; }
+    badge.hidden = !r.unread; badge.textContent = faNum(r.unread > 9 ? '9+' : r.unread);
+    if (!r.items.length) return;
+    bellList.innerHTML = r.items.slice(0, 20).map((n, i) => `
+      <details class="sj-notif-item${i < r.unread ? ' new' : ''}"><summary><span>${esc(n.title)}</span><small>${esc(jAgo(n.at))}</small></summary>
+        <p>${esc((n.text.startsWith(n.title) ? n.text.slice(n.title.length).trim() : n.text) || n.text)}</p></details>`).join('');
+  }
+  if (bellList) {
+    $('notif-menu').addEventListener('click', (e) => { if (!e.target.closest('a')) e.stopPropagation(); });  // open an item without closing the menu
+    document.querySelector('[data-dropdown-trigger="notif-menu"]').addEventListener('click', () => {
+      if (badge.hidden) return;
+      badge.hidden = true;
+      api('POST', '/api/me/notifications/seen').catch(() => {});
+    });
+    bell();
+    setInterval(bell, 5 * 60 * 1000);
+  }
+
   window.addEventListener('sj:page', (e) => {
     if (e.detail.page === 'reel') showReel(e.detail.param);
     if (e.detail.page === 'assistant') drawChat(false);

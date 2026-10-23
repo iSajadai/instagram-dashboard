@@ -71,6 +71,20 @@
     <div class="pn-row"><button id="add-goal" type="button">+ هدف</button><button class="primary" id="save-goals" type="button">ذخیرهٔ هدف‌ها</button><span class="pn-msg" id="goals-msg"></span></div>
   </section>
 
+  <section class="pn-card" id="kit-card">
+    <h2>مدیاکیت عمومی</h2>
+    <p class="pn-note">یه صفحهٔ عمومی برای برندها و همکاری‌ها: فالوئر، بازدید و میانهٔ ریل‌ها، ماندن ۳ ثانیه، بهترین ریل‌ها و راه تماس. فقط وقتی روشنش کنی دیده می‌شه، و هر وقت بخوای خاموشش می‌کنی.</p>
+    <label class="pn-check"><input type="checkbox" id="kit_enabled"> مدیاکیت روشن باشه</label>
+    <div class="pn-grid">
+      <label>آدرس (حروف انگلیسی کوچک)<input id="kit_slug" dir="ltr" maxlength="30" placeholder="my-page"></label>
+      <label>آیدی اینستاگرام<input id="kit_handle" dir="ltr" maxlength="40" placeholder="isajadai"></label>
+    </div>
+    <label>معرفی کوتاه<textarea id="kit_bio" maxlength="400" placeholder="مثلاً: آموزش هوش مصنوعی به زبان ساده، برای کسایی که از صفر شروع می‌کنن."></textarea></label>
+    <label>راه تماس (ایمیل یا لینک)<input id="kit_contact" dir="ltr" maxlength="200" placeholder="hello@example.com"></label>
+    <div class="pn-row" id="kit-link-row" hidden><pre id="kit-url" style="flex:1"></pre><button type="button" data-copy="kit-url">کپی</button><a id="kit-open" target="_blank" rel="noopener">باز کردن</a></div>
+    <div class="pn-row"><button class="primary" id="save-kit" type="button">ذخیره</button><span class="pn-msg" id="kit-msg"></span></div>
+  </section>
+
   <section class="pn-card" id="experiments-card">
     <h2>آزمایش‌ها</h2>
     <p class="pn-note">دو هوک یا دو کاور رو روی دو ریل امتحان کن. لینک هر دو ریل رو بذار؛ وقتی هر دو ۴۸ ساعته شدن، برنده تو صفحهٔ «آزمایش‌ها»ی داشبورد معلوم می‌شه.</p>
@@ -175,6 +189,11 @@
     $('token-chip').className = 'pn-chip ' + (me.has_token ? 'ok' : 'off');
 
     const tb = $('goals'); tb.replaceChildren(); (me.goals || []).forEach(addGoal);
+    const kit = me.kit || {};
+    $('kit_enabled').checked = !!kit.enabled;
+    ['slug', 'handle', 'bio', 'contact'].forEach((k) => { $('kit_' + k).value = kit[k] || ''; });
+    $('kit-link-row').hidden = !kit.url;
+    if (kit.url) { $('kit-url').textContent = kit.url; $('kit-open').href = kit.url; }
     $('exps').replaceChildren(); (me.experiments || []).forEach(addExp);
     $('topics').replaceChildren(); (me.topics || []).forEach(addTopic);
     const nFix = Object.keys(me.reel_topics || {}).length;
@@ -208,6 +227,12 @@
     tr.dataset.id = t.id || '';
     $('topics').append(tr);
   }
+  $('save-kit').addEventListener('click', (e) => pn.run(e.currentTarget, $('kit-msg'), async () => {
+    const r = await pn.api('POST', '/api/me/kit', { enabled: $('kit_enabled').checked, slug: $('kit_slug').value.trim(), handle: $('kit_handle').value.trim(),
+      bio: $('kit_bio').value, contact: $('kit_contact').value.trim() });
+    await load();
+    return { ok: true, message: r.url ? 'روشنه ✓' : 'خاموشه' };
+  }));
   $('add-exp').addEventListener('click', () => addExp());
   $('add-topic').addEventListener('click', () => addTopic());
   $('save-exps').addEventListener('click', (e) => pn.run(e.currentTarget, $('exps-msg'), () => pn.api('POST', '/api/me/experiments', {

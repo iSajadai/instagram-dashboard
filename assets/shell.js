@@ -146,6 +146,9 @@
     document.querySelectorAll('[data-user-initials]').forEach((el) => { el.textContent = me.username.slice(0, 2).toUpperCase(); });
     document.querySelectorAll('[data-user-role]').forEach((el) => { el.textContent = me.is_admin ? 'ادمین پنل' : 'کاربر'; });
     root.classList.add('sj-panel');  // panel-only buttons drawn later (idea cards) show through CSS
+    // installable app: only the panel has a manifest and a service worker to offer
+    const ml = document.createElement('link'); ml.rel = 'manifest'; ml.href = '/manifest.webmanifest'; document.head.append(ml);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => { /* not over https */ });
     document.querySelectorAll('[data-panel-only]').forEach((el) => { el.hidden = false; });
     if (me.is_admin) document.querySelectorAll('[data-admin-only]').forEach((el) => { el.hidden = false; });
   }).catch(() => { /* served without the panel */ });

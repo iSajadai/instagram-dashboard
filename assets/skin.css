@@ -383,3 +383,21 @@ html.sj-panel .sj-row-btns { display: flex; }
 
 .sj-main-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 section.sj-sec { scroll-margin-top: calc(var(--header-height) + 1rem); }
+.pn label.pn-check { flex-direction: row; align-items: center; gap: 0.5rem; font-size: var(--cds-font-size-body); color: var(--text); }
+.pn label.pn-check input { width: auto; accent-color: var(--accent); }
+
+/* ---------- the bell ---------- */
+.sj-bell { position: relative; }
+.sj-badge { position: absolute; top: -4px; inset-inline-end: -4px; min-width: 1.15rem; height: 1.15rem; padding: 0 0.3rem; border-radius: 999px;
+  background: var(--coral); color: #fff; font-size: 0.68rem; font-weight: 700; line-height: 1.15rem; text-align: center; box-shadow: 0 0 0 2px var(--surface-3); }
+.dropdown.sj-notif { width: min(23rem, calc(100vw - 2rem)); max-height: min(70vh, 30rem); overflow-y: auto; padding: 0.5rem; }
+.sj-notif-head { display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem 0.6rem; }
+.sj-notif-item { border-radius: 12px; padding: 0.55rem 0.65rem; }
+.sj-notif-item + .sj-notif-item { margin-top: 0.15rem; }
+.sj-notif-item:hover { background: var(--accent-soft); }
+.sj-notif-item.new { background: var(--accent-soft); }
+.sj-notif-item summary { display: flex; justify-content: space-between; gap: 0.6rem; cursor: pointer; list-style: none; font-size: 0.85rem; font-weight: 600; line-height: 1.6; }
+.sj-notif-item summary::-webkit-details-marker { display: none; }
+.sj-notif-item summary small { flex: none; color: var(--text-muted); font-weight: 400; font-size: 0.72rem; }
+.sj-notif-item p { margin: 0.4rem 0 0; font-size: 0.8rem; line-height: 1.8; color: var(--text-secondary); white-space: pre-line; }
+#notif-list .sj-note { padding: 0.5rem; margin: 0; }
