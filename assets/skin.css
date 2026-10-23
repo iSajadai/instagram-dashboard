@@ -283,5 +283,12 @@ html .sj-seg button[aria-pressed=true] { background: var(--surface-3); color: va
 /* a form inside a panel card fills the card (it shares the page container's class) */
 .pn-card .pn { margin: 0; max-width: none; width: 100%; }
 
+/* pages: one header (title + range) above every page, a short fade when switching */
+.sj-pagehead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; }
+.sj-pagetitle { margin: 0; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+.sj-page-in { animation: sj-page-in 0.32s ease both; }
+@keyframes sj-page-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sj-page-in { animation: none; } }
+
 .sj-main-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 section.sj-sec { scroll-margin-top: calc(var(--header-height) + 1rem); }

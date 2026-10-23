@@ -55,23 +55,45 @@
   document.addEventListener('click', closeMenus);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeMenus(); closeMobile(); } });
 
-  // highlight the section in view
+  // pages: each sidebar item shows only its own sections; the address (#/reels) keeps the page on
+  // reload and makes the browser's back button work
+  const PAGES = {
+    top: ['top', 'kpis'], goals: ['goals'], plan: ['plan'], reels: ['reels'], works: ['works'],
+    growth: ['growth'], besttime: ['besttime'], experiments: ['experiments'], insights: ['insights', 'ideas'],
+    competitors: ['competitors'], audience: ['audience'], checklist: ['checklist'],
+  };
   const links = new Map([...document.querySelectorAll('.sidebar .nav-item[data-sec]')].map((a) => [a.dataset.sec, a]));
-  const setActive = (id) => links.forEach((a, sec) => {
-    const on = sec === id;
-    a.classList.toggle('is-active', on);
-    if (on) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
-  });
-  if ('IntersectionObserver' in window) {
-    const seen = new Map();
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((en) => seen.set(en.target.id, en.isIntersecting ? en.intersectionRatio : 0));
-      // the topmost section that's visible
-      const visible = [...links.keys()].filter((id) => (seen.get(id) || 0) > 0);
-      if (visible.length) setActive(visible[0]);
-    }, { rootMargin: '-72px 0px -55% 0px', threshold: [0, 0.01] });
-    links.forEach((_, id) => { const el = document.getElementById(id); if (el) io.observe(el); });
-  }
+  const sections = Object.values(PAGES).flat().map((id) => document.getElementById(id)).filter(Boolean);
+  const pageTitle = document.getElementById('sj-page-title');
+  let baseTitle = document.title;
+  let pageLabel = '';
+  const setTitle = () => { document.title = pageLabel ? pageLabel + ' · ' + baseTitle : baseTitle; };
+  const show = (id) => {
+    if (!PAGES[id]) id = 'top';
+    const want = new Set(PAGES[id]);
+    sections.forEach((el) => {
+      el.hidden = !want.has(el.id);
+      // a one-section page already has its title in the page header; pages with two keep each heading
+      const h = el.querySelector(':scope > .sj-h2');
+      if (h) h.hidden = PAGES[id].length === 1;
+    });
+    links.forEach((a, sec) => {
+      const on = sec === id;
+      a.classList.toggle('is-active', on);
+      if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    const label = links.get(id) && links.get(id).querySelector('.sidebar-label');
+    pageLabel = label ? label.textContent : '';
+    if (pageTitle) pageTitle.textContent = pageLabel;
+    setTitle();
+    window.scrollTo(0, 0);
+    const dash = document.getElementById('dash-root');
+    if (dash) { dash.classList.remove('sj-page-in'); void dash.offsetWidth; dash.classList.add('sj-page-in'); }
+    window.dispatchEvent(new Event('resize'));  // charts on a hidden page were drawn without a width
+  };
+  const route = () => { const m = location.hash.match(/^#\/?([a-z]+)$/); show(m ? m[1] : 'top'); };
+  window.addEventListener('hashchange', route);
+  route();
 
   // Persian digits everywhere in the dashboard, including what charts and tables draw later:
   // 14,317 → ۱۴٬۳۱۷, 47.8% → ۴۷٫۸٪. Code, inputs and links' addresses keep Latin digits; CSV
@@ -108,7 +130,8 @@
   fetch('/api/me', { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((me) => {
     if (!me) return;
     const page = (me.prefs && me.prefs.page_name) || me.username;
-    document.title = 'داشبورد ' + page;
+    baseTitle = 'داشبورد ' + page;
+    setTitle();
     document.getElementById('sj-brand').textContent = page;
     document.getElementById('sj-topbar-title').textContent = 'داشبورد ' + page;
     document.getElementById('sj-greeting').textContent = greet() + '، ' + me.username;
