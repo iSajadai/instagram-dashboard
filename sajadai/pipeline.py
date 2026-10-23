@@ -279,7 +279,38 @@ def due_jobs(now=None):
             out.append((u["id"], "notify"))
         if t.weekday() == 5 and (t.hour, t.minute) >= (8, 30) and s.get("content_week") != week_key() and ai_config(u) and conns:
             out.append((u["id"], "content"))
+        if "instagram" in conns:
+            content = config.user_dir(u["id"]) / "content"
+            if (content / "ig_queue.json").exists() and '"scheduled"' in _peek(content / "ig_queue.json") + _peek(content / "ig_queue.json", "processing"):
+                out.append((u["id"], "igqueue"))
+            if now - (s.get("igauto_at") or 0) >= 600 and '"active": true' in _peek(content / "ig_auto.json"):
+                out.append((u["id"], "igauto"))
     return out
+
+
+def _peek(path, status=None):
+    """A file's text, for a cheap check before parsing it (status: the word to look for instead)."""
+    try:
+        t = path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    return t if status is None else ('"scheduled"' if f'"{status}"' in t else "")
+
+
+def ig_queue(uid):
+    from . import ig, ops
+    user = store.get_user(uid)
+    for item in ig.queue_tick(user, public_url()):
+        if item["status"] == "published":
+            ops.tell_user(user, "✅ ریل منتشر شد", (item.get("caption") or "").split("\n")[0][:120] + "\n" + (item.get("permalink") or ""), "publish")
+        else:
+            ops.tell_user(user, "⚠️ ریل منتشر نشد", item.get("note") or "", "publish")
+
+
+def ig_auto(uid):
+    from . import ig
+    store.update_status(uid, igauto_at=time.time())
+    ig.auto_tick(store.get_user(uid))
 
 
 def scheduler_loop(stop: threading.Event):
@@ -297,6 +328,10 @@ def scheduler_loop(stop: threading.Event):
                     notify(uid)
                 elif job == "content":
                     write_content(uid)
+                elif job == "igqueue":
+                    ig_queue(uid)
+                elif job == "igauto":
+                    ig_auto(uid)
             except Exception as e:  # one user's failure mustn't stop the others
                 store.update_status(uid, **{f"{job}_log": f"error: {e}"})
                 ops.alert_admins(f"⚠️ خطا در کار زمان‌بندی‌شدهٔ «{job}»", f"کاربر {uid}: {e}"[:800])

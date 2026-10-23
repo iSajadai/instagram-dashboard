@@ -112,5 +112,18 @@ def alert_admins(title, text, every_hours=6):
                 pass
 
 
+def tell_user(user, title, text, kind="system"):
+    """One user's bell, and their Telegram when the panel's bot is set up and they gave a chat id."""
+    from . import pipeline
+    pipeline.add_notice(user["id"], title, text, kind)
+    bot, chat = store.setting("telegram_bot"), store.prefs(user).get("telegram_chat")
+    if bot and chat:
+        try:
+            body = urllib.parse.urlencode({"chat_id": chat, "text": f"{title}\n\n{text}"[:4000]}).encode()
+            urllib.request.urlopen(f"https://api.telegram.org/bot{bot}/sendMessage", data=body, timeout=20).close()
+        except Exception:  # noqa: BLE001 - the bell still has it
+            pass
+
+
 def describe():
     return [{"name": p.name, "size_kb": p.stat().st_size // 1024, "at": int(p.stat().st_mtime)} for p in backups()]

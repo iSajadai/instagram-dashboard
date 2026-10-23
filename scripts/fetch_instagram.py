@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pull the page's stats straight from Instagram's API (Instagram API with Instagram Login) into
 $SAJADAI_STATE/raw/ig.json, for scripts/shape.py. Replaces the Metricool + claude.ai routine on a
-standalone server; the panel runs it every 6 hours for each user.
+standalone server; run every 6 hours by deploy/refresh.sh.
 
 Each run gets: the account (followers_count, which it also records per day, since Instagram's daily
 follower series isn't dependable), the newest media with their insights (reels: views, reach,
@@ -296,7 +296,7 @@ def fetch_comments(media, username, tok, now):
         comments = [{"id": c["id"], "text": c.get("text", ""), "at": c.get("timestamp"), "user": c.get("username"), "likes": c.get("like_count"),
                      "replies": [{"text": x.get("text", ""), "user": x.get("username"), "at": x.get("timestamp")} for x in (c.get("replies") or {}).get("data", [])]}
                     for c in r.get("data", [])]
-        out["posts"].append({"url": m.get("permalink"), "caption": (m.get("caption") or "")[:300], "published": m.get("timestamp"), "comments": comments})
+        out["posts"].append({"id": m["id"], "url": m.get("permalink"), "caption": (m.get("caption") or "")[:300], "published": m.get("timestamp"), "comments": comments})
     save(COMMENTS_OUT, out)
     if out["error"]:
         return "ig_comments.json: no permission to read comments (instagram_business_manage_comments)"

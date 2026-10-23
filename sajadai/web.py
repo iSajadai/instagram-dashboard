@@ -12,7 +12,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
-from . import agents, ai, analysis, billing, calendar_fa, config, mcp_server, ops, pages, pipeline, publish, store
+from . import agents, ai, analysis, billing, calendar_fa, config, ig, mcp_server, ops, pages, pipeline, publish, store
 from .fa import beats as fa_beats, caption as fa_caption, hooks as fa_hooks, human as fa_human, text as fa_text, viral as fa_viral
 AI = ai  # the module, for functions with a local named ai
 
@@ -200,6 +200,12 @@ def assets(name: str):
 @api.get("/login", include_in_schema=False)
 def login_page():
     return page("login.html")
+
+
+@api.get("/contact", include_in_schema=False)
+def contact_page():
+    """Address, phone and the eNamad trust seal; public, like the sign-in page."""
+    return page("contact.html")
 
 
 @api.get("/setup", include_in_schema=False)
@@ -725,6 +731,203 @@ async def save_topics(request: Request, user=Depends(need_editor)):
 
 
 BOARD_STAGES = ("idea", "script", "filmed", "published")
+
+
+# ---------- Instagram: publishing, comments, keyword automation ----------
+
+def ig_call(fn):
+    try:
+        return fn()
+    except ig.IGError as e:
+        raise HTTPException(400, str(e))
+
+
+@api.get("/m/{name}", include_in_schema=False)
+def ig_media(name: str):
+    """An uploaded video or cover, at an unguessable address, for Instagram to fetch while publishing."""
+    p = ig.media_path(name)
+    if not p:
+        raise HTTPException(404)
+    return FileResponse(p, media_type="video/mp4" if name.endswith((".mp4", ".mov")) else "image/jpeg",
+                        headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"})
+
+
+@api.post("/api/me/ig/upload", include_in_schema=False, dependencies=[Depends(same_site)])
+async def ig_upload(request: Request, kind: str = "video", user=Depends(need_editor)):
+    """The raw file in the body (no form encoding): a reel video (MP4/MOV, up to 100MB) or a JPEG cover."""
+    if kind not in ("video", "cover"):
+        raise HTTPException(400, "نوع فایل نامعتبره")
+    cap = ig.MAX_VIDEO if kind == "video" else 8 * 1024 * 1024
+    name = ig.new_media_name(".mp4" if kind == "video" else ".jpg")
+    path, size, head = ig.MEDIA_DIR / name, 0, b""
+    try:
+        with open(path, "wb") as f:
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > cap:
+                    raise HTTPException(413, f"فایل بزرگ‌تر از {cap // (1024 * 1024)} مگابایته")
+                if len(head) < 16:
+                    head += chunk[:16]
+                f.write(chunk)
+        if kind == "video" and not ig.sniff_video(head):
+            raise HTTPException(400, "فایل ویدیوی MP4 یا MOV نیست")
+        if kind == "cover" and not head.startswith(b"\xff\xd8"):
+            raise HTTPException(400, "کاور باید JPEG باشه")
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
+    return {"name": name, "size": size}
+
+
+@api.get("/api/me/ig/queue", include_in_schema=False)
+def ig_queue_list(user=Depends(need_user)):
+    q = ig.load_queue(user)
+    return {"items": [{k: v for k, v in i.items() if k not in ("container", "ig_id")} for i in reversed(q)],
+            "public_url": pipeline.public_url().startswith("https://"),
+            "connected": "instagram" in store.user_secrets(user).get("connections", {})}
+
+
+@api.get("/api/me/ig/limit", include_in_schema=False)
+async def ig_limit(user=Depends(need_user)):
+    return await run_in_threadpool(lambda: ig_call(lambda: ig.limit(user)))
+
+
+@api.post("/api/me/ig/queue", include_in_schema=False, dependencies=[Depends(same_site)])
+async def ig_queue_add(request: Request, user=Depends(need_editor)):
+    """Queue a reel: publish now, or at a time (Tehran). The scheduler does the rest within a minute."""
+    b = await body(request)
+    if not ig.media_path(str(b.get("video") or "")):
+        raise HTTPException(400, "اول ویدیو رو آپلود کن")
+    cover = str(b.get("cover") or "")
+    if cover and not ig.media_path(cover):
+        raise HTTPException(400, "کاور پیدا نشد؛ دوباره آپلود کن")
+    caption = str(b.get("caption") or "").strip()
+    if len(caption) > ig.CAPTION_MAX:
+        raise HTTPException(400, f"کپشن بیشتر از {ig.CAPTION_MAX} حرفه")
+    if len(re.findall(r"#\w", caption)) > 30:
+        raise HTTPException(400, "اینستاگرام بیشتر از ۳۰ هشتگ قبول نمی‌کنه")
+    when = time.time()
+    if b.get("when"):
+        try:
+            when = datetime.fromisoformat(str(b["when"])).replace(tzinfo=timezone(timedelta(hours=3, minutes=30))).timestamp()
+        except ValueError:
+            raise HTTPException(400, "زمان نامعتبره")
+        if when < time.time() - 120:
+            raise HTTPException(400, "این زمان گذشته")
+    if not pipeline.public_url().startswith("https://"):
+        raise HTTPException(400, "آدرس عمومی https پنل تنظیم نشده؛ اینستاگرام ویدیو رو باید از اونجا برداره (ادمین: پنل مدیریت ← آدرس عمومی).")
+    if "instagram" not in store.user_secrets(user).get("connections", {}):
+        raise HTTPException(400, "Instagram API وصل نیست؛ از تنظیمات ← اتصال‌ها وصلش کن.")
+    item = {"id": "q" + secrets.token_hex(4), "video": b["video"], "cover": cover, "caption": caption, "when": when,
+            "share_to_feed": b.get("share_to_feed", True) is not False, "thumb_offset": int(b.get("thumb_offset") or 0),
+            "card": str(b.get("card") or "")[:40], "status": "scheduled", "created": time.time(),
+            "by": user["person"]["username"], "note": "تو صف؛ تا یک دقیقهٔ دیگه شروع می‌شه." if when <= time.time() + 60 else ""}
+    q = ig.load_queue(user)
+    q.append(item)
+    ig.save_queue(user, q)
+    return {"ok": True, "item": item}
+
+
+@api.delete("/api/me/ig/queue/{qid}", include_in_schema=False, dependencies=[Depends(same_site)])
+def ig_queue_cancel(qid: str, user=Depends(need_editor)):
+    q = ig.load_queue(user)
+    item = next((i for i in q if i["id"] == qid), None)
+    if not item:
+        raise HTTPException(404)
+    if item["status"] == "processing":
+        raise HTTPException(400, "اینستاگرام داره پردازشش می‌کنه؛ دیگه نمی‌شه لغوش کرد")
+    if item["status"] == "scheduled":
+        ig.drop_media(item.get("video"), item.get("cover"))
+    ig.save_queue(user, [i for i in q if i["id"] != qid])
+    return {"ok": True}
+
+
+@api.post("/api/me/comments/reply", include_in_schema=False, dependencies=[Depends(same_site)])
+async def comment_reply(request: Request, user=Depends(need_editor)):
+    """Answer a comment publicly, send its author the one private reply Instagram allows, or hide it."""
+    b = await body(request)
+    cid, text, how = str(b.get("comment_id") or ""), str(b.get("text") or "").strip(), b.get("how", "public")
+    if not re.fullmatch(r"\d{5,30}", cid):
+        raise HTTPException(400, "کامنت نامعتبره")
+    if how == "hide":
+        await run_in_threadpool(lambda: ig_call(lambda: ig.hide_comment(user, cid, b.get("hide", True) is not False)))
+        return {"ok": True, "message": "کامنت پنهان شد" if b.get("hide", True) is not False else "کامنت دوباره پیدا شد"}
+    if not text:
+        raise HTTPException(400, "متن جواب خالیه")
+    if how == "private":
+        await run_in_threadpool(lambda: ig_call(lambda: ig.private_reply(user, cid, text)))
+        return {"ok": True, "message": "پیام خصوصی فرستاده شد ✓"}
+    await run_in_threadpool(lambda: ig_call(lambda: ig.reply_comment(user, cid, text)))
+    # mark it answered here too, so the list updates before the next data fetch
+    raw_path = config.user_dir(user["id"]) / "raw" / "ig_comments.json"
+    raw = analysis.load(raw_path)
+    for p in (raw or {}).get("posts", []):
+        for c in p.get("comments", []):
+            if c.get("id") == cid:
+                c.setdefault("replies", []).append({"text": text, "user": raw.get("username"), "at": datetime.now(timezone.utc).isoformat()})
+    if raw:
+        raw_path.write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
+    return {"ok": True, "message": "جواب گذاشته شد ✓"}
+
+
+AUTO_KEYS = ("media_id", "label", "keyword", "message", "public_reply", "active")
+
+
+@api.get("/api/me/ig/auto", include_in_schema=False)
+def ig_auto_get(user=Depends(need_user)):
+    a = ig.load_auto(user)
+    reels = [{"id": p.get("id"), "label": (p.get("caption") or "").split("\n")[0][:70] or "ریل", "url": p.get("url")}
+             for p in (analysis.load(config.user_dir(user["id"]) / "raw" / "ig_comments.json") or {}).get("posts", []) if p.get("id")]
+    ig_raw = analysis.load(config.user_dir(user["id"]) / "raw" / "ig.json") or {}
+    seen = {r["id"] for r in reels}
+    for m in (ig_raw.get("media") or [])[:30]:
+        if m.get("id") and m["id"] not in seen and m.get("media_product_type") in ("REELS", "FEED"):
+            reels.append({"id": m["id"], "label": (m.get("caption") or "").split("\n")[0][:70] or "پست", "url": m.get("permalink")})
+    return {"rules": a["rules"], "log": list(reversed(a.get("log", [])))[:30], "checked": a.get("checked"), "reels": reels[:40]}
+
+
+@api.post("/api/me/ig/auto", include_in_schema=False, dependencies=[Depends(same_site)])
+async def ig_auto_save(request: Request, user=Depends(need_editor)):
+    b = await body(request)
+    rules = b.get("rules")
+    if not isinstance(rules, list) or len(rules) > 20:
+        raise HTTPException(400, "فهرست قانون‌ها نامعتبره")
+    a = ig.load_auto(user)
+    old = {r["id"]: r for r in a["rules"]}
+    clean = []
+    for i, r in enumerate(rules):
+        r = {k: r.get(k) for k in AUTO_KEYS} | {"id": str(r.get("id") or "") or "r" + secrets.token_hex(4)}
+        if not re.fullmatch(r"\d{5,30}", str(r["media_id"] or "")):
+            raise HTTPException(400, f"قانون {i + 1}: ریل رو انتخاب کن")
+        r["keyword"] = str(r["keyword"] or "").strip()[:40]
+        r["message"] = str(r["message"] or "").strip()[:900]
+        if not r["keyword"] or not r["message"]:
+            raise HTTPException(400, f"قانون {i + 1}: کلمه و پیام لازمه")
+        r["label"] = str(r["label"] or "")[:80]
+        r["public_reply"], r["active"] = bool(r["public_reply"]), bool(r["active"])
+        r["count"] = (old.get(r["id"]) or {}).get("count", 0)
+        clean.append(r)
+    a["rules"] = clean
+    ig.save_auto(user, a)
+    return {"ok": True, "rules": clean}
+
+
+@api.get("/api/me/ig/online", include_in_schema=False)
+async def ig_online(user=Depends(need_user)):
+    """When followers are online (from Instagram), cached for a day."""
+    cache = load_content(user, "online_followers.json", {})
+    if cache.get("at") and time.time() - cache["at"] < 86400:
+        return cache
+    if "instagram" not in store.user_secrets(user).get("connections", {}):
+        return {"hours": None, "reason": "Instagram API وصل نیست."}
+    try:
+        r = await run_in_threadpool(lambda: ig.online_followers(user))
+    except ig.IGError as e:
+        return {"hours": None, "reason": str(e)}
+    out = {"at": time.time(), **(r or {"hours": None, "reason": "اینستاگرام این آمار رو برای پیج نداد (برای پیج‌های زیر ۱۰۰ فالوئر نمیاد)."})}
+    if r:
+        save_content(user, "online_followers.json", out, reshape=False)
+    return out
 
 
 @api.get("/api/me/calendar", include_in_schema=False)
