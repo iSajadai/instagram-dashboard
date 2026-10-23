@@ -105,8 +105,23 @@ def new_user(username, password, is_admin=False):
 
 # ---------- pages ----------
 
+ASSET_REF = re.compile(r'((?:href|src)=")(/?assets/[^"?#]+)(")')
+
+
+def versioned(html):
+    """Add ?v=<file mtime> to every asset link, so browsers and Cloudflare (assets are cached for a
+    week) fetch a file again as soon as it changes."""
+    def add(m):
+        p = config.ROOT / m[2].lstrip("/")
+        try:
+            return f"{m[1]}{m[2]}?v={int(p.stat().st_mtime)}{m[3]}"
+        except OSError:
+            return m[0]
+    return ASSET_REF.sub(add, html)
+
+
 def page(name):
-    return HTMLResponse((config.PANEL / name).read_text(encoding="utf-8"), headers={"Cache-Control": "no-cache"})
+    return HTMLResponse(versioned((config.PANEL / name).read_text(encoding="utf-8")), headers={"Cache-Control": "no-cache"})
 
 
 @api.get("/", include_in_schema=False)
@@ -121,7 +136,7 @@ def dashboard(request: Request):
     blog = (store.user_secrets(u).get("connections", {}).get("metricool") or {}).get("blog_id", "")
     if blog:
         html = html.replace("app.metricool.com/planner", f"app.metricool.com/planner?blogId={_esc(str(blog))}")
-    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
+    return HTMLResponse(versioned(html), headers={"Cache-Control": "no-cache"})
 
 
 def _esc(s):
