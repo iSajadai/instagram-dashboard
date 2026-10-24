@@ -68,6 +68,12 @@ def main():
         git("clone", "--depth", "1", "--branch", BRANCH, url(), CACHE)
     commit = git("rev-parse", "HEAD", cwd=CACHE)
     committed = git("log", "-1", "--format=%cI", cwd=CACHE)
+    # the newest commit can be a code change; the routine's data.json says when it actually read Metricool
+    try:
+        with open(os.path.join(CACHE, "data", "data.json"), encoding="utf-8") as f:
+            committed = json.load(f).get("generated_at") or committed
+    except (OSError, ValueError):
+        pass
     raw = os.path.join(STATE, "raw")
     content = os.path.join(STATE, "content")
     os.makedirs(raw, exist_ok=True)
