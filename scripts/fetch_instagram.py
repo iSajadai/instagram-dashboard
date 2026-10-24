@@ -211,6 +211,19 @@ def demographics(user, tok):
     return dem
 
 
+def probe_duration(url):
+    """A video's length in seconds from its file, with ffprobe (reads the header, not the whole video)."""
+    import shutil, subprocess
+    if not shutil.which("ffprobe"):
+        return None
+    try:
+        r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", url],
+                           capture_output=True, text=True, timeout=60)
+        return round(float(r.stdout.strip()), 1) if r.returncode == 0 and r.stdout.strip() else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
 def main():
     tok = token()
     prev = load(OUT, {})
@@ -223,7 +236,9 @@ def main():
     today = now.astimezone(TEH).date()
 
     media, url = [], None
-    fields = "id,caption,media_type,media_product_type,permalink,timestamp,thumbnail_url,like_count,comments_count"
+    # media_url: the video file, for its duration (IG Media has no duration field; media_url can be missing for
+    # licensed audio) — https://developers.facebook.com/docs/instagram-platform/reference/instagram-media
+    fields = "id,caption,media_type,media_product_type,permalink,timestamp,thumbnail_url,like_count,comments_count,media_url"
     for _ in range(4):  # the newest ~200 posts are plenty for a page this size
         r = get(url, tok) if url else get("me/media", tok, fields=fields, limit=50)
         media += r.get("data", [])
@@ -243,6 +258,10 @@ def main():
                 m["insights"] = old.get(m["id"], {}).get("insights") or {}
         else:
             m["insights"] = old[m["id"]]["insights"]
+        m["duration"] = old.get(m["id"], {}).get("duration")
+        if m["duration"] is None and m.get("media_url") and m.get("media_type") == "VIDEO":
+            m["duration"] = probe_duration(m["media_url"])
+        m.pop("media_url", None)  # signed and short-lived; not worth keeping
         old[m["id"]] = m
 
     daily = {d["day"]: d for d in prev.get("daily", [])}

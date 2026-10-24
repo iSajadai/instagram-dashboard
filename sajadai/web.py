@@ -579,6 +579,7 @@ def me(user=Depends(need_user)):
         "topics": load_content(user, "topics.json", []),
         "reel_topics": load_content(user, "reel_topics.json", {}),
         "status": {k: v for k, v in store.status(user).items()},
+        "health": pipeline.health(user),
         "onboarding": onboarding(user, p, s),
         "billing": billing_view(person),
     }
@@ -790,10 +791,18 @@ async def save_experiments(request: Request, user=Depends(need_editor)):
         sides = {}
         for k in ("a", "b"):
             s = e.get(k) if isinstance(e.get(k), dict) else {}
-            url = str(s.get("url") or "").strip()
-            if url and not REEL_URL.match(url):
-                raise HTTPException(400, f"آزمایش {i + 1}: لینک ریل {k.upper()} باید لینک اینستاگرام باشه")
-            sides[k] = {"label": str(s.get("label") or "")[:200], "url": url}
+            raw = s.get("urls") if isinstance(s.get("urls"), list) else re.split(r"[\s,،]+", str(s.get("urls") or s.get("url") or ""))
+            urls = []
+            for url in (str(u).strip() for u in raw):
+                if not url:
+                    continue
+                if not REEL_URL.match(url):
+                    raise HTTPException(400, f"آزمایش {i + 1}: لینک‌های ریل {k.upper()} باید لینک اینستاگرام باشن («{url[:60]}»)")
+                if url not in urls:
+                    urls.append(url)
+            if len(urls) > 12:
+                raise HTTPException(400, f"آزمایش {i + 1}: حداکثر ۱۲ ریل برای هر طرف")
+            sides[k] = {"label": str(s.get("label") or "")[:200], "urls": urls, "url": urls[0] if urls else ""}
         clean.append({"id": slug(e.get("id") or e["title"], taken, "exp"), "title": str(e["title"]).strip()[:120],
                       "hypothesis": str(e.get("hypothesis") or "")[:500], "metric": e["metric"], **sides,
                       "notes": str(e.get("notes") or "")[:1000]})
@@ -1691,12 +1700,16 @@ async def billing_callback(Authority: str = "", Status: str = ""):
 
 def onboarding(user, p, s):
     """The first steps for a new page, each checked against what's really there."""
-    st = store.status(user)
+    d = user_json(user) or {}
+    has_data = bool(d.get("reels") or [a for a in d.get("account", []) if a.get("followers") is not None])
     steps = [
         {"id": "profile", "label": "معرفی پیج برای هوش مصنوعی", "done": bool(p.get("page_profile")), "href": "/settings#page-card"},
-        {"id": "source", "label": "وصل کردن یه منبع داده (Instagram API، Buffer یا Metricool)", "done": bool(s.get("connections")), "href": "/settings#conns-card"},
-        {"id": "data", "label": "گرفتن اولین داده", "done": bool(st.get("refresh_ok")), "href": "/settings#status"},
-        {"id": "goals", "label": "تعیین هدف‌ها", "done": bool(p.get("goals_set")), "href": "/settings#goals-card"},
+        # each step is read from what's really there: a stored connection or data that arrived, a data.json with
+        # reels or followers, goals saved for this page
+        {"id": "source", "label": "وصل کردن یه منبع داده (Instagram API، Metricool، Buffer یا روتین Claude)",
+         "done": bool(s.get("connections")) or has_data, "href": "/settings#conns-card"},
+        {"id": "data", "label": "گرفتن اولین داده", "done": has_data, "href": "/settings#status"},
+        {"id": "goals", "label": "تعیین هدف‌ها", "done": bool(p.get("goals_set") or load_content(user, "goals.json", [])), "href": "/settings#goals-card"},
         {"id": "ai", "label": "کلید هوش مصنوعی (برای ایده‌ها و دستیار)", "done": pipeline.ai_config(user) is not None, "href": "/settings#ai-card"},
         {"id": "telegram", "label": "هشدارها تو تلگرام (اختیاری)", "done": bool(p.get("telegram_chat")), "href": "/settings#tg-card", "optional": True},
     ]

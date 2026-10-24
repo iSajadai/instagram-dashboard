@@ -164,7 +164,7 @@ def ig_media(ig):
                           # Instagram reports the share skipped in the first 3 seconds; Metricool's rate is the rest
                           "view_rate": None if skip is None else round(100 - skip, 1),
                           "reposts": i.get("reposts"), "reel_id": str(m.get("id", "")), "cover": m.get("thumbnail_url") or "",
-                          "watch_total": ms(i.get("ig_reels_video_view_total_time")), "duration": None,
+                          "watch_total": ms(i.get("ig_reels_video_view_total_time")), "duration": m.get("duration"),
                           "engagement": None})
         else:
             posts.append({**base, "type": m.get("media_type") or "", "follows": i.get("follows")})
@@ -196,6 +196,41 @@ def buffer_rows(buf):
         else:
             posts.append({**row, "url": p["url"], "type": (p.get("type") or "").upper()})
     return reels, posts
+
+
+def fingerprint(d):
+    """Same as sajadai/insights.py: the reels with rounded numbers and the last follower count."""
+    import hashlib
+    reels = sorted((r.get("url") or "", round((r.get("views") or 0), -1), round(r.get("view_rate") or 0)) for r in d.get("reels", []))
+    fol = [a.get("followers") for a in d.get("account", []) if a.get("followers") is not None][-1:]
+    return hashlib.sha256(json.dumps([reels, fol]).encode()).hexdigest()[:16]
+
+
+def insights_meta(d):
+    """Which data the analysis was written from, and whether the numbers changed since."""
+    m = load(os.path.join(GENERATED, "insights_meta.json"), {}) or {}
+    src = load(os.path.join(RAW, "repo_source.json"), {}) or {}
+    known = bool(m.get("fingerprint"))
+    return {"source": m.get("source") or ("routine" if src else "file"), "generated_at": m.get("generated_at"),
+            "data_at": m.get("data_at") or (src.get("committed_at") if not known else None), "reels": m.get("reels"),
+            "known": known, "stale": known and m.get("fingerprint") != fingerprint(d)}
+
+
+def auto_summary(d):
+    """Plain facts for the top of the analysis page, computed here so they can't contradict the dashboard."""
+    reels = [r for r in d.get("reels", []) if r.get("published")]
+    now = datetime.now(TEH).date()
+    def within(r, days):
+        return str(r["published"])[:10] >= (now - timedelta(days=days - 1)).isoformat()
+    views = sorted(r["views"] for r in reels if r.get("views") is not None)
+    med = views[(len(views) - 1) // 2] if views else None
+    last7 = [r for r in reels if within(r, 7)]
+    best = max(last7, key=lambda r: r.get("views") or 0) if last7 else None
+    vr = [r["view_rate"] for r in last7 if r.get("view_rate") is not None]
+    return {"reels_total": len(reels), "reels_7": len(last7), "reels_30": sum(within(r, 30) for r in reels), "median_views": med,
+            "best_7": {"caption": (best.get("caption") or "").split("\n")[0][:70], "views": best.get("views"), "url": best.get("url"),
+                       "multiple": round(best["views"] / med, 1) if best and best.get("views") and med else None} if best else None,
+            "view_rate_7": round(sum(vr) / len(vr), 1) if vr else None, "data_at": d.get("data_at")}
 
 
 def main():
@@ -242,6 +277,20 @@ def main():
                     o[k] = v
             elif k == "follows" or o.get(k) is None or url not in from_ig:
                 o[k] = v
+
+    # durations: Instagram's video file (fetch_instagram.py), reels published from the panel
+    # (content/durations.json, measured with ffprobe at upload), and what an earlier build already knew
+    durs = load(os.path.join(GENERATED, "durations.json"), {}) or {}
+    prev_dur = {shortcode(r["url"]): r.get("duration") for r in prev.get("reels", []) if r.get("duration")}
+    for r in reels.values():
+        code = shortcode(r.get("url") or "")
+        if r.get("duration") is None:
+            r["duration"] = durs.get(code) or prev_dur.get(code)
+        # share of the video an average view watched; Metricool's "retention" is the same idea when it has it
+        if r.get("avg_watch") and r.get("duration"):
+            r["watch_pct"] = round(min(100.0, r["avg_watch"] / r["duration"] * 100), 1)
+        else:
+            r["watch_pct"] = r.get("retention")
 
     # per-reel daily performance (views/interactions per day after publishing, follows per reel)
     perf = {(r["id"], r["day"]): r for r in prev.get("reel_daily", [])}
@@ -370,6 +419,8 @@ def main():
 
     out = {
         "generated_at": now,
+        # when the numbers were read from their source: the routine's commit for repo data, else this build
+        "data_at": (load(os.path.join(RAW, "repo_source.json"), {}) or {}).get("committed_at") or now,
         "reels": sorted(reels.values(), key=lambda r: r.get("published") or ""),
         "account": sorted(account.values(), key=lambda r: r["day"]),
         "best_time": best_time,
@@ -392,6 +443,8 @@ def main():
         "insights": generated("insights.json"),
         "benchmarks": generated("benchmarks.json"),
     }
+    out["insights_meta"] = [insights_meta(out)]
+    out["auto_summary"] = [auto_summary(out)]
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     tmp = OUT + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
