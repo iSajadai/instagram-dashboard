@@ -85,6 +85,9 @@ async def connect(pid: str, request: Request, user=Depends(need_owner)):
     b = await body(request)
     s = store.user_secrets(user)
     old = s.get("connections", {}).get(pid, {})
+    from .accounts import limits
+    if not old and len(s.get("connections", {})) >= limits()["connections"]:
+        raise HTTPException(400, f"حداکثر {limits()['connections']} اتصال برای هر پیج؛ یکی رو قطع کن.")
     vals = {}
     for f in p.fields:
         v = str(b.get(f) or "").strip()

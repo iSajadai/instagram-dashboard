@@ -92,6 +92,13 @@ def ask(user, system, messages, schema=None, max_tokens=8000, effort="medium", i
             raise AIError("هوش مصنوعی پنل برای اشتراک‌های حرفه‌ایه؛ از «تنظیمات ← هوش مصنوعی» یه سرویس رایگان (مثل Gemini) یا کلید خودت رو وصل کن، یا اشتراک رو ارتقا بده.")
         raise AIError("هنوز هوش مصنوعی وصل نشده؛ از «تنظیمات ← هوش مصنوعی» یه سرویس رایگان (مثل Gemini با حساب گوگل) یا کلید Claude/GPT خودت رو وصل کن.")
     _rate(user["id"])
+    if not cfg.get("own"):
+        from .accounts import check_quota
+        check_quota(user)
+    try:
+        store.count_ai(store.person_id(user), bool(cfg.get("own")))
+    except Exception:  # noqa: BLE001 — counting must never stop an answer
+        pass
     errors = []
     for c in cfg["chain"]:
         try:

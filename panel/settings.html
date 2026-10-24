@@ -241,6 +241,13 @@
     <div class="pn-row"><button class="primary" id="save-pw" type="button">عوض کردن رمز</button><span class="pn-msg" id="pw-msg"></span></div>
   </section>
 
+  <section class="pn-card" id="delete-card">
+    <h2>حذف حساب</h2>
+    <p class="pn-note">حسابت، همهٔ پیج‌هایی که ساختی، اتصال‌ها، کلیدها، فایل‌ها و آمار برای همیشه پاک می‌شن. این کار برگشت نداره. (<a href="/privacy">حریم خصوصی</a>)</p>
+    <label>رمز فعلی (برای حساب گوگلی، کلمهٔ «حذف» رو بنویس)<input id="del-pw" type="password" dir="ltr" autocomplete="current-password"></label>
+    <div class="pn-row"><button class="danger" id="del-go" type="button">حذف همیشگی حساب</button><span class="pn-msg" id="del-msg"></span></div>
+  </section>
+
   </div>
   </div>
 </main>
@@ -260,7 +267,7 @@
     instagram: 'توکن بلندمدت از developers.facebook.com (اپ ← Instagram ← API setup with Instagram login ← Generate token)، با دسترسی instagram_business_basic و instagram_business_manage_insights (و برای صفحهٔ کامنت‌ها instagram_business_manage_comments). خودکار تمدید می‌شه. تعداد فالوئر، آمار روزانه و «ماندن ۳ ثانیه» رو این می‌ده.',
   };
   let me;
-  const redrawToc = window.vfToc($('pn-main'), $('toc'), {"status": "i-refresh", "conns-card": "i-link", "coverage-card": "i-check", "page-card": "i-pen", "ai-card": "i-spark", "tg-card": "i-send", "goals-card": "i-target", "voice-card": "i-chat", "kit-card": "i-globe", "bio-card": "i-link", "agency-card": "i-users", "experiments-card": "i-flask", "topics-settings": "i-bulb", "ai-connect": "i-external", "pages-card": "i-grid", "team-card": "i-users", "billing-card": "i-bookmark", "password-card": "i-shield"});
+  const redrawToc = window.vfToc($('pn-main'), $('toc'), {"status": "i-refresh", "conns-card": "i-link", "coverage-card": "i-check", "page-card": "i-pen", "ai-card": "i-spark", "tg-card": "i-send", "goals-card": "i-target", "voice-card": "i-chat", "kit-card": "i-globe", "bio-card": "i-link", "agency-card": "i-users", "experiments-card": "i-flask", "topics-settings": "i-bulb", "ai-connect": "i-external", "pages-card": "i-grid", "team-card": "i-users", "billing-card": "i-bookmark", "password-card": "i-shield", "delete-card": "i-x"});
   const load = async () => { me = await pn.api('GET', '/api/me'); render(); };
 
   function render() {
@@ -459,6 +466,14 @@
   $('save-tg').addEventListener('click', (e) => pn.run(e.currentTarget, $('tg-msg'), () => pn.api('POST', '/api/me/prefs', { telegram_chat: $('telegram_chat').value.trim() })));
   $('do-refresh').addEventListener('click', (e) => pn.run(e.currentTarget, $('do-msg'), () => pn.api('POST', '/api/me/refresh')).then(() => setTimeout(load, 30000)));
   $('do-content').addEventListener('click', (e) => pn.run(e.currentTarget, $('do-msg'), () => pn.api('POST', '/api/me/content')).then(() => setTimeout(load, 120000)));
+  $('del-go').addEventListener('click', (e) => {
+    if (!confirm('همهٔ داده‌هات برای همیشه پاک می‌شه. مطمئنی؟')) return;
+    const v = $('del-pw').value;
+    pn.run(e.currentTarget, $('del-msg'), async () => {
+      const r = await pn.api('POST', '/api/me/delete', v.trim() === 'حذف' ? { confirm: 'حذف' } : { password: v });
+      setTimeout(() => { location.href = '/login'; }, 1200); return r;
+    });
+  });
   $('save-pw').addEventListener('click', (e) => pn.run(e.currentTarget, $('pw-msg'), () => pn.api('POST', '/api/me/password', { current: $('pw-cur').value, new: $('pw-new').value })));
   $('make-token').addEventListener('click', async (e) => {
     if (me.has_token && !confirm('توکن قبلی باطل می‌شه و هر Claude یا ChatGPT که باهاش وصله باید دوباره وصل بشه. ادامه؟')) return;
