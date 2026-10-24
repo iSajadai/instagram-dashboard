@@ -424,7 +424,7 @@
     <h2 class="sj-h2">رقبا و پیج‌های الگو</h2>
     <div class="sj-card" id="comp-handles-card" data-panel-only hidden>
       <div class="sj-tools"><h3>رقبایی که دنبال می‌کنی</h3><a class="sj-btn" href="#/studio/viral">تحقیق وایرال روی ریل‌هاشون</a></div>
-      <p class="sj-note">آیدی اینستاگرام پیج‌های رقیب یا الگو رو بنویس (با ویرگول یا هر کدوم تو یه خط). آمارشون هر ۶ ساعت با اتصال Facebook (Business Discovery) میاد، با بازدید هر ریل؛ «تحقیق وایرال» هم خودکار از همین‌ها استفاده می‌کنه.</p>
+      <p class="sj-note">آیدی اینستاگرام پیج‌های رقیب یا الگو رو بنویس، فارسی‌زبان یا خارجی (با ویرگول یا هر کدوم تو یه خط). آمارشون هر ۶ ساعت با اتصال Facebook (Business Discovery) میاد، با بازدید هر ریل؛ «تحقیق وایرال» هم خودکار از همین‌ها استفاده می‌کنه.</p>
       <label class="sj-field">آیدی‌ها<textarea id="comp-handles" rows="3" dir="ltr" placeholder="ali.ai, sara.creates"></textarea></label>
       <div class="sj-row-btns"><button type="button" class="sj-btn sj-btn-primary" id="comp-handles-save">ذخیره</button><span class="sj-small" id="comp-handles-msg" role="status"></span></div>
     </div>
@@ -832,7 +832,7 @@
         topic: r.topic || 'other', follows_per_1k: r.follows != null && r.views ? Math.round((r.follows / r.views) * 10000) / 10 : null,
         url: r.url, published: r.published, caption: r.caption, views: r.views, median,
         multiple: median && r.views != null ? Math.round((r.views / median) * 10) / 10 : null,
-        view_rate: r.view_rate, avg_watch: r.avg_watch, duration: r.duration ?? null, watch_pct: r.watch_pct ?? null,
+        view_rate: r.view_rate, avg_watch: r.avg_watch, duration: r.duration ?? null, watch_pct: r.watch_pct ?? null, src: r._src || {}, spoken_hook: r.spoken_hook || '',
         save_rate: r.views ? Math.round((r.saves / r.views) * 1000) / 10 : null,
         shares_per_1k: r.reach ? Math.round((r.shares / r.reach) * 10000) / 10 : null,
         reel_id: r.reel_id || '', cover: r.cover || '', watch_total: r.watch_total ?? null, follows: r.follows ?? null,
@@ -1127,14 +1127,18 @@
         cap.append(b);
       }
       cell(topicLabel(r.topic));
-      cell(r.views == null ? '—' : fmtInt(r.views), 'n');
+      if (r.spoken_hook) { const sp = document.createElement('small'); sp.className = 'sj-spoken'; sp.textContent = '🎙 ' + r.spoken_hook.slice(0, 90); cap.append(sp); }
+      const srcName = { instagram: 'Instagram API', meta_app: 'اپ Meta خودت', metricool: 'Metricool', routine: 'Metricool (روتین Claude)', buffer: 'Buffer', apify: 'Apify', brightdata: 'Bright Data',
+        export_csv: 'خروجی Meta Business Suite', screenshot: 'اسکرین‌شات', manual: 'ورود دستی', dyi_json: 'Download your information' };
+      const src = (td, f) => { if (r.src[f]) td.title = 'منبع: ' + (srcName[r.src[f]] || r.src[f]); return td; };
+      src(cell(r.views == null ? '—' : fmtInt(r.views), 'n'), 'views');
       cell(r.multiple == null ? '—' : r.multiple + '×', 'n');
-      cell(fmtPct(r.view_rate), 'n');
+      src(cell(fmtPct(r.view_rate), 'n'), 'view_rate');
       const wp = cell(r.watch_pct == null ? '—' : fmtPct(r.watch_pct), 'n');
       if (r.watch_pct == null) wp.title = 'برای درصد تماشا مدت ویدیو لازمه: Instagram API رو وصل کن، یا ریل رو از «انتشار ریل» منتشر کن.';
-      cell(r.duration == null ? '—' : fmtSec(r.duration), 'n');
-      cell(fmtSec(r.avg_watch), 'n');
-      cell(fmtDur(r.watch_total), 'n');
+      src(cell(r.duration == null ? '—' : fmtSec(r.duration), 'n'), 'duration');
+      src(cell(fmtSec(r.avg_watch), 'n'), 'avg_watch');
+      src(cell(fmtDur(r.watch_total), 'n'), 'watch_total');
       cell(fmtPct(r.save_rate), 'n');
       cell(r.shares_per_1k == null ? '—' : String(r.shares_per_1k), 'n');
       cell(r.follows == null ? '—' : fmtInt(r.follows), 'n');
@@ -1321,7 +1325,7 @@
   dash.onData(() => {
     fillTable('#plan-table tbody', 'week_plan', null, (rows) => rows.map((r) => [String(r.slot), [[r.day_label], [r.time_label, 'n'], [r.title], [r.hook, 'cap']]]));
     fillTable('#comp-table tbody', 'competitors', '#comp-empty', (rows) => rows.slice().sort((a, b) => (b.followers || 0) - (a.followers || 0))
-      .map((r) => [r.screen_name, [[r.screen_name, 'n'], [n0(r.followers), 'n'], [n0(r.reels), 'n'], [n0(r.posts), 'n'], [r.engagement == null ? '—' : d3.format('.1f')(r.engagement), 'n']]]));
+      .map((r) => [r.screen_name, [[r.screen_name + (r.lang === 'fa' ? ' · فارسی' : r.lang === 'en' ? ' · خارجی' : ''), 'n'], [n0(r.followers), 'n'], [n0(r.reels), 'n'], [n0(r.posts), 'n'], [r.engagement == null ? '—' : d3.format('.1f')(r.engagement), 'n']]]));
     fillTable('#comp-reels-table tbody', 'competitor_reels', '#comp-reels-empty', (rows) => rows.slice().sort((a, b) => (b.interactions || 0) - (a.interactions || 0)).slice(0, 10)
       .map((r) => [r.url, [[r.competitor, 'n'], [(r.text || '').split('\n')[0].slice(0, 90), 'cap'], [n0(r.interactions), 'n'], ['باز کردن', 'n', r.url]]]));
     fillTable('#comp-posts-table tbody', 'competitor_posts', '#comp-posts-empty', (rows) => rows.slice().sort((a, b) => (b.interactions || 0) - (a.interactions || 0)).slice(0, 10)
@@ -1701,11 +1705,19 @@
     inputs: ['reel_scores'],
     title: 'Hook and caption features',
     description: 'For each caption feature (hook = first line): reels with and without it, their median multiple of the page median and average 3-second view rate.',
-    fn: (reels) => features.map(([feature, label, test]) => {
-      const yes = reels.filter(test), no = reels.filter((r) => !test(r));
-      const a = groupStats(yes), b = groupStats(no);
-      return { feature, label, n_with: a.n, n_without: b.n, multiple_with: a.multiple, multiple_without: b.multiple, view_rate_with: a.view_rate, view_rate_without: b.view_rate, few: a.few || b.few };
-    }),
+    fn: (reels) => {
+      const row = (feature, label, test, rs) => {
+        const yes = rs.filter(test), no = rs.filter((r) => !test(r));
+        const a = groupStats(yes), b = groupStats(no);
+        return { feature, label, n_with: a.n, n_without: b.n, multiple_with: a.multiple, multiple_without: b.multiple, view_rate_with: a.view_rate, view_rate_without: b.view_rate, few: a.few || b.few };
+      };
+      const out = features.map(([feature, label, test]) => row(feature, label + ' (کپشن)', test, reels));
+      // the same hook features on the words actually said in the first 3 seconds (reels that have them)
+      const heard = reels.filter((r) => r.spoken_hook).map((r) => ({ ...r, caption: r.spoken_hook }));
+      if (heard.length >= 3) features.filter(([f]) => ['question', 'number', 'tool', 'short'].includes(f))
+        .forEach(([feature, label, test]) => out.push(row('spoken-' + feature, label + ' (هوک گفته‌شده)', test, heard)));
+      return out;
+    },
   });
   const vs = (a, b, f) => (a == null ? '—' : f(a)) + ' / ' + (b == null ? '—' : f(b));
   dash.onData(() => {
@@ -1913,6 +1925,7 @@
 <script src="assets/comments.js"></script>
 <script src="assets/publish.js"></script>
 <script src="assets/tools.js"></script>
+<script src="assets/coverage-hints.js"></script>
 <script src="assets/shell.js"></script>
 </body>
 </html>

@@ -1026,7 +1026,9 @@ async def save_competitor_handles(request: Request, user=Depends(need_editor)):
     save_content(user, "competitor_handles.json", hs, reshape=False)
     started = False
     if hs and "facebook" in store.user_secrets(user).get("connections", {}):
-        threading.Thread(target=lambda: pipeline.refresh(user["id"]), daemon=True).start()
+        from . import jobs
+        jobs.start()
+        jobs.enqueue(user["id"], "refresh", manual=True)
         started = True
     return {"ok": True, "handles": hs, "message": "ذخیره شد؛ آمارشون تا یکی دو دقیقهٔ دیگه میاد." if started else "ذخیره شد. برای آمار، اتصال Facebook رو تو تنظیمات وصل کن."}
 
@@ -1219,7 +1221,10 @@ def background(fn, user_id):
 
 @api.post("/api/me/refresh", include_in_schema=False, dependencies=[Depends(same_site)])
 def refresh_now(user=Depends(need_editor)):
-    return background(pipeline.refresh, user["id"])
+    from . import jobs
+    jobs.start()
+    queued = jobs.enqueue(user["id"], "refresh", manual=True)
+    return {"ok": True, "queued": queued, "message": "تو صف همگام‌سازی گذاشته شد؛ تا یکی دو دقیقهٔ دیگه داده تازه می‌شه." if queued else "همگام‌سازی همین الان در جریانه."}
 
 
 @api.post("/api/me/content", include_in_schema=False, dependencies=[Depends(same_site)])
@@ -1530,7 +1535,7 @@ def admin_state(admin=Depends(need_admin)):
     ai = store.setting("ai", {}) or {}
     return {
         "settings": {"ai_provider": ai.get("provider", "anthropic"), "ai_model": ai.get("model", ""), "ai_key": mask(ai.get("key")) if ai.get("key") else "",
-                     "ai_base_url": ai.get("base_url", ""),
+                     "ai_base_url": ai.get("base_url", ""), "scrapers_enabled": store.setting("scrapers_enabled", True) is not False,
                      "smtp": {**{k: v for k, v in (store.setting("smtp", {}) or {}).items() if k != "password"},
                               "password": mask((store.setting("smtp", {}) or {}).get("password")) if (store.setting("smtp", {}) or {}).get("password") else ""},
                      "telegram_bot": mask(store.setting("telegram_bot")) if store.setting("telegram_bot") else "",
@@ -1566,6 +1571,8 @@ async def admin_settings(request: Request, admin=Depends(need_admin)):
     if b.get("ai_key") is not None and not str(b["ai_key"]).startswith("•"):
         ai["key"] = str(b["ai_key"]).strip()
     store.set_setting("ai", ai)
+    if "scrapers_enabled" in b:
+        store.set_setting("scrapers_enabled", bool(b["scrapers_enabled"]))
     if isinstance(b.get("smtp"), dict):
         old = store.setting("smtp", {}) or {}
         s = {k: str(b["smtp"].get(k) or "").strip()[:200] for k in ("host", "port", "user", "password", "from")}
@@ -1799,3 +1806,8 @@ async def app(scope, receive, send):
         await mcp_http({**scope, "path": "/", "raw_path": b"/", "root_path": "", "headers": headers}, receive, send)
         return
     await api(scope, receive, send)
+
+
+# the connections page and webhooks (sajadai/sources_api.py), mounted last: it imports helpers from this module
+from . import sources_api  # noqa: E402
+api.include_router(sources_api.router)

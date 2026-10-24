@@ -45,6 +45,7 @@
     </details>
     <label>حداکثر پیج برای هر حساب (با پیج خودش)<input id="max_pages" type="number" min="1" max="100" dir="ltr" style="max-width:8rem"></label>
     <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="allow_signup"> هر کسی بتونه خودش ثبت‌نام کنه</label>
+    <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="scrapers_enabled"> سرویس‌های دادهٔ عمومی (اسکرپرها: Apify، Bright Data) برای کاربرها فعال باشه</label>
     <div class="pn-row"><button class="primary" id="save" type="button">ذخیره</button><span class="pn-msg" id="save-msg"></span></div>
   </section>
 
@@ -103,6 +104,7 @@
     $('ai_provider').value = st.settings.ai_provider;
     ['ai_model', 'ai_key', 'ai_base_url', 'telegram_bot', 'public_url'].forEach((k) => { $(k).value = st.settings[k] || ''; });
     ['host', 'port', 'user', 'password', 'from'].forEach((k) => { $('smtp_' + k).value = (st.settings.smtp || {})[k] || ''; });
+    $('scrapers_enabled').checked = st.settings.scrapers_enabled !== false;
     $('allow_signup').checked = st.settings.allow_signup;
     $('max_pages').value = st.settings.max_pages;
     drawOps();
@@ -165,6 +167,7 @@
   $('save').addEventListener('click', (e) => pn.run(e.currentTarget, $('save-msg'), async () => {
     await pn.api('POST', '/api/admin/settings', { ai_provider: $('ai_provider').value, ai_model: $('ai_model').value.trim(), ai_key: $('ai_key').value.trim(), ai_base_url: $('ai_base_url').value.trim(),
       telegram_bot: $('telegram_bot').value.trim(), public_url: $('public_url').value.trim(), allow_signup: $('allow_signup').checked,
+      scrapers_enabled: $('scrapers_enabled').checked,
       smtp: Object.fromEntries(['host', 'port', 'user', 'password', 'from'].map((k) => [k, $('smtp_' + k).value.trim()])),
       max_pages: Number($('max_pages').value) || 5 });
     await load(); return { ok: true, message: 'ذخیره شد ✓' };

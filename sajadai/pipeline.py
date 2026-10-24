@@ -18,7 +18,15 @@ CONNECTIONS = {
     "facebook": {"label": "Facebook (رقبا با Business Discovery)", "fields": {"token": "Access token (Facebook Login)"}, "script": "fetch_discovery.py"},
     # a Claude routine reads Metricool through claude.ai's connector and commits the numbers to a git repo
     "routine": {"label": "روتین Claude (مخزن داده)", "fields": {"repo": "مخزن (owner/name)", "branch": "شاخه"}, "script": "fetch_repo.py"},
+    # the rest of sajadai/providers: an own Meta app's token (read with fetch_instagram.py), webhooks, scrapers
+    "meta_app": {"label": "اپ Meta خودت", "fields": {"app_id": "App ID", "app_secret": "App Secret", "token": "Access token"}, "script": "fetch_instagram.py"},
+    "webhooks": {"label": "Webhooks اینستاگرام", "fields": {"app_secret": "App Secret"}, "script": None},
+    "apify": {"label": "Apify", "fields": {"api_key": "API token", "handle": "آیدی پیج"}, "script": None},
+    "brightdata": {"label": "Bright Data", "fields": {"api_key": "API token", "handle": "آیدی پیج"}, "script": None},
+    "rapidapi": {"label": "RapidAPI", "fields": {"api_key": "API key", "handle": "آیدی پیج"}, "script": None},
 }
+SCRAPERS = ("apify", "brightdata", "rapidapi")
+TRANSIENT = ("timed out", "timeout", "429", "rate limit", "temporarily", "502", "503", "504", "connection reset", "couldn't reach", "network")
 STALE_HOURS = 8  # data older than this gets a banner on the dashboard and a message
 REPO_CHECK_MINUTES = 15
 
@@ -142,6 +150,8 @@ def source_env(name, vals):
         return {"SAJADAI_FB_TOKEN": vals.get("token", "")}
     if name == "routine":
         return {"SAJADAI_DATA_REPO": vals.get("repo", ""), "SAJADAI_DATA_BRANCH": vals.get("branch") or "main", "SAJADAI_REPO_KEY": repo_key()}
+    if name == "meta_app":
+        return {"SAJADAI_IG_TOKEN": vals.get("token", "")}
     return {}
 
 
@@ -199,21 +209,59 @@ def health(user):
             "last_error": None if store.status(user).get("refresh_ok", True) else (store.status(user).get("refresh_log") or "")[-400:]}
 
 
-def refresh(user_id):
+def provider(name):
+    from .providers import get
+    return get(name)
+
+
+def scrapers_allowed():
+    return store.setting("scrapers_enabled", True) is not False
+
+
+def run_provider(user, name, spec, vals, conns, prov):
+    """One source's sync, retried with exponential backoff (5s, 20s, 80s) when the failure looks transient."""
+    for attempt in range(prov.retries):
+        if spec.get("script"):
+            env = source_env(name, vals)
+            if name == "routine" and len(conns) == 1:
+                env["SAJADAI_REPO_ONLY"] = "1"
+            ok, out = run_script(user["id"], spec["script"], env)
+        else:
+            try:
+                out = prov.sync(user, vals) or "ok"
+                ok = True
+            except Exception as e:  # noqa: BLE001 — a provider's failure is reported, not raised
+                ok, out = False, str(e)[:500]
+        if ok or attempt == prov.retries - 1 or not any(w in out.lower() for w in TRANSIENT):
+            return ok, out
+        time.sleep(5 * 4 ** attempt)
+    return ok, out
+
+
+def refresh(user_id, force=False):
     """Fetch from every connected source; rebuild data.json if at least one worked."""
     with lock_for(user_id):
         user = store.get_user(user_id)
         ensure_user_dir(user_id)
         conns = store.user_secrets(user).get("connections", {})
         log, worked, failed = [], [], []
+        pstat = dict(store.status(user).get("providers") or {})
         for name, spec in CONNECTIONS.items():
             vals = conns.get(name)
-            if not vals or not all(vals.get(f) for f in spec["fields"]):
+            if not vals or not all(vals.get(f) for f in spec["fields"] if f != "branch"):
                 continue
-            env = source_env(name, vals)
-            if name == "routine" and len(conns) == 1:
-                env["SAJADAI_REPO_ONLY"] = "1"
-            ok, out = run_script(user_id, spec["script"], env)
+            if name == "instagram" and conns.get("meta_app"):
+                continue  # the own app's token reads the same account; one read is enough
+            if name in SCRAPERS and not scrapers_allowed():
+                continue
+            prov = provider(name)
+            if prov is None or (prov.status != "ready"):
+                continue
+            last = (pstat.get(name) or {}).get("at") or 0
+            if not force and prov.min_interval and time.time() - last < prov.min_interval * 60:
+                continue  # scrapers cost money per run; APIs have limits
+            ok, out = run_provider(user, name, spec, vals, conns, prov)
+            pstat[name] = {**(pstat.get(name) or {}), "at": time.time(), "ok": ok, "message": out[-400:]}
             log.append(f"[{spec['label']}] {'✓' if ok else '✗'} {out}")
             if ok:
                 worked.append(name)
@@ -222,6 +270,10 @@ def refresh(user_id):
                 if name not in store.status(user).get("refresh_failed", []):  # tell once, when a source starts failing
                     add_notice(user_id, f"⚠️ گرفتن داده از {spec['label']} ناموفق بود", out[-600:] + "\n\nاتصال رو تو تنظیمات چک کن.")
         if not log:
+            if (config.user_dir(user_id) / "raw" / "norm").exists():  # only files and forms: rebuild from them
+                ok, out = run_script(user_id, "shape.py", {})
+                store.update_status(user_id, refresh_at=time.time(), refresh_ok=ok, refresh_log=out, **({"last_ok_at": time.time()} if ok else {}))
+                return ok
             store.update_status(user_id, refresh_at=time.time(), refresh_ok=False, refresh_log="هنوز هیچ منبعی وصل نشده.")
             return False
         if worked:
@@ -230,7 +282,7 @@ def refresh(user_id):
         else:
             ok = False
         good = bool(worked) and ok
-        store.update_status(user_id, refresh_at=time.time(), refresh_ok=good, refresh_log="\n".join(log), refresh_failed=failed,
+        store.update_status(user_id, refresh_at=time.time(), refresh_ok=good, refresh_log="\n".join(log), refresh_failed=failed, providers=pstat,
                             **({"last_ok_at": time.time()} if good else {}))
         if good:
             after_sync(user_id)
@@ -239,11 +291,16 @@ def refresh(user_id):
 
 def after_sync(user_id):
     """After a successful sync: rebuild the AI analysis when the numbers changed (in the background)."""
-    try:
-        from . import insights
-        threading.Thread(target=insights.refresh_if_changed, args=(user_id,), daemon=True).start()
-    except ImportError:
-        pass
+    def work():
+        from . import insights, learning
+        try:
+            res = learning.run(user_id)
+            if res.get("transcribed") or res.get("linked"):
+                run_script(user_id, "shape.py", {})
+        except Exception as e:  # noqa: BLE001 — learning is extra; the sync already worked
+            store.update_status(user_id, learning_log=f"error: {e}"[:300])
+        insights.refresh_if_changed(user_id)
+    threading.Thread(target=work, daemon=True).start()
 
 
 def add_notice(user_id, title, text, kind="system"):
@@ -462,7 +519,9 @@ def scheduler_loop(stop: threading.Event):
         for uid, job in due_jobs():
             try:
                 if job == "refresh":
-                    refresh(uid)
+                    from . import jobs
+                    jobs.start()
+                    jobs.enqueue(uid, "refresh")
                 elif job == "notify":
                     store.update_status(uid, notify_at=time.time())
                     notify(uid)
@@ -475,7 +534,9 @@ def scheduler_loop(stop: threading.Event):
                 elif job == "agency":
                     agency_report(uid)
                 elif job == "repocheck":
-                    repo_check(uid)
+                    from . import jobs
+                    jobs.start()
+                    jobs.enqueue(uid, "repocheck")
                 elif job == "health":
                     health_check(uid)
             except Exception as e:  # one user's failure mustn't stop the others

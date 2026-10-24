@@ -33,7 +33,8 @@ class IGError(Exception):
 def token(user):
     """The current token: the one fetch_instagram.py keeps refreshed, if it came from the token the user
     entered; else the entered one."""
-    given = ((store.user_secrets(user).get("connections") or {}).get("instagram") or {}).get("token")
+    conns = store.user_secrets(user).get("connections") or {}
+    given = (conns.get("instagram") or {}).get("token") or (conns.get("meta_app") or {}).get("token")
     if not given:
         raise IGError("Instagram API وصل نیست؛ از «تنظیمات ← اتصال‌ها» توکن اینستاگرام رو بذار.")
     st = analysis.load(config.user_dir(user["id"]) / "ig-token.json") or {}

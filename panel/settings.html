@@ -38,9 +38,16 @@
   </section>
 
   <section id="conns-card" class="pn-card" data-min="owner">
-    <h2>اتصال‌ها</h2>
-    <p class="pn-note">هر کدوم رو که داری وصل کن؛ داده‌ها با هم ترکیب می‌شن. کلیدها رمزنگاری‌شده ذخیره می‌شن و فقط برای حساب خودت استفاده می‌شن. قبل از ذخیره، یه درخواست فقط‌خواندنی به سرویس زده می‌شه تا درست بودن کلید معلوم بشه.</p>
-    <div id="conns" style="display:flex;flex-direction:column;gap:16px"></div>
+    <h2>اتصال‌ها (منابع داده)</h2>
+    <p class="pn-note">هر منبعی داری وصل کن؛ پنل همه رو به یه مدل دادهٔ واحد تبدیل می‌کنه. اگه دو منبع یه عدد رو بدن، اولویت با API رسمیه، بعد ابزارهای آنالیتیکس، بعد اسکرپرها، بعد فایل‌ها و ورود دستی. کلیدها رمزنگاری‌شده ذخیره می‌شن و فقط ۴ حرف آخرشون دیده می‌شه.</p>
+    <div id="sources"></div>
+    <p class="pn-note" id="discrepancies"></p>
+  </section>
+
+  <section id="coverage-card" class="pn-card" data-min="viewer">
+    <h2>پوشش داده</h2>
+    <p class="pn-note">هر داده از کدوم منبع میاد، و برای چیزهایی که هنوز نداری چی وصل کنی.</p>
+    <div id="coverage" class="cov"></div>
   </section>
 
   <section id="page-card" class="pn-card" data-min="owner">
@@ -242,6 +249,7 @@
 <script src="/assets/ai-settings.js"></script>
 <script src="/assets/bio-settings.js"></script>
 <script src="/assets/agency-settings.js"></script>
+<script src="/assets/sources.js"></script>
 <script>
 (async function () {
   const $ = (id) => document.getElementById(id);
@@ -252,7 +260,7 @@
     instagram: 'توکن بلندمدت از developers.facebook.com (اپ ← Instagram ← API setup with Instagram login ← Generate token)، با دسترسی instagram_business_basic و instagram_business_manage_insights (و برای صفحهٔ کامنت‌ها instagram_business_manage_comments). خودکار تمدید می‌شه. تعداد فالوئر، آمار روزانه و «ماندن ۳ ثانیه» رو این می‌ده.',
   };
   let me;
-  const redrawToc = window.vfToc($('pn-main'), $('toc'), {"status": "i-refresh", "conns-card": "i-link", "page-card": "i-pen", "ai-card": "i-spark", "tg-card": "i-send", "goals-card": "i-target", "voice-card": "i-chat", "kit-card": "i-globe", "bio-card": "i-link", "agency-card": "i-users", "experiments-card": "i-flask", "topics-settings": "i-bulb", "ai-connect": "i-external", "pages-card": "i-grid", "team-card": "i-users", "billing-card": "i-bookmark", "password-card": "i-shield"});
+  const redrawToc = window.vfToc($('pn-main'), $('toc'), {"status": "i-refresh", "conns-card": "i-link", "coverage-card": "i-check", "page-card": "i-pen", "ai-card": "i-spark", "tg-card": "i-send", "goals-card": "i-target", "voice-card": "i-chat", "kit-card": "i-globe", "bio-card": "i-link", "agency-card": "i-users", "experiments-card": "i-flask", "topics-settings": "i-bulb", "ai-connect": "i-external", "pages-card": "i-grid", "team-card": "i-users", "billing-card": "i-bookmark", "password-card": "i-shield"});
   const load = async () => { me = await pn.api('GET', '/api/me'); render(); };
 
   function render() {
@@ -271,30 +279,7 @@
       pn.el('span', { class: 'pn-chip ' + (st.content_at ? (st.content_ok ? 'ok' : 'bad') : 'off') }, st.content_at ? (st.content_ok ? 'موفق' : 'خطا') : 'هنوز نه'));
     $('st-log').textContent = [st.refresh_log, st.content_log].filter(Boolean).join('\n\n') || '—';
 
-    const box = $('conns'); box.replaceChildren();
-    Object.entries(me.connections).forEach(([name, c]) => {
-      const msg = pn.el('p', { class: 'pn-msg', role: 'status' });
-      const inputs = Object.entries(c.fields).map(([f, info]) => {
-        const secret = f === 'token' || f === 'api_key';
-        return [f, pn.el('input', { dir: 'ltr', autocomplete: 'off', value: info.value || '', placeholder: secret && c.connected ? 'برای عوض کردن، مقدار تازه بنویس' : '' }), info.label];
-      });
-      const save = async (force, btn) => {
-        const body = { force };
-        inputs.forEach(([f, inp]) => { body[f] = inp.value.trim(); });
-        const r = await pn.run(btn, msg, () => pn.api('POST', '/api/me/connections/' + name, body));
-        if (r && r.ok) { await load(); }
-        else if (r && !force) forceBtn.hidden = false;
-      };
-      const testBtn = pn.el('button', { class: 'primary', type: 'button', onclick: (e) => save(false, e.currentTarget) }, 'تست و ذخیره');
-      const forceBtn = pn.el('button', { type: 'button', hidden: '', onclick: (e) => save(true, e.currentTarget) }, 'ذخیره بدون تست');
-      const del = pn.el('button', { class: 'danger', type: 'button', onclick: async (e) => { if (confirm('اتصال ' + c.label + ' حذف بشه؟')) { await pn.run(e.currentTarget, msg, () => pn.api('DELETE', '/api/me/connections/' + name)); load(); } } }, 'حذف');
-      if (!c.connected) del.hidden = true;
-      box.append(pn.el('div', { style: 'display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--color-border-line);padding-top:12px' },
-        pn.el('div', { class: 'pn-row' }, pn.el('h3', {}, c.label), pn.el('span', { class: 'pn-chip ' + (c.connected ? 'ok' : 'off') }, c.connected ? 'وصل' : 'وصل نیست')),
-        pn.el('p', { class: 'pn-note' }, HELP[name] || ''),
-        pn.el('div', { class: 'pn-grid' }, inputs.map(([, inp, label]) => pn.el('label', {}, label, inp))),
-        pn.el('div', { class: 'pn-row' }, testBtn, forceBtn, del), msg));
-    });
+    if (window.sjSources) window.sjSources();  // the connections page (assets/sources.js)
 
     ['page_name', 'page_profile', 'telegram_chat'].forEach((k) => { $(k).value = me.prefs[k] || ''; });
     window.sjAiCard(me, load);
