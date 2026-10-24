@@ -129,6 +129,9 @@ def context(user, *, numbers=False, swipe=False, plan=False, audit=False, occasi
     if audit and load(user, "audit.json", {}):
         a = load(user, "audit.json", {})
         parts.append("نتیجهٔ آخرین تحلیل پست‌های خود پیج: " + json.dumps({k: a.get(k) for k in ("findings", "stop", "do_more")}, ensure_ascii=False))
+    from .learning import brief as learned
+    if learned(user["id"]):
+        parts.append(learned(user["id"]))
     if occasions and upcoming_occasions():
         parts.append("مناسبت‌های دو هفتهٔ آینده در ایران (فقط اگه به موضوع پیج می‌خوره یه پست رو بهش گره بزن؛ تو روزهای عزاداری لحن شوخ و فروش مستقیم نذار):\n"
                      + "\n".join(upcoming_occasions()))

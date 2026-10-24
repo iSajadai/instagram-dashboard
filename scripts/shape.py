@@ -198,6 +198,66 @@ def buffer_rows(buf):
     return reels, posts
 
 
+# which kind of source each id is, for merge priority (official API → analytics tools → scrapers → files)
+KIND = {"instagram": "official", "meta_app": "official", "facebook": "official", "metricool": "analytics", "routine": "analytics",
+        "buffer": "analytics", "apify": "scraper", "brightdata": "scraper", "rapidapi": "scraper",
+        "export_csv": "manual", "dyi_json": "manual", "screenshot": "manual", "manual": "manual", "history": "history"}
+RANK = {"official": 0, "analytics": 1, "scraper": 2, "manual": 3, "history": 4}
+NUM_FIELDS = ("views", "reach", "likes", "comments", "saves", "shares", "reposts", "avg_watch", "watch_total", "duration", "view_rate", "follows")
+DISAGREE = 0.10  # two sources more than 10% apart get logged
+ANALYTICS_SRC, NORM = "metricool", []  # set in main()
+
+
+def load_norms():
+    d = os.path.join(RAW, "norm")
+    out = []
+    if os.path.isdir(d):
+        for name in sorted(os.listdir(d)):
+            if name.endswith(".json"):
+                n = load(os.path.join(d, name), {})
+                if isinstance(n, dict) and n.get("source"):
+                    out.append(n)
+    return sorted(out, key=lambda n: RANK.get(KIND.get(n["source"], "manual"), 3))
+
+
+def merge_norm(reels, _unused, norms):
+    """Reels from the normalised sources: a field is taken when it's empty here or the source ranks higher
+    than the one it came from; numbers two sources disagree on by more than 10% go to raw/discrepancies.json."""
+    by_code = {shortcode(u): u for u in reels}
+    log = load(os.path.join(RAW, "discrepancies.json"), [])
+    log = log if isinstance(log, list) else []
+    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    for n in norms:
+        src = n["source"]
+        rank = RANK.get(KIND.get(src, "manual"), 3)
+        for rec in n.get("reels", []):
+            code = rec.get("shortcode") or shortcode(rec.get("url") or "")
+            if not code:
+                continue
+            url = by_code.get(code) or rec.get("url") or f"https://www.instagram.com/reel/{code}/"
+            by_code[code] = url
+            o = reels.setdefault(url, {"url": url})
+            have = o.setdefault("_src", {})
+            for k, v in rec.items():
+                if k in ("shortcode", "url") or v is None or v == "":
+                    continue
+                if k in ("caption", "published", "cover"):
+                    if not o.get(k):
+                        o[k] = v
+                    continue
+                old_src = have.get(k)
+                old_rank = RANK.get(KIND.get(old_src, "history"), 4) if old_src else 5
+                if k in NUM_FIELDS and o.get(k) not in (None, 0) and isinstance(v, (int, float)) and old_src and old_src != src:
+                    a, b = float(o[k]), float(v)
+                    if abs(a - b) / max(abs(a), abs(b)) > DISAGREE:
+                        log.append({"at": stamp, "reel": code, "field": k, old_src: a, src: b})
+                if o.get(k) is None or rank < old_rank:
+                    o[k] = v
+                    have[k] = src
+    with open(os.path.join(RAW, "discrepancies.json"), "w", encoding="utf-8") as f:
+        json.dump(log[-300:], f, ensure_ascii=False)
+
+
 def fingerprint(d):
     """Same as sajadai/insights.py: the reels with rounded numbers and the last follower count."""
     import hashlib
@@ -235,6 +295,9 @@ def auto_summary(d):
 
 def main():
     prev = load(OUT, {})
+    global ANALYTICS_SRC, NORM
+    ANALYTICS_SRC = "routine" if os.path.exists(os.path.join(RAW, "repo_source.json")) else "metricool"
+    NORM = load_norms()
 
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     reel_cols = ["published", "caption", "url", "views", "reach", "avg_watch", "retention", "view_rate",
@@ -253,13 +316,16 @@ def main():
             old = reels.get(o["url"], {})
             if old.get("follows") is not None:
                 o["follows"] = old["follows"]
+            o["_src"] = {k: ANALYTICS_SRC for k, v in o.items() if v is not None and k not in ("published", "caption", "url", "reel_id", "cover", "shortcode", "_src")}
             reels[o["url"]] = o
     # Instagram's own API (standalone servers) wins over Metricool for every reel it returns
     ig = load(os.path.join(RAW, "ig.json"), None)
     ig_reels, ig_posts = ig_media(ig) if ig else ([], [])
     for o in ig_reels:
         old = reels.get(o["url"], {})
-        reels[o["url"]] = {**old, **{k: v for k, v in o.items() if v is not None or k not in old}}
+        src = dict(old.get("_src") or {})
+        src.update({k: "instagram" for k, v in o.items() if v is not None and k not in ("published", "caption", "url", "reel_id", "cover", "shortcode", "_src")})
+        reels[o["url"]] = {**old, **{k: v for k, v in o.items() if v is not None or k not in old}, "_src": src}
     # Buffer (daily) fills what Instagram's API didn't give and is fresher than Metricool's history;
     # follows per reel only Buffer has
     buf = load(os.path.join(RAW, "buffer.json"), None)
@@ -277,6 +343,19 @@ def main():
                     o[k] = v
             elif k == "follows" or o.get(k) is None or url not in from_ig:
                 o[k] = v
+                o.setdefault("_src", {})[k] = "buffer"
+
+    # every other source (scrapers, uploaded exports, screenshots, the manual form): raw/norm/*.json,
+    # merged field by field by source priority
+    merge_norm(reels, None, NORM)
+
+    # what was actually said in the first 3 seconds (sajadai/learning.py), next to the caption's first line
+    spoken = load(os.path.join(GENERATED, "spoken_hooks.json"), {}) or {}
+    for r in reels.values():
+        s = spoken.get(shortcode(r.get("url") or ""))
+        if s:
+            r["spoken_hook"] = s.get("text") or ""
+            r["first_frame"] = bool(s.get("frame"))
 
     # durations: Instagram's video file (fetch_instagram.py), reels published from the panel
     # (content/durations.json, measured with ffprobe at upload), and what an earlier build already knew
@@ -410,6 +489,43 @@ def main():
                          "interactions": num(at(r, 6)), "engagement": num(at(r, 7))}
                         for r in rows_of("competitor_posts")]
     posts = ig_posts or buf_posts or posts
+    acc_src = {}
+    for n in NORM:  # highest priority first; a day's field is filled once
+        for a in n.get("account_days", []):
+            dd = a.get("day")
+            if not dd:
+                continue
+            o = account.setdefault(dd, {"day": dd})
+            for k, v in a.items():
+                if k != "day" and v is not None and o.get(k) is None:
+                    o[k] = v
+                    acc_src.setdefault(dd, {})[k] = n["source"]
+        aud = n.get("audience") or {}
+        if aud.get("countries") and not countries:
+            countries = aud["countries"]
+        if aud.get("age_gender") and not age_gender:
+            age_gender = aud["age_gender"]
+        for c in n.get("competitors", []):
+            h = str(c.get("handle") or "").lower()
+            if h and h not in seen:
+                seen.add(h)
+                competitors.append({"screen_name": c.get("handle"), "display_name": c.get("name") or "", "followers": c.get("followers"),
+                                    "posts": c.get("posts"), "reels": len(c.get("reels") or []), "likes": None, "engagement": None,
+                                    "median_views": c.get("median_views"), "source": n["source"]})
+            for r in c.get("reels") or []:
+                if r.get("url") and r["url"] not in urls:
+                    urls.add(r["url"])
+                    competitor_reels.append({"competitor": c.get("handle"), "text": r.get("caption") or "", "url": r["url"], "published": r.get("published"),
+                                             "likes": r.get("likes"), "comments": r.get("comments"), "interactions": (r.get("likes") or 0) + (r.get("comments") or 0),
+                                             "engagement": None, "views": r.get("views"), "source": n["source"]})
+    # Persian pages next to foreign models: a competitor is «فارسی» when most of its captions are
+    for c in competitors:
+        caps = " ".join(r.get("text") or "" for r in competitor_reels if str(r.get("competitor") or "").lower() == str(c.get("screen_name") or "").lower())
+        fa = len(re.findall(r"[\u0600-\u06FF]", caps))
+        lat = len(re.findall(r"[A-Za-z]", caps))
+        c["lang"] = "fa" if fa > lat else ("en" if lat else None)
+    for dd, s in acc_src.items():
+        account[dd]["_src"] = {**(account[dd].get("_src") or {}), **s}
     if ig:
         dem = ig.get("demographics") or {}
         if dem.get("country"):
