@@ -1,7 +1,7 @@
 """Agency mode: a page's report carries the agency's name and colour, has a public link the client can open
 without an account (/r/<token>, revocable), and goes to the client by itself on the 1st of each Jalali
 month: to their Telegram through the panel's bot, and by email when the admin set up SMTP."""
-import re, secrets, smtplib, ssl, time, urllib.parse, urllib.request
+import os, re, secrets, smtplib, ssl, time, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 
@@ -120,8 +120,17 @@ def send(user, d):
     return out
 
 
+def smtp_config():
+    """Admin → ایمیل پنل, or the server's env (SAJADAI_SMTP_HOST/PORT/USER/FROM/PASSWORD) for anything left empty."""
+    cfg = dict(store.setting("smtp", {}) or {})
+    for k in ("host", "port", "user", "from"):
+        if not cfg.get(k) and os.environ.get(f"SAJADAI_SMTP_{k.upper()}"):
+            cfg[k] = os.environ[f"SAJADAI_SMTP_{k.upper()}"]
+    return cfg
+
+
 def email(to, subject, text, reply_to=None, sender_name=None):
-    cfg = store.setting("smtp", {}) or {}
+    cfg = smtp_config()
     if not cfg.get("host") or not cfg.get("from"):
         return False, "ایمیل پنل (SMTP) تنظیم نشده (ادمین: پنل مدیریت)."
     m = EmailMessage()
@@ -139,7 +148,8 @@ def email(to, subject, text, reply_to=None, sender_name=None):
             s.starttls(context=ssl.create_default_context())
         with s:
             if cfg.get("user"):
-                s.login(cfg["user"], cfg.get("password") or "")
+                # the password can stay in the server's .env (SAJADAI_SMTP_PASSWORD, e.g. a Resend API key)
+                s.login(cfg["user"], cfg.get("password") or os.environ.get("SAJADAI_SMTP_PASSWORD", ""))
             s.send_message(m)
         return True, "ایمیل شد."
     except Exception as e:  # noqa: BLE001

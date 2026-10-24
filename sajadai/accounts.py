@@ -4,7 +4,7 @@ deleting an account with everything in it, and the admin's overview (users, sync
 
 Sign-up mode (setting "signup_mode"): closed | open | waitlist. Email links need the panel's SMTP
 (Admin → ایمیل پنل); without it, sign-up still works and addresses are marked unverified."""
-import json, re, secrets, shutil, threading, time, urllib.parse, urllib.request
+import json, os, re, secrets, shutil, threading, time, urllib.parse, urllib.request
 from collections import defaultdict, deque
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -69,8 +69,9 @@ def mode():
 
 
 def smtp_ready():
-    s = store.setting("smtp", {}) or {}
-    return bool(s.get("host") and s.get("from"))
+    from .agency import smtp_config
+    s = smtp_config()
+    return bool(s.get("host") and s.get("from") and (s.get("password") or os.environ.get("SAJADAI_SMTP_PASSWORD") or not s.get("user")))
 
 
 def mail(to, subject, text):
