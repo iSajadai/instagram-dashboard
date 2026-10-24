@@ -111,7 +111,7 @@ def login_response(user_id, body, acting=None):
     tok = store.new_session(user_id)
     if acting:
         store.set_acting(tok, acting)
-    r = JSONResponse(body)
+    r = body if isinstance(body, Response) else JSONResponse(body)
     r.set_cookie(COOKIE, tok, max_age=config.SESSION_DAYS * 86400, httponly=True, samesite="lax", secure=config.SECURE_COOKIES)
     return r
 
@@ -508,8 +508,10 @@ def remove_member(uid: int, request: Request, user=Depends(need_user)):
 @api.get("/api/state", include_in_schema=False)
 def state(request: Request):
     u = current_user(request)
-    return {"setup_needed": store.user_count() == 0, "signup": bool(store.setting("allow_signup", False)),
-            "user": u["username"] if u else None}
+    from . import accounts
+    m = accounts.mode()
+    return {"setup_needed": store.user_count() == 0, "signup": m != "closed", "signup_mode": m, "google": bool(accounts.google_cfg()),
+            "smtp": accounts.smtp_ready(), "user": u["username"] if u else None}
 
 
 @api.post("/api/setup", include_in_schema=False, dependencies=[Depends(same_site)])
@@ -523,23 +525,7 @@ async def setup(request: Request):
     return login_response(uid, {"ok": True})
 
 
-@api.post("/api/login", include_in_schema=False, dependencies=[Depends(same_site)])
-async def login(request: Request):
-    b = await body(request)
-    u = store.find_user(b.get("username") or "")
-    if not u or not store.check_pw(b.get("password") or "", u["pw"]):
-        time.sleep(0.5)
-        raise HTTPException(401, "نام کاربری یا رمز اشتباهه")
-    return login_response(u["id"], {"ok": True})
-
-
-@api.post("/api/signup", include_in_schema=False, dependencies=[Depends(same_site)])
-async def signup(request: Request):
-    if not store.setting("allow_signup", False):
-        raise HTTPException(403, "ثبت‌نام بسته‌ست؛ از ادمین بخواه برات حساب بسازه")
-    b = await body(request)
-    check_new_login(b.get("username"), b.get("password"))
-    return login_response(new_user(b["username"], b["password"]), {"ok": True})
+# sign-in, sign-up, verification, password reset, Google: sajadai/accounts.py
 
 
 # ---------- the signed-in user's settings ----------
@@ -1021,8 +1007,9 @@ async def save_competitor_handles(request: Request, user=Depends(need_editor)):
             raise HTTPException(400, f"«{h[:40]}» آیدی اینستاگرام نیست")
         if m.group(1) not in hs:
             hs.append(m.group(1))
-    if len(hs) > 20:
-        raise HTTPException(400, "حداکثر ۲۰ رقیب")
+    from .accounts import limits
+    if len(hs) > limits()["competitors"]:
+        raise HTTPException(400, f"حداکثر {limits()['competitors']} رقیب")
     save_content(user, "competitor_handles.json", hs, reshape=False)
     started = False
     if hs and "facebook" in store.user_secrets(user).get("connections", {}):
@@ -1808,6 +1795,22 @@ async def app(scope, receive, send):
     await api(scope, receive, send)
 
 
-# the connections page and webhooks (sajadai/sources_api.py), mounted last: it imports helpers from this module
-from . import sources_api  # noqa: E402
+# the connections page and webhooks (sajadai/sources_api.py) and accounts (sajadai/accounts.py), mounted
+# last: they import helpers from this module
+from . import accounts, sources_api  # noqa: E402
 api.include_router(sources_api.router)
+api.include_router(accounts.router)
+
+
+@api.middleware("http")
+async def security_headers(request: Request, call_next):
+    """The same headers on every answer: no framing, no MIME sniffing, a strict referrer, no browser powers."""
+    r = await call_next(request)
+    r.headers.setdefault("X-Content-Type-Options", "nosniff")
+    r.headers.setdefault("X-Frame-Options", "DENY")
+    r.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    r.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+    r.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com https://www.zarinpal.com https://sandbox.zarinpal.com")
+    if config.SECURE_COOKIES:
+        r.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+    return r

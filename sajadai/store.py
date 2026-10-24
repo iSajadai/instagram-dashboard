@@ -41,6 +41,19 @@ CREATE TABLE IF NOT EXISTS payments (    -- subscription payments through Zarinp
   created_at REAL NOT NULL,
   updated_at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS tokens (       -- one-time links: email verification, password reset
+  hash TEXT PRIMARY KEY,                 -- sha256 of the token in the link
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purpose TEXT NOT NULL,                 -- verify or reset
+  expires REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ai_usage (     -- AI calls per person per day: on the panel's key (counted against the free quota) or their own
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day TEXT NOT NULL,
+  panel_calls INTEGER NOT NULL DEFAULT 0,
+  own_calls INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, day)
+);
 CREATE TABLE IF NOT EXISTS memberships (  -- who else works on a page, and as what
   page_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -53,7 +66,10 @@ CREATE TABLE IF NOT EXISTS memberships (  -- who else works on a page, and as wh
 #   users.kind      'person' (someone who signs in; also their own first page) or 'page' (an extra page, no sign-in)
 #   users.owner_id  for a 'page': the person who made it
 #   sessions.acting_id  the page this browser is working on (empty: the person's own)
-MIGRATIONS = [("users", "kind", "TEXT NOT NULL DEFAULT 'person'"), ("users", "owner_id", "INTEGER"), ("sessions", "acting_id", "INTEGER")]
+MIGRATIONS = [("users", "kind", "TEXT NOT NULL DEFAULT 'person'"), ("users", "owner_id", "INTEGER"), ("sessions", "acting_id", "INTEGER"),
+              ("users", "email", "TEXT"), ("users", "email_verified", "INTEGER NOT NULL DEFAULT 0"),
+              ("users", "state", "TEXT NOT NULL DEFAULT 'active'"),   # active | waitlist (signed up while the list was on)
+              ("users", "google_sub", "TEXT")]
 ROLES = ("owner", "editor", "viewer")
 
 
@@ -71,6 +87,7 @@ def db():
             for table, col, decl in MIGRATIONS:
                 if col not in {r["name"] for r in _db.execute(f"PRAGMA table_info({table})")}:
                     _db.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
+            _db.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email COLLATE NOCASE) WHERE email IS NOT NULL")
         return _db
 
 
@@ -156,6 +173,59 @@ def get_user(user_id):
 def find_user(username):
     """A person by their sign-in name (extra pages have names too, but nobody signs in as them)."""
     return q1("SELECT * FROM users WHERE username = ? AND kind = 'person'", username.strip())
+
+
+def find_email(email):
+    return q1("SELECT * FROM users WHERE email = ? COLLATE NOCASE AND kind = 'person'", (email or "").strip())
+
+
+def set_user(user_id, **cols):
+    """Update a few columns of a user row (email, email_verified, state, google_sub, pw)."""
+    allowed = {"email", "email_verified", "state", "google_sub", "pw"}
+    cols = {k: v for k, v in cols.items() if k in allowed}
+    if cols:
+        q(f"UPDATE users SET {', '.join(k + ' = ?' for k in cols)} WHERE id = ?", *cols.values(), user_id)
+
+
+def new_token(user_id, purpose, hours):
+    raw = secrets.token_urlsafe(32)
+    q("DELETE FROM tokens WHERE user_id = ? AND purpose = ?", user_id, purpose)
+    q("INSERT INTO tokens (hash, user_id, purpose, expires) VALUES (?, ?, ?, ?)", hashlib.sha256(raw.encode()).hexdigest(), user_id, purpose, time.time() + hours * 3600)
+    return raw
+
+
+def use_token(raw, purpose):
+    """The user a one-time token belongs to (and the token is gone), or None."""
+    h = hashlib.sha256(str(raw or "").encode()).hexdigest()
+    row = q1("SELECT * FROM tokens WHERE hash = ? AND purpose = ?", h, purpose)
+    if not row:
+        return None
+    q("DELETE FROM tokens WHERE hash = ?", h)
+    return get_user(row["user_id"]) if row["expires"] > time.time() else None
+
+
+def person_id(user):
+    """The signed-in person behind a page: request users carry it in "person"; a plain row is the person
+    itself when kind = 'person', else its owner."""
+    keys = user.keys()
+    if "person" in keys and user["person"]:
+        return user["person"]["id"]
+    if "kind" in keys and user["kind"] == "page" and user["owner_id"]:
+        return user["owner_id"]
+    return user["id"]
+
+
+def count_ai(user_id, own):
+    day = time.strftime("%Y-%m-%d", time.gmtime(time.time() + 3.5 * 3600))
+    col = "own_calls" if own else "panel_calls"
+    q(f"INSERT INTO ai_usage (user_id, day, {col}) VALUES (?, ?, 1) ON CONFLICT(user_id, day) DO UPDATE SET {col} = {col} + 1", user_id, day)
+
+
+def ai_used(user_id, days=1):
+    """Calls on the panel's key over the last `days` days (Tehran dates)."""
+    since = time.strftime("%Y-%m-%d", time.gmtime(time.time() + 3.5 * 3600 - (days - 1) * 86400))
+    r = q1("SELECT COALESCE(SUM(panel_calls), 0) AS p, COALESCE(SUM(own_calls), 0) AS o FROM ai_usage WHERE user_id = ? AND day >= ?", user_id, since)
+    return {"panel": r["p"], "own": r["o"]}
 
 
 def name_taken(username):

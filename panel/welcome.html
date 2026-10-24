@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>راه‌اندازی داشبورد</title>
+<link rel="icon" href="/assets/images/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/sepehr.css">
+<script>try{var t=localStorage.getItem('sj-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<link rel="stylesheet" href="/assets/panel.css">
+<link rel="stylesheet" href="/assets/skin.css">
+<link rel="stylesheet" href="/assets/ui.css">
+<style>
+.wz { max-width: 44rem; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 16px; }
+.wz-steps { display: flex; gap: 6px; list-style: none; padding: 0; margin: 0; }
+.wz-steps li { flex: 1; height: 6px; border-radius: 99px; background: var(--surface-3); }
+.wz-steps li.on { background: var(--accent); }
+.wz-card { padding: clamp(18px, 4vw, 28px); border-radius: 24px; border: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; gap: 14px; }
+.wz-card h1 { font-size: var(--fs-xl); margin: 0; }
+.wz-card h1:focus { outline: none; }
+.wz-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 10px; }
+.wz-opt { display: flex; flex-direction: column; gap: 4px; text-align: start; padding: 14px; min-height: var(--tap); border-radius: var(--shape-control); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.wz-opt small { color: var(--text-secondary); font-size: var(--fs-xs); line-height: var(--lh-body); }
+.wz-opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.wz-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.wz-note { font-size: var(--fs-sm); color: var(--text-secondary); line-height: var(--lh-body); margin: 0; }
+.wz-guide { margin: 0; padding-inline-start: 20px; font-size: var(--fs-sm); line-height: var(--lh-body); }
+.wz-form { display: flex; flex-direction: column; gap: 10px; }
+.wz-form label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-sm); }
+.wz-skip { background: none; border: 0; color: var(--text-secondary); font: inherit; min-height: var(--tap); cursor: pointer; }
+</style>
+</head>
+<body>
+<main class="wz pn">
+  <ol class="wz-steps" aria-label="مراحل"><li></li><li></li><li></li><li></li><li></li></ol>
+  <section class="wz-card" id="card" aria-live="polite"></section>
+</main>
+<script src="/assets/panel.js"></script>
+<script>
+/* Five steps, under two minutes: account type → a source (the one that fits that type, connected right here)
+   → the first sync → goals → Telegram (optional). Each step can be skipped; settings has everything again. */
+(function () {
+  const card = document.getElementById('card');
+  const el = pn.el;
+  let step = 0, kind = '', chosen = '';
+  const steps = [typeStep, sourceStep, syncStep, goalsStep, telegramStep];
+  const SOURCES = {
+    business: [['meta_app', 'اپ Meta خودت', 'رایگان و کامل: همهٔ آمار، مخاطب، کامنت و انتشار. ۵ دقیقه ساختن اپ.'],
+               ['routine', 'Metricool از راه روتین Claude', 'اگه Metricool و claude.ai داری.'], ['export_csv', 'خروجی Meta Business Suite', 'بدون هیچ API: یه فایل آپلود کن.']],
+    creator: [['meta_app', 'اپ Meta خودت', 'رایگان و کامل.'], ['export_csv', 'خروجی داشبورد حرفه‌ای', 'فایل CSV/XLSX محتوا.'], ['screenshot', 'اسکرین‌شات Insights', 'برای هر ریل؛ هوش مصنوعی عددها رو می‌خونه.']],
+    personal: [['export_csv', 'خروجی دستی', 'بعد از حرفه‌ای کردن حساب.'], ['screenshot', 'اسکرین‌شات Insights', ''], ['apify', 'Apify (دادهٔ عمومی)', 'پولی؛ بازدید و لایک عمومی بدون نیاز به حساب حرفه‌ای.']],
+  };
+  function paint() {
+    document.querySelectorAll('.wz-steps li').forEach((li, i) => li.classList.toggle('on', i <= step));
+    card.replaceChildren(); steps[step]();
+    const h = card.querySelector('h1'); if (h) { h.tabIndex = -1; h.focus(); }
+  }
+  const next = () => { step = Math.min(step + 1, steps.length - 1); paint(); };
+  const skip = (label) => el('button', { type: 'button', class: 'wz-skip', onclick: next }, label || 'فعلاً رد شو');
+  const done = () => { location.href = '/'; };
+
+  function typeStep() {
+    const opt = (k, t, d) => el('button', { type: 'button', class: 'wz-opt', 'aria-pressed': String(kind === k), onclick: () => { kind = k; paint(); } }, el('b', {}, t), el('small', {}, d));
+    card.append(el('h1', {}, 'حساب اینستاگرامت از چه نوعیه؟'), el('p', { class: 'wz-note' }, 'تو اینستاگرام: تنظیمات ← نوع حساب و ابزارها. فقط حساب‌های حرفه‌ای (Business یا Creator) آمار کامل دارن.'),
+      el('div', { class: 'wz-options' }, opt('business', 'کسب‌وکار (Business)', 'فروشگاه، برند، خدمات'), opt('creator', 'تولیدکننده (Creator)', 'بلاگر، آموزش، سرگرمی'), opt('personal', 'شخصی', 'آمار نداره؛ راه‌های دیگه هست')));
+    if (kind === 'personal') card.append(el('ol', { class: 'wz-guide' }, el('li', {}, 'تو اینستاگرام: تنظیمات ← «نوع حساب و ابزارها» ← «تغییر به حساب حرفه‌ای».'),
+      el('li', {}, 'دسته رو انتخاب کن و «Creator» رو بزن؛ رایگانه و پست‌هات تغییر نمی‌کنه.'), el('li', {}, 'تا اون موقع می‌تونی با فایل، اسکرین‌شات یا Apify شروع کنی.')));
+    card.append(el('div', { class: 'wz-row' }, el('button', { type: 'button', class: 'primary', disabled: kind ? null : '', onclick: next }, 'ادامه'), skip()));
+  }
+
+  function sourceStep() {
+    const list = SOURCES[kind || 'creator'];
+    if (!chosen) chosen = list[0][0];
+    const opt = ([id, t, d]) => el('button', { type: 'button', class: 'wz-opt', 'aria-pressed': String(chosen === id), onclick: () => { chosen = id; paint(); } }, el('b', {}, t), el('small', {}, d));
+    card.append(el('h1', {}, 'داده‌ها از کجا بیان؟'), el('p', { class: 'wz-note' }, 'پیشنهاد ما برای حساب تو اینه؛ بعداً از «تنظیمات ← اتصال‌ها» بقیه رو هم وصل کن.'),
+      el('div', { class: 'wz-options' }, ...list.map(opt)), connectForm(chosen), el('div', { class: 'wz-row' }, skip('بعداً وصل می‌کنم')));
+  }
+
+  function connectForm(id) {
+    const msg = el('p', { class: 'pn-msg', role: 'status' });
+    if (id === 'export_csv') {
+      const f = el('input', { type: 'file', accept: '.csv,.xlsx' });
+      const b = el('button', { type: 'button', class: 'primary' }, 'آپلود و ادامه');
+      b.addEventListener('click', () => pn.run(b, msg, async () => {
+        if (!f.files[0]) throw new Error('فایل رو انتخاب کن');
+        const r = await fetch('/api/me/providers/export_csv/upload?name=' + encodeURIComponent(f.files[0].name), { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'sajadai' }, body: f.files[0] });
+        const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.detail || 'آپلود نشد');
+        setTimeout(next, 600); return d;
+      }));
+      return el('div', { class: 'wz-form' }, el('ol', { class: 'wz-guide' }, el('li', {}, 'business.facebook.com ← Insights ← Content ← Export data (CSV).')), f, b, msg);
+    }
+    if (id === 'screenshot') return el('div', { class: 'wz-form' }, el('p', { class: 'wz-note' }, 'اسکرین‌شات‌ها رو از «تنظیمات ← اتصال‌ها ← اسکرین‌شات Insights» آپلود کن (هوش مصنوعی باید وصل باشه).'),
+      el('a', { class: 'sj-btn', href: '/settings#src-screenshot' }, 'رفتن به اسکرین‌شات'));
+    const FIELDS = { meta_app: [['app_id', 'App ID'], ['app_secret', 'App Secret'], ['token', 'Access token']], routine: [['repo', 'مخزن (owner/name)']], apify: [['api_key', 'API token'], ['handle', 'آیدی پیجت']] }[id] || [];
+    const GUIDE = { meta_app: ['developers.facebook.com ← Create App ← Business ← محصول Instagram ← «API setup with Instagram login».', 'حسابت رو Instagram tester کن و دعوت رو تو اینستاگرام قبول کن.', '«Generate token» با همهٔ دسترسی‌ها؛ App ID و App Secret از App settings ← Basic.'] }[id] || [];
+    const inputs = FIELDS.map(([f, l]) => el('label', {}, l, el('input', { 'data-f': f, dir: 'ltr', autocomplete: 'off', type: /secret|token|api_key/.test(f) ? 'password' : 'text' })));
+    const b = el('button', { type: 'button', class: 'primary' }, 'وصل کن');
+    const box = el('div', { class: 'wz-form' }, GUIDE.length ? el('ol', { class: 'wz-guide' }, ...GUIDE.map((g) => el('li', {}, g))) : '', ...inputs, b, msg);
+    b.addEventListener('click', () => pn.run(b, msg, async () => {
+      const vals = Object.fromEntries([...box.querySelectorAll('[data-f]')].map((i) => [i.dataset.f, i.value.trim()]));
+      const r = await pn.api('POST', '/api/me/providers/' + id, vals);
+      if (r.ok) setTimeout(next, 800);
+      return { ok: r.ok, message: r.message_fa + ((r.missing_permissions || []).length ? ' دسترسی‌های کم: ' + r.missing_permissions.map((m) => m.why_fa).join('، ') : '') };
+    }));
+    return box;
+  }
+
+  function syncStep() {
+    const status = el('p', { class: 'wz-note', role: 'status' }, 'در حال گرفتن اولین داده…');
+    card.append(el('h1', {}, 'اولین همگام‌سازی'), status, el('div', { class: 'wz-row' }, skip('ادامه، داده بعداً میاد')));
+    let tries = 0;
+    const poll = async () => {
+      if (step !== 2) return;
+      try {
+        const me = await pn.api('GET', '/api/me');
+        const h = me.health || {};
+        if (h.data_at && !h.stale) { status.textContent = 'داده رسید ✓'; setTimeout(next, 700); return; }
+        if (me.status && me.status.refresh_ok === false) { status.textContent = 'گرفتن داده خطا داد؛ از «تنظیمات ← اتصال‌ها» چکش کن. می‌تونی ادامه بدی.'; return; }
+        if (!h.connected) { status.textContent = 'هنوز منبعی وصل نشده؛ بعداً از تنظیمات وصلش کن.'; return; }
+      } catch (e) { /* keep waiting */ }
+      if (++tries < 40) setTimeout(poll, 3000); else status.textContent = 'طول کشید؛ ادامه بده، داده تو پس‌زمینه میاد.';
+    };
+    pn.api('POST', '/api/me/refresh').catch(() => {}).finally(() => setTimeout(poll, 1500));
+  }
+
+  function goalsStep() {
+    const fol = el('input', { type: 'number', min: '1', dir: 'ltr', value: '1000' }), reels = el('input', { type: 'number', min: '1', max: '30', dir: 'ltr', value: '4' });
+    const msg = el('p', { class: 'pn-msg', role: 'status' });
+    const b = el('button', { type: 'button', class: 'primary' }, 'ذخیره و ادامه');
+    b.addEventListener('click', () => pn.run(b, msg, async () => {
+      await pn.api('POST', '/api/me/goals', { goals: [{ label: Number(fol.value).toLocaleString('fa-IR') + ' فالوئر', metric: 'followers', target: Number(fol.value) },
+        { label: Number(reels.value).toLocaleString('fa-IR') + ' ریل در هفته', metric: 'reels_7d', target: Number(reels.value) }] });
+      setTimeout(next, 400); return { ok: true, message: 'ذخیره شد ✓' };
+    }));
+    card.append(el('h1', {}, 'هدفت چیه؟'), el('div', { class: 'wz-form' }, el('label', {}, 'هدف فالوئر', fol), el('label', {}, 'چند ریل در هفته', reels), b, msg), el('div', { class: 'wz-row' }, skip()));
+  }
+
+  function telegramStep() {
+    const msg = el('p', { class: 'pn-msg', role: 'status' });
+    const b = el('button', { type: 'button', class: 'primary' }, 'اتصال تلگرام');
+    b.addEventListener('click', () => pn.run(b, msg, async () => { const r = await pn.api('POST', '/api/me/telegram/link'); window.open(r.url, '_blank', 'noopener'); return { ok: true, message: 'تو ربات «Start» رو بزن.' }; }));
+    card.append(el('h1', {}, 'هشدارها تو تلگرام (اختیاری)'), el('p', { class: 'wz-note' }, 'ریلی که داره می‌ترکه یا عقب می‌مونه، گزارش هفتگی، و سؤال از داشبورد تو تلگرام.'),
+      el('div', { class: 'wz-row' }, b, el('button', { type: 'button', onclick: done }, 'رفتن به داشبورد')), msg);
+  }
+  paint();
+})();
+</script>
+</body>
+</html>

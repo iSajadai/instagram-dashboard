@@ -122,16 +122,20 @@ def scheduled_posts():
 
 
 def user_file(name, default):
-    """A file the user edits (goals, topics, experiments): theirs in $SAJADAI_STATE/content when the
-    panel saved one, else the repo's (Sajadai's own, or the defaults for a fresh install)."""
+    """A file the user edits (goals, topics, experiments). For a panel user ($SAJADAI_STATE) only their own
+    copy: another page's content must never show up in theirs. Run from the repo, the repo's."""
     v = load(os.path.join(GENERATED, name), None)
-    return v if v is not None else load(os.path.join(CONTENT, name), default)
+    if v is not None:
+        return v
+    return default if STATE else load(os.path.join(CONTENT, name), default)
 
 
 def generated(name):
-    """A Claude-written content file: the server's copy when there is one, else the repo's."""
+    """A Claude-written content file (ideas, insights, benchmarks): the user's own, never another's."""
     v = load(os.path.join(GENERATED, name), None)
-    return v if isinstance(v, list) else load(os.path.join(CONTENT, name), [])
+    if isinstance(v, list):
+        return v
+    return [] if STATE else load(os.path.join(CONTENT, name), [])
 
 
 def teh(iso):

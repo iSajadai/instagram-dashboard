@@ -72,6 +72,30 @@
     <div class="pn-wrap"><table><thead><tr><th>کاربر</th><th>پلن</th><th>مبلغ</th><th>وضعیت</th><th>کد پیگیری</th><th>زمان</th></tr></thead><tbody id="payments"></tbody></table></div>
   </section>
 
+  <section class="pn-card" id="admin-accounts">
+    <h2>حساب‌ها و ظرفیت</h2>
+    <p class="pn-note" id="acc-sum"></p>
+    <div class="pn-grid">
+      <label>ثبت‌نام<select id="acc-mode"><option value="closed">بسته</option><option value="open">باز</option><option value="waitlist">صف انتظار (تأیید دسته‌ای)</option></select></label>
+      <label>سهمیهٔ رایگان AI در روز (هر نفر، با کلید پنل)<input id="acc-qd" type="number" min="0" dir="ltr"></label>
+      <label>سهمیهٔ رایگان AI در ماه<input id="acc-qm" type="number" min="0" dir="ltr"></label>
+      <label>حداکثر اتصال برای هر پیج<input id="acc-lc" type="number" min="1" dir="ltr"></label>
+      <label>حداکثر رقیب برای هر پیج<input id="acc-lr" type="number" min="0" dir="ltr"></label>
+    </div>
+    <details><summary>ورود با گوگل (اختیاری)</summary>
+      <p class="pn-note">تو Google Cloud Console یه OAuth client از نوع «Web application» بساز و Redirect URI رو <code dir="ltr" id="acc-redirect"></code> بذار.</p>
+      <div class="pn-grid"><label>Client ID<input id="acc-gid" dir="ltr"></label><label>Client secret<input id="acc-gsec" type="password" dir="ltr" autocomplete="off"></label></div>
+    </details>
+    <div class="pn-row"><button class="primary" id="acc-save" type="button">ذخیره</button><span class="pn-msg" id="acc-msg"></span></div>
+    <h3>صف انتظار</h3>
+    <div id="acc-wait"></div>
+    <div class="pn-row"><button id="acc-approve" type="button">تأیید انتخاب‌شده‌ها</button><span class="pn-msg" id="acc-wmsg"></span></div>
+    <h3>خطاهای همگام‌سازی</h3>
+    <div id="acc-errors" class="pn-note"></div>
+    <h3>مصرف هوش مصنوعی و صف کار</h3>
+    <div id="acc-ai" class="pn-note"></div>
+  </section>
+
   <section class="pn-card" id="admin-users">
     <h2>کاربرها</h2>
     <div class="pn-wrap"><table>
@@ -91,6 +115,40 @@
 </main>
 <script src="/assets/ui.js"></script>
 <script src="/assets/panel.js"></script>
+<script>
+/* Accounts and capacity: sign-up mode, the free AI quota, limits per page, Google sign-in, the waitlist,
+   sync errors, AI use and the sync queue (GET/POST /api/admin/accounts). */
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const FA = (t) => String(t ?? '').replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  async function load() {
+    let a; try { a = await pn.api('GET', '/api/admin/accounts'); } catch (e) { return; }
+    $('acc-sum').textContent = `${FA(a.people)} نفر (${FA(a.active)} فعال، ${FA(a.waitlist.length)} در صف، ${FA(a.verified)} ایمیل تأییدشده) · ${FA(a.pages)} پیج اضافه`
+      + (a.smtp ? '' : ' · ⚠️ ایمیل پنل (SMTP) تنظیم نشده: تأیید ایمیل و بازیابی رمز کار نمی‌کنه.');
+    $('acc-mode').value = a.mode; $('acc-qd').value = a.quota.daily; $('acc-qm').value = a.quota.monthly;
+    $('acc-lc').value = a.limits.connections; $('acc-lr').value = a.limits.competitors;
+    $('acc-redirect').textContent = location.origin + '/auth/google/callback';
+    $('acc-wait').replaceChildren(...(a.waitlist.length ? a.waitlist.map((w) => pn.el('label', { class: 'pn-check' }, pn.el('input', { type: 'checkbox', value: w.id }), ' ', w.email || ('#' + w.id), w.verified ? ' ✓' : ' (ایمیل تأیید نشده)', ' · ', pn.when(w.at))) : [pn.el('p', { class: 'pn-note' }, 'کسی تو صف نیست.')]));
+    $('acc-errors').replaceChildren(...(a.sync_errors.length ? a.sync_errors.map((e) => pn.el('p', {}, pn.el('b', {}, e.name), ' · ', pn.when(e.at), ': ', e.log.slice(-160))) : ['خطایی نیست ✓']));
+    $('acc-ai').textContent = `AI امروز: ${FA(a.ai.today.p)} با کلید پنل، ${FA(a.ai.today.o)} با کلید خود کاربرها · این ماه: ${FA(a.ai.month.p)} / ${FA(a.ai.month.o)}`
+      + (a.ai.top.length ? ' · بیشترین: ' + a.ai.top.slice(0, 5).map((t) => t.username + ' ' + FA(t.p)).join('، ') : '')
+      + ` · صف همگام‌سازی: ${FA(a.queue.length)} در انتظار، ${FA(a.running.length)} در حال اجرا، ${FA(a.queue_stats.done)} موفق، ${FA(a.queue_stats.failed)} ناموفق`;
+  }
+  $('acc-save').addEventListener('click', (e) => pn.run(e.currentTarget, $('acc-msg'), async () => {
+    const b = { mode: $('acc-mode').value, quota: { daily: Number($('acc-qd').value), monthly: Number($('acc-qm').value) },
+      limits: { connections: Number($('acc-lc').value), competitors: Number($('acc-lr').value) } };
+    if ($('acc-gid').value.trim()) b.google = { client_id: $('acc-gid').value.trim(), client_secret: $('acc-gsec').value.trim() };
+    const r = await pn.api('POST', '/api/admin/accounts', b); await load(); return { ok: true, message: 'ذخیره شد ✓' };
+  }));
+  $('acc-approve').addEventListener('click', (e) => pn.run(e.currentTarget, $('acc-wmsg'), async () => {
+    const ids = [...document.querySelectorAll('#acc-wait input:checked')].map((i) => Number(i.value));
+    if (!ids.length) throw new Error('کسی انتخاب نشده');
+    const r = await pn.api('POST', '/api/admin/accounts', { approve: ids }); await load();
+    return { ok: true, message: FA(r.approved.length) + ' نفر تأیید شدن ✓' };
+  }));
+  load();
+})();
+</script>
 <script>
 (async function () {
   const $ = (id) => document.getElementById(id);

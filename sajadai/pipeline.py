@@ -201,9 +201,14 @@ def analysis_load(path):
 
 def health(user):
     """{"data_at", "stale", "hours"} for the banner and the alert."""
-    if not store.user_secrets(user).get("connections"):
+    norm = config.user_dir(user["id"]) / "raw" / "norm"
+    files_only = norm.is_dir() and any(norm.glob("*.json"))
+    if not store.user_secrets(user).get("connections") and not files_only:
         return {"data_at": None, "stale": False, "hours": None, "connected": False}
     t = data_time(user["id"])
+    if not store.user_secrets(user).get("connections"):
+        # only uploaded files and forms: nothing syncs by itself, so old data isn't a failure to warn about
+        return {"data_at": t, "hours": round((time.time() - t) / 3600, 1) if t else None, "stale": False, "connected": True, "manual": True, "last_error": None}
     hours = round((time.time() - t) / 3600, 1) if t else None
     return {"data_at": t, "hours": hours, "stale": hours is None or hours > STALE_HOURS, "connected": True,
             "last_error": None if store.status(user).get("refresh_ok", True) else (store.status(user).get("refresh_log") or "")[-400:]}
@@ -426,7 +431,10 @@ def due_jobs(now=None):
     for u in store.users():
         s = store.status(u)
         conns = store.user_secrets(u).get("connections", {})
-        if conns and now - (s.get("refresh_at") or 0) >= config.REFRESH_HOURS * 3600:
+        # each page has its own slot in the 6-hour cycle so a thousand pages don't all sync at :00
+        slot = (u["id"] * 137) % (config.REFRESH_HOURS * 60)
+        in_slot = (int(now // 60) - slot) % (config.REFRESH_HOURS * 60) < 15
+        if conns and now - (s.get("refresh_at") or 0) >= (config.REFRESH_HOURS - 0.5) * 3600 and (in_slot or now - (s.get("refresh_at") or 0) >= config.REFRESH_HOURS * 2 * 3600):
             out.append((u["id"], "refresh"))
         if now - (s.get("notify_at") or 0) >= 3600:
             out.append((u["id"], "notify"))

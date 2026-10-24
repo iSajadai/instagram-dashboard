@@ -100,6 +100,10 @@ html .auth-form button.primary { width: 100%; padding: 0.85rem 1rem; font-size: 
 @media (prefers-reduced-motion: reduce) { .float-card, .brand-wave path, .mode-tabs__thumb { animation: none; transition: none; } }
 .password-toggle { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
 .password-toggle svg { width: 20px; height: 20px; }
+.auth-check { display: flex; gap: 8px; align-items: center; font-size: var(--fs-sm); min-height: var(--tap); }
+.auth-check input { width: 20px; height: 20px; }
+.auth-link { background: none; border: 0; padding: 0; min-height: var(--tap); color: var(--accent); font: inherit; cursor: pointer; }
+.auth-google { display: flex; align-items: center; justify-content: center; min-height: var(--tap); border-radius: var(--shape-control); border: 1px solid var(--border-strong); color: var(--text); text-decoration: none; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -140,11 +144,11 @@ html .auth-form button.primary { width: 100%; padding: 0.85rem 1rem; font-size: 
           <h2 id="title">خوش اومدی</h2>
           <p class="lead" id="lead">برای دیدن داشبوردت وارد شو.</p>
         </div>
-        <div class="field">
-          <label for="username">نام کاربری</label>
-          <input id="username" dir="ltr" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_.\-]+" placeholder="مثلاً sajad">
+        <div class="field" id="f-user">
+          <label for="username" id="user-label">ایمیل یا نام کاربری</label>
+          <input id="username" dir="ltr" autocomplete="username" required maxlength="190" placeholder="you@example.com">
         </div>
-        <div class="field">
+        <div class="field" id="f-pass">
           <label for="password">رمز عبور</label>
           <div class="password-field">
             <input id="password" type="password" dir="ltr" autocomplete="current-password" required minlength="8" placeholder="••••••••">
@@ -152,10 +156,13 @@ html .auth-form button.primary { width: 100%; padding: 0.85rem 1rem; font-size: 
             </button>
           </div>
         </div>
+        <label class="auth-check" id="f-privacy" hidden><input type="checkbox" id="privacy"> <span><a href="/privacy" target="_blank">حریم خصوصی</a> رو خوندم و قبول دارم.</span></label>
         <button class="primary" id="go" type="submit">ورود</button>
+        <a class="auth-google" id="google" href="/auth/google" hidden>ورود با گوگل</a>
         <p class="pn-msg" id="msg" role="status"></p>
-        <p class="auth-foot" id="foot">رمزت رو فراموش کردی؟ از ادمین پنل بخواه برات یه رمز تازه بذاره.</p>
-        <p class="auth-foot"><a href="/contact">تماس با ما</a></p>
+        <p class="auth-foot" id="foot"><button type="button" class="auth-link" id="to-forgot">رمزت رو فراموش کردی؟</button> · <button type="button" class="auth-link" id="resend">ایمیل تأیید نرسید؟</button></p>
+        <p class="auth-foot" id="back" hidden><button type="button" class="auth-link" id="to-login">برگشت به ورود</button></p>
+        <p class="auth-foot"><a href="/contact">تماس با ما</a> · <a href="/privacy">حریم خصوصی</a></p>
       </form>
     </section>
   </div>
@@ -166,24 +173,43 @@ html .auth-form button.primary { width: 100%; padding: 0.85rem 1rem; font-size: 
 (async function () {
   const $ = (id) => document.getElementById(id);
   const s = await pn.api('GET', '/api/state');
-  if (s.user && !s.setup_needed) { location.href = '/'; return; }
-  let mode = s.setup_needed ? 'setup' : 'login';
+  const resetToken = location.pathname === '/reset' ? new URLSearchParams(location.search).get('token') : null;
+  if (s.user && !s.setup_needed && !resetToken) { location.href = '/'; return; }
+  let mode = s.setup_needed ? 'setup' : resetToken ? 'reset' : 'login';
   const TEXT = {
     setup: ['ساختن حساب ادمین', 'اولین بار است که پنل باز می‌شه. حسابی که الان می‌سازی ادمین پنله: کاربرها و کلیدهای مشترک رو مدیریت می‌کنه.', 'ساختن و ورود'],
     login: ['خوش اومدی', 'برای دیدن داشبوردت وارد شو.', 'ورود'],
-    signup: ['حساب بساز', 'بعد از ثبت‌نام، از «تنظیمات» صفحهٔ اینستاگرامت رو وصل کن.', 'ثبت‌نام'],
+    signup: ['حساب رایگان بساز', s.signup_mode === 'waitlist' ? 'ثبت‌نام‌ها فعلاً تو صف انتظار می‌رن و به‌زودی باز می‌شن.' : 'با ایمیل ثبت‌نام کن؛ کمتر از ۲ دقیقه بعد داده‌های پیجت رو می‌بینی.', s.signup_mode === 'waitlist' ? 'پیوستن به صف' : 'ثبت‌نام'],
+    forgot: ['بازیابی رمز', 'ایمیل حسابت رو بنویس؛ لینک گذاشتن رمز تازه برات میاد.', 'فرستادن لینک'],
+    reset: ['رمز تازه', 'رمز تازه‌ات رو بنویس (دست‌کم ۸ حرف).', 'ذخیرهٔ رمز'],
   };
   const show = () => {
     const [title, lead, go] = TEXT[mode];
     $('title').textContent = title; $('lead').textContent = lead; $('go').textContent = go;
     $('password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
-    $('tabs').hidden = mode === 'setup' || !s.signup;
+    $('tabs').hidden = !['login', 'signup'].includes(mode) || !s.signup;
     $('tabs').dataset.mode = mode === 'signup' ? 'signup' : 'login';
+    $('f-user').hidden = mode === 'reset';
+    $('f-pass').hidden = mode === 'forgot';
+    $('f-privacy').hidden = mode !== 'signup';
+    $('user-label').textContent = mode === 'login' ? 'ایمیل یا نام کاربری' : mode === 'setup' ? 'نام کاربری' : 'ایمیل';
+    $('username').placeholder = mode === 'setup' ? 'مثلاً sajad' : 'you@example.com';
+    $('username').type = mode === 'signup' || mode === 'forgot' ? 'email' : 'text';
+    $('google').hidden = !s.google || !['login', 'signup'].includes(mode);
     $('foot').hidden = mode !== 'login';
+    $('back').hidden = !['forgot', 'reset'].includes(mode);
     document.querySelectorAll('.mode-tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === mode)));
   };
   show();
-  document.querySelectorAll('.mode-tab').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.mode; pn.say($('msg'), ''); show(); }));
+  const go = (m) => { mode = m; pn.say($('msg'), ''); show(); };
+  document.querySelectorAll('.mode-tab').forEach((b) => b.addEventListener('click', () => go(b.dataset.mode)));
+  $('to-forgot').addEventListener('click', () => go('forgot'));
+  $('to-login').addEventListener('click', () => { history.replaceState(null, '', '/login'); go('login'); });
+  $('resend').addEventListener('click', () => {
+    const email = $('username').value.trim();
+    if (!email.includes('@')) { pn.say($('msg'), 'اول ایمیلت رو تو کادر بالا بنویس', false); $('username').focus(); return; }
+    pn.run($('resend'), $('msg'), () => pn.api('POST', '/api/verify/resend', { email }));
+  });
   $('eye').addEventListener('click', () => {
     const on = $('password').type === 'password';
     $('password').type = on ? 'text' : 'password';
@@ -193,8 +219,20 @@ html .auth-form button.primary { width: 100%; padding: 0.85rem 1rem; font-size: 
   });
   $('form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const r = await pn.run($('go'), $('msg'), () => pn.api('POST', '/api/' + mode, { username: $('username').value.trim(), password: $('password').value }));
-    if (r && r.ok) { location.href = mode === 'login' ? '/' : '/settings'; return; }
+    const user = $('username').value.trim(), password = $('password').value;
+    const call = {
+      setup: () => pn.api('POST', '/api/setup', { username: user, password }),
+      login: () => pn.api('POST', '/api/login', { username: user, password }),
+      signup: () => pn.api('POST', '/api/signup', { email: user, password, privacy: $('privacy').checked }),
+      forgot: () => pn.api('POST', '/api/password/forgot', { email: user }),
+      reset: () => pn.api('POST', '/api/password/reset', { token: resetToken, password }),
+    }[mode];
+    const r = await pn.run($('go'), $('msg'), call);
+    if (r && r.ok) {
+      if (mode === 'forgot' || r.verify || r.waitlist) return;  // the message says what's next
+      location.href = r.next || (mode === 'setup' ? '/welcome' : '/');
+      return;
+    }
     const card = document.querySelector('.auth-form form');
     card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
   });
