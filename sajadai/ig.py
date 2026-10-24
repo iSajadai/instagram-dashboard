@@ -190,6 +190,7 @@ def step(user, item, public_url):
             pub = call(user, "POST", f"{item['ig_id']}/media_publish", creation_id=item["container"])
             link = call(user, "GET", pub["id"], fields="permalink").get("permalink")
             item.update(status="published", media_id=pub["id"], permalink=link, published=time.time(), note="")
+            remember_duration(user, link, media_path(item.get("video")))
             drop_media(item.get("video"), item.get("cover"))
             return True
         if code in ("ERROR", "EXPIRED"):
@@ -199,6 +200,31 @@ def step(user, item, public_url):
         if now - item.get("started", now) > 3600:
             return fail(item, "پردازش ویدیو تو اینستاگرام بیشتر از یک ساعت طول کشید؛ دوباره امتحان کن.")
     return False
+
+
+def probe(path):
+    """Seconds of video, from the file's header (ffprobe)."""
+    import shutil, subprocess
+    if not path or not shutil.which("ffprobe"):
+        return None
+    try:
+        r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)], capture_output=True, text=True, timeout=60)
+        return round(float(r.stdout.strip()), 1) if r.returncode == 0 and r.stdout.strip() else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
+def remember_duration(user, permalink, path):
+    """content/durations.json {shortcode: seconds}, which shape.py uses for the watch-% column."""
+    m = re.search(r"/(?:reels?|p|tv)/([A-Za-z0-9_-]+)", permalink or "")
+    secs = probe(path)
+    if not m or not secs:
+        return
+    p = config.user_dir(user["id"]) / "content" / "durations.json"
+    d = analysis.load(p) or {}
+    d[m.group(1)] = secs
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(d), encoding="utf-8")
 
 
 def fail(item, msg):

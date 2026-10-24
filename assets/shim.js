@@ -64,7 +64,7 @@
       const res = await fetch('data/data.json?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const j = await res.json();
-      generatedAt = j.generated_at || null;
+      generatedAt = j.data_at || j.generated_at || null;
       Object.keys(j).forEach((k) => { if (Array.isArray(j[k])) store[k] = j[k]; });
       computeCalcs();
       status = 'ok';
@@ -79,11 +79,11 @@
         ? new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tehran' }).format(new Date(generatedAt))
         : 'نامشخص';
     }
-    // data normally lands every 6h; past 12h the sync routine has probably failed
+    // data normally lands every 6h; past 8h a sync has failed (the panel also sends a message)
     const stale = document.getElementById('sj-stale');
     if (stale) {
       const age = generatedAt ? (Date.now() - new Date(generatedAt).getTime()) / 36e5 : null;
-      stale.hidden = !(ok && age != null && age > 12);
+      stale.hidden = !(ok && age != null && age > 8);
       const h = document.getElementById('sj-stale-hours');
       if (h && age != null) h.textContent = new Intl.NumberFormat('fa-IR').format(Math.floor(age));
     }

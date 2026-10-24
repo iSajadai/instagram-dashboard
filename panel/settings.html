@@ -120,7 +120,7 @@
 
   <section class="pn-card" data-min="editor" id="experiments-card">
     <h2>آزمایش‌ها</h2>
-    <p class="pn-note">دو هوک یا دو کاور رو روی دو ریل امتحان کن. لینک هر دو ریل رو بذار؛ وقتی هر دو ۴۸ ساعته شدن، برنده تو صفحهٔ «آزمایش‌ها»ی داشبورد معلوم می‌شه.</p>
+    <p class="pn-note">دو هوک یا دو کاور رو امتحان کن. برای هر طرف لینک ریل‌هاش رو بذار (دست‌کم ۳ تا برای هر طرف، با موضوع و ساعت انتشار نزدیک به هم)؛ وقتی هر طرف ۳ ریلِ ۴۸ ساعته داشت، نتیجه تو صفحهٔ «آزمایش‌ها»ی داشبورد میاد. با یه ریل در برابر یه ریل نمی‌شه نتیجه گرفت.</p>
     <div id="exps" style="display:flex;flex-direction:column;gap:12px"></div>
     <div class="pn-row"><button id="add-exp" type="button">+ آزمایش</button><button class="primary" id="save-exps" type="button">ذخیرهٔ آزمایش‌ها</button><span class="pn-msg" id="exps-msg"></span></div>
   </section>
@@ -392,7 +392,8 @@
     sel.value = x.metric;
     const side = (k, s) => pn.el('div', { class: 'pn-grid' },
       pn.el('label', {}, 'ریل ' + k.toUpperCase() + ' — چی فرق داشت', inp(k + '.label', (s || {}).label, { maxlength: '200' })),
-      pn.el('label', {}, 'لینک ریل ' + k.toUpperCase(), inp(k + '.url', (s || {}).url, { dir: 'ltr', placeholder: 'https://www.instagram.com/reel/…' })));
+      pn.el('label', {}, 'لینک ریل‌های ' + k.toUpperCase() + ' (هر کدوم یه خط، دست‌کم ۳)',
+        pn.el('textarea', { 'data-k': k + '.urls', dir: 'ltr', rows: '3', placeholder: 'https://www.instagram.com/reel/…' }, ((s || {}).urls || ((s || {}).url ? [s.url] : [])).join('\n'))));
     const box = pn.el('div', { class: 'pn-exp', style: 'display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--color-border-line);padding-top:12px' },
       pn.el('div', { class: 'pn-grid' }, pn.el('label', {}, 'عنوان', inp('title', x.title, { maxlength: '120' })), pn.el('label', {}, 'معیار', sel)),
       pn.el('label', {}, 'فرضیه', inp('hypothesis', x.hypothesis, { maxlength: '500', placeholder: 'مثلاً: هوک سؤالی بیننده‌های بیشتری رو از ۳ ثانیهٔ اول رد می‌کنه' })),
@@ -435,7 +436,7 @@
     experiments: [...$('exps').children].map((box) => {
       const v = (k) => box.querySelector('[data-k="' + k + '"]').value.trim();
       return { id: box.dataset.id, title: v('title'), hypothesis: v('hypothesis'), metric: v('metric'), notes: v('notes'),
-        a: { label: v('a.label'), url: v('a.url') }, b: { label: v('b.label'), url: v('b.url') } };
+        a: { label: v('a.label'), urls: v('a.urls').split(/\s+/).filter(Boolean) }, b: { label: v('b.label'), urls: v('b.urls').split(/\s+/).filter(Boolean) } };
     }) }).then(async (r) => { await load(); return r; })));
   $('save-topics').addEventListener('click', (e) => pn.run(e.currentTarget, $('topics-msg'), () => {
     const topics = [...$('topics').children].map((tr) => ({ id: tr.dataset.id, label: tr.querySelector('[data-k=label]').value.trim(), keywords: tr.querySelector('[data-k=keywords]').value }));

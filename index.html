@@ -265,6 +265,8 @@
             <th data-field="views">بازدید</th>
             <th data-field="multiple">چند برابر میانه</th>
             <th data-field="view_rate">ماندن ۳ ثانیه</th>
+            <th data-field="watch_pct" title="میانگین زمان تماشا ÷ مدت ویدیو">درصد تماشا</th>
+            <th data-field="duration">مدت</th>
             <th data-field="avg_watch">میانگین تماشا</th>
             <th data-field="watch_total">کل تماشا</th>
             <th data-field="save_rate">نرخ ذخیره</th>
@@ -407,6 +409,8 @@
 
   <section class="sj-sec" id="insights">
     <h2 class="sj-h2">تحلیل این هفته</h2>
+    <div class="sj-card sj-auto-sum" id="auto-summary" data-source="auto_summary"></div>
+    <p class="sj-small sj-ins-meta" id="insights-meta" role="note"></p>
     <div class="sj-insights" id="insights-list" data-source="insights"></div>
   </section>
 
@@ -828,7 +832,7 @@
         topic: r.topic || 'other', follows_per_1k: r.follows != null && r.views ? Math.round((r.follows / r.views) * 10000) / 10 : null,
         url: r.url, published: r.published, caption: r.caption, views: r.views, median,
         multiple: median && r.views != null ? Math.round((r.views / median) * 10) / 10 : null,
-        view_rate: r.view_rate, avg_watch: r.avg_watch,
+        view_rate: r.view_rate, avg_watch: r.avg_watch, duration: r.duration ?? null, watch_pct: r.watch_pct ?? null,
         save_rate: r.views ? Math.round((r.saves / r.views) * 1000) / 10 : null,
         shares_per_1k: r.reach ? Math.round((r.shares / r.reach) * 10000) / 10 : null,
         reel_id: r.reel_id || '', cover: r.cover || '', watch_total: r.watch_total ?? null, follows: r.follows ?? null,
@@ -1126,6 +1130,9 @@
       cell(r.views == null ? '—' : fmtInt(r.views), 'n');
       cell(r.multiple == null ? '—' : r.multiple + '×', 'n');
       cell(fmtPct(r.view_rate), 'n');
+      const wp = cell(r.watch_pct == null ? '—' : fmtPct(r.watch_pct), 'n');
+      if (r.watch_pct == null) wp.title = 'برای درصد تماشا مدت ویدیو لازمه: Instagram API رو وصل کن، یا ریل رو از «انتشار ریل» منتشر کن.';
+      cell(r.duration == null ? '—' : fmtSec(r.duration), 'n');
       cell(fmtSec(r.avg_watch), 'n');
       cell(fmtDur(r.watch_total), 'n');
       cell(fmtPct(r.save_rate), 'n');
@@ -1136,6 +1143,36 @@
       if (/^https:\/\/(www\.)?instagram\.com\//.test(r.url)) { const a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'باز کردن'; td.append(a); }
       tbody.append(tr);
     });
+  });
+
+  // the facts at the top of the analysis page (computed by shape.py from the same data as the dashboard)
+  const autoSum = document.getElementById('auto-summary'), insMeta = document.getElementById('insights-meta');
+  const longWhen = (iso) => { try { return new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tehran' }).format(new Date(typeof iso === 'number' ? iso * 1000 : iso)); } catch (e) { return ''; } };
+  dash.onData(() => {
+    const s = (dash.data('auto_summary').data || [])[0];
+    autoSum.hidden = !s;
+    if (s) {
+      autoSum.replaceChildren();
+      const h = document.createElement('h3'); h.textContent = 'خلاصهٔ عددها'; h.style.margin = '0';
+      const p = document.createElement('p'); p.className = 'sj-small';
+      p.textContent = 'ریل‌های ۷ روز اخیر: ' + fmtInt(s.reels_7) + ' · ۳۰ روز اخیر: ' + fmtInt(s.reels_30) + ' · همه: ' + fmtInt(s.reels_total)
+        + (s.median_views != null ? ' · میانهٔ بازدید: ' + fmtInt(s.median_views) : '') + (s.view_rate_7 != null ? ' · ماندن ۳ ثانیهٔ ۷ روز: ' + fmtPct(s.view_rate_7) : '');
+      autoSum.append(h, p);
+      if (s.best_7) {
+        const b = document.createElement('p'); b.className = 'sj-small';
+        b.textContent = 'بهترین ریل ۷ روز اخیر: «' + s.best_7.caption + '» با ' + fmtInt(s.best_7.views) + ' بازدید' + (s.best_7.multiple ? ' (' + s.best_7.multiple + '× میانه)' : '');
+        autoSum.append(b);
+      }
+      const f = document.createElement('p'); f.className = 'sj-small sj-muted'; f.textContent = 'از دادهٔ ' + longWhen(s.data_at); autoSum.append(f);
+    }
+    const m = (dash.data('insights_meta').data || [])[0];
+    if (!m) { insMeta.textContent = ''; return; }
+    const parts = [];
+    if (m.source === 'panel') parts.push('تحلیل زیر رو هوش مصنوعی پنل ' + longWhen(m.generated_at) + ' از دادهٔ ' + longWhen(m.data_at) + (m.reels ? ' (' + fmtInt(m.reels) + ' ریل)' : '') + ' نوشته.');
+    else parts.push('تحلیل زیر از روتین هفتگی Claude اومده' + (m.data_at ? ' (رسیده ' + longWhen(m.data_at) + ')' : '') + '؛ ممکنه از عددهای تازهٔ بالا عقب‌تر باشه. با وصل کردن هوش مصنوعی تو تنظیمات، بعد از هر همگام‌سازی خودکار از نو نوشته می‌شه.');
+    if (m.stale) parts.push('⚠️ از اون موقع عددها عوض شدن؛ بعد از همگام‌سازی بعدی دوباره نوشته می‌شه.');
+    insMeta.textContent = parts.join(' ');
+    insMeta.classList.toggle('sj-warn', !!m.stale || m.source !== 'panel');
   });
 
   // insights
@@ -1377,27 +1414,25 @@
           left = dayDiff(today, g.deadline);
           need = left > 0 ? Math.max(0, (g.target - cur) / left) : null;
         }
-        let trend = null, eta = null, atDeadline = null, history = [];
+        let trend = null, eta = null, atDeadline = null, history = [], thin = false;
         if (g.metric === 'followers' && last) {
           const first = fols.find((d) => d.day >= daysAgo(7));
           if (first && first.day < last.day) pace = (last.followers - first.followers) / dayDiff(first.day, last.day);
-          // forecast: least-squares line through the last 30 days, so one odd day doesn't swing it
-          history = fols.filter((d) => d.day >= daysAgo(30)).map((d) => ({ day: d.day, v: d.followers }));
+          // forecast: the real change over the last 14 days of data (followers now − followers then, ÷ the days
+          // between them); under 3 days of data there's no forecast
+          history = fols.filter((d) => d.day >= daysAgo(14)).map((d) => ({ day: d.day, v: d.followers }));
           const span = history.length ? dayDiff(history[0].day, history[history.length - 1].day) : 0;
-          if (history.length >= 3 && span >= 2) {
-            const xs = history.map((d) => dayDiff(history[0].day, d.day)), ys = history.map((d) => d.v);
-            const mx = d3.mean(xs), my = d3.mean(ys);
-            const sxx = d3.sum(xs, (x) => (x - mx) ** 2);
-            if (sxx > 0) trend = d3.sum(xs, (x, i) => (x - mx) * (ys[i] - my)) / sxx;
-          }
+          if (history.length >= 2 && span >= 3) trend = (history[history.length - 1].v - history[0].v) / span;
+          else thin = true;
+          // counted from today, so the date is never in the past even when the newest data is a few days old
           if (trend != null && cur < g.target && trend > 0.05) {
-            const days = Math.ceil((g.target - cur) / trend);
-            if (days <= 3650) eta = tehDay(new Date(Date.parse(last.day + 'T12:00:00Z') + days * 864e5));
+            const days = Math.max(1, Math.ceil((g.target - cur) / trend));
+            if (days <= 3650) eta = tehDay(new Date(Date.parse(today + 'T12:00:00Z') + days * 864e5));
           }
-          if (trend != null && g.deadline && left > 0) atDeadline = Math.round(cur + trend * dayDiff(last.day, g.deadline));
+          if (trend != null && g.deadline && left > 0) atDeadline = Math.round(cur + trend * left);
         }
         return { id: g.id, label: g.label, why: g.why || '', metric: g.metric, target: g.target, deadline: g.deadline || null, current: cur, pct, days_left: left, need_per_day: need, pace_per_day: pace,
-          trend_per_day: trend, trend_days: history.length ? dayDiff(history[0].day, history[history.length - 1].day) : 0, eta_day: eta, at_deadline: atDeadline, history };
+          trend_per_day: trend, trend_days: history.length ? dayDiff(history[0].day, history[history.length - 1].day) : 0, eta_day: eta, at_deadline: atDeadline, history, thin };
       });
     },
   });
@@ -1445,10 +1480,11 @@
         if (g.days_left <= 0) lines.push('مهلت تموم شده.');
         else lines.push(g.days_left + ' روز مونده؛ روزی ' + r1(g.need_per_day) + ' لازمه' + (g.pace_per_day != null ? '، سرعت ۷ روز اخیر روزی ' + r1(g.pace_per_day) + '.' : '.'));
       }
+      if (g.pct < 100 && g.thin) lines.push('پیش‌بینی: داده کافی نیست (آمار فالوئر کمتر از ۳ روزه).');
       if (g.pct < 100 && g.trend_per_day != null) {
-        if (g.trend_per_day <= 0.05) lines.push('پیش‌بینی: با روند ' + g.trend_days + ' روز اخیر فالوئر زیاد نمی‌شه؛ این‌طوری به هدف نمی‌رسی.');
+        if (g.trend_per_day <= 0.05) lines.push('پیش‌بینی: تو ' + g.trend_days + ' روز اخیر فالوئر زیاد نشده؛ این‌طوری به هدف نمی‌رسی.');
         else {
-          let t = 'پیش‌بینی: با روند ' + g.trend_days + ' روز اخیر (روزی ' + r1(g.trend_per_day) + ') ';
+          let t = 'پیش‌بینی: با رشد ' + g.trend_days + ' روز اخیر (روزی ' + r1(g.trend_per_day) + ' فالوئر) ';
           t += g.eta_day ? 'حدود ' + fmtLong(g.eta_day) + ' به هدف می‌رسی' : 'بیشتر از ده سال طول می‌کشه';
           if (g.at_deadline != null) t += g.at_deadline >= g.target ? '؛ یعنی قبل از مهلت ✓' : '؛ تا مهلت به حدود ' + fmtInt(g.at_deadline) + ' می‌رسی';
           lines.push(t + '.');
@@ -1639,7 +1675,9 @@
 
   // ---------- what works: by topic, and by hook / caption features ----------
   const avg = (rows, f) => { const v = rows.map((r) => r[f]).filter((x) => x != null); return v.length ? Math.round((d3.mean(v)) * 10) / 10 : null; };
-  const groupStats = (rows) => ({ n: rows.length, multiple: med(rows.map((r) => r.multiple).filter((x) => x != null)), view_rate: avg(rows, 'view_rate'), save_rate: avg(rows, 'save_rate') });
+  const MIN_GROUP = 3;  // a group of one or two reels is luck, not a pattern
+  const groupStats = (rows) => (rows.length < MIN_GROUP ? { n: rows.length, multiple: null, view_rate: null, save_rate: null, few: true }
+    : { n: rows.length, multiple: med(rows.map((r) => r.multiple).filter((x) => x != null)), view_rate: avg(rows, 'view_rate'), save_rate: avg(rows, 'save_rate'), few: false });
   dash.calc('topic_stats', {
     inputs: ['reel_scores', 'topics'],
     title: 'Reels by topic',
@@ -1666,14 +1704,16 @@
     fn: (reels) => features.map(([feature, label, test]) => {
       const yes = reels.filter(test), no = reels.filter((r) => !test(r));
       const a = groupStats(yes), b = groupStats(no);
-      return { feature, label, n_with: a.n, n_without: b.n, multiple_with: a.multiple, multiple_without: b.multiple, view_rate_with: a.view_rate, view_rate_without: b.view_rate };
+      return { feature, label, n_with: a.n, n_without: b.n, multiple_with: a.multiple, multiple_without: b.multiple, view_rate_with: a.view_rate, view_rate_without: b.view_rate, few: a.few || b.few };
     }),
   });
   const vs = (a, b, f) => (a == null ? '—' : f(a)) + ' / ' + (b == null ? '—' : f(b));
   dash.onData(() => {
-    fillTable('#topics-table tbody', 'topic_stats', null, (rows) => rows.map((r) => [r.topic, [[r.label], [fmtInt(r.n), 'n'], [r.multiple == null ? '—' : r.multiple + '×', 'n'], [fmtPct(r.view_rate), 'n'], [fmtPct(r.save_rate), 'n']]]));
+    const few = 'نمونه کمه (زیر ۳ ریل)';
+    fillTable('#topics-table tbody', 'topic_stats', null, (rows) => rows.map((r) => [r.topic, [[r.label], [fmtInt(r.n), 'n'],
+      [r.few ? few : r.multiple == null ? '—' : r.multiple + '×', 'n'], [r.few ? '—' : fmtPct(r.view_rate), 'n'], [r.few ? '—' : fmtPct(r.save_rate), 'n']]]));
     fillTable('#hooks-table tbody', 'caption_stats', null, (rows) => rows.map((r) => [r.feature, [[r.label], [r.n_with + ' / ' + r.n_without, 'n'],
-      [vs(r.multiple_with, r.multiple_without, (x) => x + '×'), 'n'], [vs(r.view_rate_with, r.view_rate_without, (x) => x + '%'), 'n']]]));
+      [r.few ? few : vs(r.multiple_with, r.multiple_without, (x) => x + '×'), 'n'], [r.few ? '—' : vs(r.view_rate_with, r.view_rate_without, (x) => x + '%'), 'n']]]));
   });
 
   // ---------- funnel: views → people reached → engaged → net followers → link taps ----------
@@ -1768,22 +1808,37 @@
   dash.calc('experiment_results', {
     inputs: ['experiments', 'reel_scores_all'],
     title: 'Experiment results',
-    description: 'Each experiment from content/experiments.json with the chosen metric for reel A and reel B, and the winner once both reels are at least 48 hours old (under 10% apart counts as a tie).',
+    description: 'Each experiment from content/experiments.json: the median of the chosen metric over side A’s reels and side B’s, a result only once each side has at least 3 reels 48+ hours old (under 10% apart counts as a tie), and a warning when the sides differ in topic or posting hour.',
     fn: (exps, reels) => exps.map((e) => {
       const metric = expMetric[e.metric] ? e.metric : 'multiple';
-      const side = (s) => { const r = s && s.url ? reels.find((x) => x.url === s.url) : null; return { label: (s && s.label) || '', reel: r, value: r ? r[metric] : null, age: r ? (Date.now() - pubMs(r)) / 36e5 : null }; };
+      // each side is several reels: one reel against one reel says more about luck than about the idea
+      const side = (s) => {
+        const urls = (s && (s.urls && s.urls.length ? s.urls : s.url ? [s.url] : [])) || [];
+        const found = urls.map((u) => reels.find((x) => x.url === u)).filter(Boolean);
+        const ready = found.filter((r) => (Date.now() - pubMs(r)) / 36e5 >= 48 && r[metric] != null);
+        const hours = found.map((r) => new Date(pubMs(r)).getUTCHours() + 3.5).map((h) => h % 24);
+        return { label: (s && s.label) || '', urls, found, ready, value: ready.length ? med(ready.map((r) => r[metric])) : null,
+          topics: [...new Set(found.map((r) => r.topic || 'other'))], hour: hours.length ? d3.mean(hours) : null };
+      };
       const a = side(e.a), b = side(e.b);
+      const warn = [];
+      if (a.found.length && b.found.length) {
+        const ta = a.topics.join(','), tb = b.topics.join(',');
+        if (ta !== tb) warn.push('موضوع ریل‌های دو طرف فرق داره؛ اختلاف ممکنه از موضوع باشه نه از چیزی که امتحان می‌کنی.');
+        if (a.hour != null && b.hour != null && Math.abs(a.hour - b.hour) >= 3) warn.push('ساعت انتشار دو طرف بیشتر از ۳ ساعت فرق داره؛ ساعت هم روی بازدید اثر داره.');
+      }
       let status, winner = '', diff = null;
-      if (!a.reel || !b.reel) status = 'waiting';
-      else if (a.age < 48 || b.age < 48) status = 'early';
-      else if (a.value == null || b.value == null) status = 'nodata';
+      if (!a.found.length || !b.found.length) status = 'waiting';
+      else if (a.ready.length < 3 || b.ready.length < 3) status = 'few';
       else {
         const hi = Math.max(a.value, b.value), lo = Math.min(a.value, b.value);
         diff = lo > 0 ? Math.round(((hi - lo) / lo) * 100) : null;
         status = 'done';
         winner = diff != null && diff < 10 ? 'tie' : a.value >= b.value ? 'a' : 'b';
       }
-      return { id: e.id, title: e.title || e.id, hypothesis: e.hypothesis || '', notes: e.notes || '', metric, a_label: a.label, b_label: b.label, a_url: a.reel ? a.reel.url : '', b_url: b.reel ? b.reel.url : '', a_value: a.value, b_value: b.value, status, winner, diff };
+      return { id: e.id, title: e.title || e.id, hypothesis: e.hypothesis || '', notes: e.notes || '', metric, a_label: a.label, b_label: b.label,
+        a_url: a.found.length === 1 ? a.found[0].url : '', b_url: b.found.length === 1 ? b.found[0].url : '', a_n: a.ready.length, b_n: b.ready.length,
+        a_value: a.value, b_value: b.value, status, winner, diff, warn };
     }),
   });
   const expEl = document.getElementById('exp-list');
@@ -1798,17 +1853,19 @@
       const card = document.createElement('div'); card.className = 'sj-card sj-idea'; card.id = 'exp-' + e.id;
       const h = document.createElement('h3'); h.style.margin = '0'; h.textContent = e.title;
       const hyp = document.createElement('p'); hyp.className = 'sj-hook'; hyp.textContent = e.hypothesis;
-      const side = (name, label, url, v, won) => {
+      const side = (name, label, url, v, won, n) => {
         const p = document.createElement('p'); p.className = 'sj-small';
         const s = document.createElement('strong'); s.textContent = name + (won ? ' ✓ ' : ' ') ; p.append(s);
         if (/^https:\/\/(www\.)?instagram\.com\//.test(url)) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = label || 'ریل'; p.append(a); } else p.append(label || '—');
-        p.append(' · ' + mLabel + ': ' + (v == null ? '—' : mFmt(v)));
+        p.append(' · ' + mLabel + ': ' + (v == null ? '—' : mFmt(v)) + (n != null ? ' · ' + n + ' ریل آماده' : ''));
         return p;
       };
       const res = document.createElement('p'); res.className = 'sj-small'; res.style.color = 'var(--color-fg)';
-      res.textContent = { waiting: 'منتظر ریل: لینک هر دو ریل رو تو تنظیمات بنویس (ریل باید تو جدول ریل‌ها باشه).', early: 'هنوز زوده: صبر کن هر دو ریل ۴۸ ساعته بشن.', nodata: 'Metricool برای این معیار عدد نداده.',
+      res.textContent = { waiting: 'منتظر ریل: لینک ریل‌های هر دو طرف رو تو تنظیمات بنویس (ریل باید تو جدول ریل‌ها باشه).',
+        few: 'هنوز نتیجه نیست: هر طرف دست‌کم ۳ ریل ۴۸ ساعته با عدد لازم داره (الان A: ' + e.a_n + '، B: ' + e.b_n + ').',
         done: e.winner === 'tie' ? 'نتیجه: تقریباً برابر (کمتر از ۱۰٪ اختلاف).' : 'نتیجه: ' + (e.winner === 'a' ? 'A' : 'B') + ' برد' + (e.diff != null ? '، ' + e.diff + '٪ بهتر.' : '.') }[e.status];
-      card.append(h, hyp, side('A', e.a_label, e.a_url, e.a_value, e.winner === 'a'), side('B', e.b_label, e.b_url, e.b_value, e.winner === 'b'), res);
+      card.append(h, hyp, side('A', e.a_label, e.a_url, e.a_value, e.winner === 'a', e.a_n), side('B', e.b_label, e.b_url, e.b_value, e.winner === 'b', e.b_n), res);
+      e.warn.forEach((w) => { const p = document.createElement('p'); p.className = 'sj-small sj-warn-line'; p.textContent = '⚠️ ' + w; card.append(p); });
       if (e.notes) { const n = document.createElement('p'); n.className = 'sj-small'; n.textContent = e.notes; card.append(n); }
       expEl.append(card);
     });

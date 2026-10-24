@@ -66,6 +66,29 @@
   const NO_RANGE = new Set(['assistant', 'studio', 'board', 'publish', 'comments', 'checklist', 'experiments', 'reel']);
   const links = new Map([...document.querySelectorAll('.sidebar .nav-item[data-sec]')].map((a) => [a.dataset.sec, a]));
   const sections = Object.values(PAGES).flat().map((id) => document.getElementById(id)).filter(Boolean);
+  // A page's sections leave the document when another page opens (not just hidden), and come back at
+  // the same place: each keeps a comment where it belongs. The page's scripts still draw into them while
+  // they're out (their data keeps arriving), so lookups by id or selector also look in the parked sections.
+  const slot = new Map(sections.map((el) => { const c = document.createComment('page:' + el.id); el.before(c); return [el, c]; }));
+  const parked = () => sections.filter((el) => !el.isConnected);
+  const byId = document.getElementById.bind(document), qs = document.querySelector.bind(document), qsa = document.querySelectorAll.bind(document);
+  document.getElementById = (id) => {
+    const hit = byId(id);
+    if (hit) return hit;
+    for (const el of parked()) { if (el.id === id) return el; const f = el.querySelector('#' + CSS.escape(id)); if (f) return f; }
+    return null;
+  };
+  document.querySelector = (sel) => {
+    const hit = qs(sel);
+    if (hit) return hit;
+    for (const el of parked()) { try { if (el.matches(sel)) return el; const f = el.querySelector(sel); if (f) return f; } catch (e) { return null; } }
+    return null;
+  };
+  document.querySelectorAll = (sel) => {
+    const out = [...qsa(sel)];
+    for (const el of parked()) { try { if (el.matches(sel)) out.push(el); out.push(...el.querySelectorAll(sel)); } catch (e) { /* bad selector: same as before */ } }
+    return out;
+  };
   const pageTitle = document.getElementById('sj-page-title');
   let baseTitle = document.title;
   let pageLabel = '';
@@ -74,7 +97,10 @@
     if (!PAGES[id]) id = 'top';
     const want = new Set(PAGES[id]);
     sections.forEach((el) => {
-      el.hidden = !want.has(el.id);
+      const on = want.has(el.id);
+      if (on && !el.isConnected) slot.get(el).after(el);
+      if (!on && el.isConnected) el.remove();
+      el.hidden = !on;
       // a one-section page already has its title in the page header; pages with two keep each heading
       const h = el.querySelector(':scope > .sj-h2');
       if (h) h.hidden = PAGES[id].length === 1;

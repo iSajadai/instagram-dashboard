@@ -3,6 +3,7 @@ send Telegram messages. Each job runs the scripts in scripts/ as a subprocess wh
 only that user's directory and keys, so users never see each other's data."""
 import json, os, shutil, subprocess, sys, threading, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from . import billing, config, store
 
@@ -15,7 +16,16 @@ CONNECTIONS = {
     "buffer": {"label": "Buffer", "fields": {"api_key": "API key"}, "script": "fetch_buffer.py"},
     "instagram": {"label": "Instagram API", "fields": {"token": "Long-lived access token"}, "script": "fetch_instagram.py"},
     "facebook": {"label": "Facebook (رقبا با Business Discovery)", "fields": {"token": "Access token (Facebook Login)"}, "script": "fetch_discovery.py"},
+    # a Claude routine reads Metricool through claude.ai's connector and commits the numbers to a git repo
+    "routine": {"label": "روتین Claude (مخزن داده)", "fields": {"repo": "مخزن (owner/name)", "branch": "شاخه"}, "script": "fetch_repo.py"},
 }
+STALE_HOURS = 8  # data older than this gets a banner on the dashboard and a message
+REPO_CHECK_MINUTES = 15
+
+
+def repo_key():
+    k = config.DATA_DIR / "keys" / "data_repo"
+    return str(k) if k.exists() else ""
 
 DEFAULT_GOALS = [
     {"id": "followers", "label": "۱۰۰۰ فالوئر", "metric": "followers", "target": 1000, "deadline": None, "why": "هدف نمونه؛ از تنظیمات عوضش کن."},
@@ -130,7 +140,63 @@ def source_env(name, vals):
         return {"SAJADAI_IG_TOKEN": vals.get("token", "")}
     if name == "facebook":
         return {"SAJADAI_FB_TOKEN": vals.get("token", "")}
+    if name == "routine":
+        return {"SAJADAI_DATA_REPO": vals.get("repo", ""), "SAJADAI_DATA_BRANCH": vals.get("branch") or "main", "SAJADAI_REPO_KEY": repo_key()}
     return {}
+
+
+def repo_head(vals):
+    """The latest commit on the routine's branch (git ls-remote), or None when it can't be reached."""
+    repo = vals.get("repo", "")
+    url = repo if repo.startswith(("git@", "https://", "ssh://")) else (f"git@github.com:{repo}.git" if repo_key() else f"https://github.com/{repo}.git")
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+    if repo_key():
+        env["GIT_SSH_COMMAND"] = (f"ssh -i {repo_key()} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "
+                                  f"-o UserKnownHostsFile={config.DATA_DIR / 'keys' / 'known_hosts'}")
+    try:
+        r = subprocess.run(["git", "ls-remote", url, "refs/heads/" + (vals.get("branch") or "main")], env=env, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None, "git در دسترس نیست"
+    if r.returncode or not r.stdout.strip():
+        err = (r.stderr.strip().splitlines() or [""])[-1]
+        return None, ("دسترسی به مخزن نیست؛ کلید پنل (deploy key) رو با دسترسی خواندن به مخزن اضافه کن." if "denied" in err.lower() or "not found" in err.lower() or "could not read" in err.lower()
+                      else f"مخزن پیدا نشد: {err[:120]}")
+    return r.stdout.split()[0], ""
+
+
+def data_time(user_id):
+    """When the page's numbers were last read from their source: the routine's commit time when the data
+    comes from its repo, else the last successful sync, else data.json's build time."""
+    d = config.user_dir(user_id)
+    for v in ((analysis_load(d / "raw" / "repo_source.json") or {}).get("committed_at"),):
+        try:
+            return datetime.fromisoformat(str(v).replace("Z", "+00:00")).timestamp()
+        except (TypeError, ValueError):
+            pass
+    user = store.get_user(user_id)
+    if user and store.status(user).get("last_ok_at"):
+        return store.status(user)["last_ok_at"]
+    try:
+        return datetime.fromisoformat(str((analysis_load(d / "data" / "data.json") or {}).get("generated_at")).replace("Z", "+00:00")).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def analysis_load(path):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def health(user):
+    """{"data_at", "stale", "hours"} for the banner and the alert."""
+    if not store.user_secrets(user).get("connections"):
+        return {"data_at": None, "stale": False, "hours": None, "connected": False}
+    t = data_time(user["id"])
+    hours = round((time.time() - t) / 3600, 1) if t else None
+    return {"data_at": t, "hours": hours, "stale": hours is None or hours > STALE_HOURS, "connected": True,
+            "last_error": None if store.status(user).get("refresh_ok", True) else (store.status(user).get("refresh_log") or "")[-400:]}
 
 
 def refresh(user_id):
@@ -144,7 +210,10 @@ def refresh(user_id):
             vals = conns.get(name)
             if not vals or not all(vals.get(f) for f in spec["fields"]):
                 continue
-            ok, out = run_script(user_id, spec["script"], source_env(name, vals))
+            env = source_env(name, vals)
+            if name == "routine" and len(conns) == 1:
+                env["SAJADAI_REPO_ONLY"] = "1"
+            ok, out = run_script(user_id, spec["script"], env)
             log.append(f"[{spec['label']}] {'✓' if ok else '✗'} {out}")
             if ok:
                 worked.append(name)
@@ -160,8 +229,21 @@ def refresh(user_id):
             log.append(f"[data.json] {'✓' if ok else '✗'} {out}")
         else:
             ok = False
-        store.update_status(user_id, refresh_at=time.time(), refresh_ok=bool(worked) and ok, refresh_log="\n".join(log), refresh_failed=failed)
-        return bool(worked) and ok
+        good = bool(worked) and ok
+        store.update_status(user_id, refresh_at=time.time(), refresh_ok=good, refresh_log="\n".join(log), refresh_failed=failed,
+                            **({"last_ok_at": time.time()} if good else {}))
+        if good:
+            after_sync(user_id)
+        return good
+
+
+def after_sync(user_id):
+    """After a successful sync: rebuild the AI analysis when the numbers changed (in the background)."""
+    try:
+        from . import insights
+        threading.Thread(target=insights.refresh_if_changed, args=(user_id,), daemon=True).start()
+    except ImportError:
+        pass
 
 
 def add_notice(user_id, title, text, kind="system"):
@@ -253,6 +335,9 @@ def test_connection(name, vals):
             if not n:
                 return False, "کلید درسته، ولی هیچ اینستاگرامی تو Buffer وصل نیست. تو Buffer از Channels ← Connect اینستاگرام رو وصل کن."
             return True, f"وصل شد: {n} حساب اینستاگرام تو Buffer"
+        if name == "routine":
+            head, err = repo_head(vals)
+            return (True, f"وصل شد: آخرین commit مخزن {head[:7]}. داده هر ۱۵ دقیقه چک می‌شه.") if head else (False, err)
         if name == "facebook":
             pages = _get("https://graph.facebook.com/v24.0/me/accounts?" + urllib.parse.urlencode(
                 {"fields": "name,instagram_business_account{username}", "limit": 50, "access_token": vals["token"]})).get("data", [])
@@ -294,6 +379,10 @@ def due_jobs(now=None):
             from . import agency
             if agency.due(u, t):
                 out.append((u["id"], "agency"))
+        if "routine" in conns and now - (s.get("repo_check_at") or 0) >= REPO_CHECK_MINUTES * 60:
+            out.append((u["id"], "repocheck"))
+        if conns and now - (s.get("health_at") or 0) >= 3600:
+            out.append((u["id"], "health"))
         if "instagram" in conns:
             content = config.user_dir(u["id"]) / "content"
             if (content / "ig_queue.json").exists() and '"scheduled"' in _peek(content / "ig_queue.json") + _peek(content / "ig_queue.json", "processing"):
@@ -320,6 +409,32 @@ def ig_queue(uid):
             ops.tell_user(user, "✅ ریل منتشر شد", (item.get("caption") or "").split("\n")[0][:120] + "\n" + (item.get("permalink") or ""), "publish")
         else:
             ops.tell_user(user, "⚠️ ریل منتشر نشد", item.get("note") or "", "publish")
+
+
+def repo_check(uid):
+    """Every 15 minutes: has the routine committed new numbers? Then sync now instead of waiting 6 hours."""
+    user = store.get_user(uid)
+    vals = store.user_secrets(user).get("connections", {}).get("routine") or {}
+    head, err = repo_head(vals)
+    store.update_status(uid, repo_check_at=time.time(), **({"repo_error": err} if err else {"repo_error": ""}))
+    if head and head != store.status(user).get("repo_head"):
+        if refresh(uid):
+            store.update_status(uid, repo_head=head)
+
+
+def health_check(uid):
+    """Hourly: data older than STALE_HOURS → the bell and Telegram, at most every 6 hours."""
+    from . import ops
+    user = store.get_user(uid)
+    h = health(user)
+    st = store.status(user)
+    store.update_status(uid, health_at=time.time())
+    if h["stale"] and time.time() - (st.get("stale_alert_at") or 0) >= 6 * 3600:
+        store.update_status(uid, stale_alert_at=time.time())
+        age = f"{round(h['hours'])} ساعت" if h["hours"] is not None else "مدت نامعلومی"
+        why = ("\n\nآخرین خطا: " + h["last_error"][-300:]) if h.get("last_error") else ""
+        ops.tell_user(user, "⚠️ دادهٔ داشبورد قدیمی شده", f"آخرین دادهٔ موفق {age} پیشه (بیشتر از {STALE_HOURS} ساعت).{why}\n\nاتصال‌ها رو تو تنظیمات چک کن.", "system")
+        ops.alert_admins("⚠️ همگام‌سازی یه پیج عقب افتاده", f"کاربر {uid}: {age}{why}")
 
 
 def agency_report(uid):
@@ -359,6 +474,10 @@ def scheduler_loop(stop: threading.Event):
                     ig_auto(uid)
                 elif job == "agency":
                     agency_report(uid)
+                elif job == "repocheck":
+                    repo_check(uid)
+                elif job == "health":
+                    health_check(uid)
             except Exception as e:  # one user's failure mustn't stop the others
                 store.update_status(uid, **{f"{job}_log": f"error: {e}"})
                 ops.alert_admins(f"⚠️ خطا در کار زمان‌بندی‌شدهٔ «{job}»", f"کاربر {uid}: {e}"[:800])
