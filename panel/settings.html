@@ -39,6 +39,9 @@
 
   <section id="conns-card" class="pn-card" data-min="owner">
     <h2>اتصال‌ها (منابع داده)</h2>
+    <div class="pn-note" style="background:var(--accent-soft,rgba(120,120,255,.08));border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      تازه‌کاری؟ لازم نیست هیچ‌کدوم از این‌ها رو وصل کنی. ساده‌ترین راه برای شروع، <a href="/#/screenshot">تحلیل با اسکرین‌شات</a> است: از آمار اینستاگرامت عکس بگیر، خودش عددها رو می‌خونه و داشبورد رو پر می‌کنه. اتصال‌های زیر برای وقتیه که بخوای داده خودکار و کامل‌تر بیاد.
+    </div>
     <p class="pn-note">هر منبعی داری وصل کن؛ پنل همه رو به یه مدل دادهٔ واحد تبدیل می‌کنه. اگه دو منبع یه عدد رو بدن، اولویت با API رسمیه، بعد ابزارهای آنالیتیکس، بعد اسکرپرها، بعد فایل‌ها و ورود دستی. کلیدها رمزنگاری‌شده ذخیره می‌شن و فقط ۴ حرف آخرشون دیده می‌شه.</p>
     <div id="sources"></div>
     <p class="pn-note" id="discrepancies"></p>
@@ -142,7 +145,7 @@
 
   <section class="pn-card" data-min="owner" id="kit-card">
     <h2>مدیاکیت عمومی</h2>
-    <p class="pn-note">یه صفحهٔ عمومی برای برندها و همکاری‌ها: فالوئر، بازدید و میانهٔ ریل‌ها، ماندن ۳ ثانیه، بهترین ریل‌ها و راه تماس. فقط وقتی روشنش کنی دیده می‌شه، و هر وقت بخوای خاموشش می‌کنی.</p>
+    <details class="pn-adv"><summary class="pn-note" style="cursor:pointer">یه صفحهٔ عمومی برای برندها و همکاری‌ها (اختیاری): فالوئر، بازدید، بهترین ریل‌ها و راه تماس. برای تنظیم باز کن.</summary>
     <label class="pn-check"><input type="checkbox" id="kit_enabled"> مدیاکیت روشن باشه</label>
     <div class="pn-grid">
       <label>آدرس (حروف انگلیسی کوچک)<input id="kit_slug" dir="ltr" maxlength="30" placeholder="my-page"></label>
@@ -152,6 +155,7 @@
     <label>راه تماس (ایمیل یا لینک)<input id="kit_contact" dir="ltr" maxlength="200" placeholder="hello@example.com"></label>
     <div class="pn-row" id="kit-link-row" hidden><pre id="kit-url" style="flex:1"></pre><button type="button" data-copy="kit-url">کپی</button><a id="kit-open" target="_blank" rel="noopener">باز کردن</a></div>
     <div class="pn-row"><button class="primary" id="save-kit" type="button">ذخیره</button><span class="pn-msg" id="kit-msg"></span></div>
+    </details>
   </section>
 
   <section class="pn-card" data-min="editor" id="bio-card">
@@ -174,7 +178,7 @@
 
   <section class="pn-card" data-min="owner" id="agency-card">
     <h2>حالت آژانس (گزارش برای مشتری)</h2>
-    <p class="pn-note">اگه این پیج مال مشتریته: گزارشش با اسم و رنگ آژانس تو ساخته می‌شه، یه لینک عمومی داره که مشتری بدون حساب بازش کنه، و اول هر ماه شمسی (ساعت ۹ صبح) خودکار به تلگرام یا ایمیل مشتری می‌ره.</p>
+    <details class="pn-adv"><summary class="pn-note" style="cursor:pointer">اگه این پیج مال مشتریته (اختیاری): گزارش با اسم و رنگِ آژانسِ تو، لینک عمومی برای مشتری، و ارسالِ خودکارِ اولِ هر ماه. برای تنظیم باز کن.</summary>
     <div class="pn-grid">
       <label>اسم آژانس<input id="ag_name" maxlength="60" placeholder="مثلاً: استودیو نوا"></label>
       <label>اسم مشتری (روی گزارش)<input id="ag_client" maxlength="60" placeholder="اسم برند مشتری"></label>
@@ -187,10 +191,11 @@
     <div class="pn-row" id="ag-link-row" hidden><pre id="ag-url" style="flex:1"></pre><button type="button" data-copy="ag-url">کپی</button><a id="ag-open" target="_blank" rel="noopener">باز کردن</a></div>
     <p class="pn-note" id="ag-note"></p>
     <div class="pn-row"><button class="primary" id="ag-save" type="button">ذخیره</button><button type="button" id="ag-link">لینک عمومی تازه</button><button type="button" id="ag-link-off">خاموش کردن لینک</button><button type="button" id="ag-send">همین حالا بفرست</button><span class="pn-msg" id="ag-msg"></span></div>
+    </details>
   </section>
 
   <section class="pn-card" data-min="owner" id="ai-connect">
-    <h2>اتصال به Claude و ChatGPT</h2>
+    <h2>اتصال به Claude و ChatGPT <span class="pn-note" style="font-weight:400">· پیشرفته</span></h2>
     <p class="pn-note">با یه توکن، Claude یا ChatGPT خودت می‌تونه آمار این داشبورد رو بخونه و ازش تحلیل و ایده بده (فقط خواندن؛ چیزی منتشر نمی‌کنه). توکن فقط یه بار نشون داده می‌شه؛ ساختن توکن تازه، قبلی رو باطل می‌کنه.</p>
     <div class="pn-row"><button class="primary" id="make-token" type="button">ساختن توکن</button><span class="pn-chip" id="token-chip"></span></div>
     <div id="token-out" hidden><div style="display:flex;flex-direction:column;gap:12px">
@@ -261,10 +266,10 @@
 (async function () {
   const $ = (id) => document.getElementById(id);
   const HELP = {
-    facebook: 'فقط برای صفحهٔ «رقبا» بدون Metricool. Business Discovery فقط با ورود فیسبوک کار می‌کنه: اینستاگرام حرفه‌ای باید به یه صفحهٔ فیسبوک وصل باشه. تو developers.facebook.com یه توکن کاربر (یا صفحه) با دسترسی instagram_basic، instagram_manage_insights و pages_read_engagement بساز. فقط حساب‌های بیزینسی و کریتور عمومی دیده می‌شن.',
-    metricool: 'API متریکول فقط تو پلن Advanced هست. توکن: Metricool ← Account settings ← API. userId و blogId تو همون صفحه و تو آدرس برند (blogId=…) هستن. رقبا و بهترین ساعت انتشار فقط از این منبع میاد.',
-    buffer: 'تو Buffer اول اینستاگرام رو از Channels ← Connect وصل کن، بعد از Settings ← API یه کلید بساز. Buffer برای هر ریل «فالو از ریل» هم می‌ده، ولی تعداد فالوئر و آمار روزانه نداره.',
-    instagram: 'توکن بلندمدت از developers.facebook.com (اپ ← Instagram ← API setup with Instagram login ← Generate token)، با دسترسی instagram_business_basic و instagram_business_manage_insights (و برای صفحهٔ کامنت‌ها instagram_business_manage_comments). خودکار تمدید می‌شه. تعداد فالوئر، آمار روزانه و «ماندن ۳ ثانیه» رو این می‌ده.',
+    facebook: 'پیشرفته — فقط برای صفحهٔ «رقبا» (بدون نیاز به متریکول). کارش اینه که آمار عمومی رقبا رو می‌گیره. شرطش: اینستاگرامت حرفه‌ای و وصل به یه صفحهٔ فیسبوک باشه. راه: تو developers.facebook.com یه توکن با دسترسی‌های instagram_basic، instagram_manage_insights و pages_read_engagement بساز. (کارِ فنی‌ایه؛ اگه تازه‌کاری ردش کن.)',
+    metricool: 'پیشرفته — اگه اشتراکِ متریکولِ Advanced داری. چیزی که می‌ده: رقبا و بهترین ساعتِ انتشار. راه: تو متریکول برو Account settings ← API و توکن رو بردار؛ userId و blogId هم همون‌جا (و توی آدرسِ برند، blogId=…) هستن.',
+    buffer: 'پیشرفته — اگه از Buffer استفاده می‌کنی. چیزی که می‌ده: «فالو از هر ریل» (ولی تعداد فالوئر و آمار روزانه نه). راه: تو Buffer اول اینستاگرام رو از Channels ← Connect وصل کن، بعد از Settings ← API یه کلید بساز.',
+    instagram: 'پیشرفته — اتصالِ مستقیم و خودکار به اینستاگرام (نیاز به ساختِ اپ در Meta). چیزی که می‌ده: تعداد فالوئر، آمار روزانه و «ماندن بعد از ۳ ثانیه»، و خودکار تمدید می‌شه. راه: تو developers.facebook.com توکنِ بلندمدت بساز (اپ ← Instagram ← API setup with Instagram login ← Generate token) با دسترسی‌های instagram_business_basic و instagram_business_manage_insights (و برای کامنت‌ها instagram_business_manage_comments). ساده‌تر نمی‌خوای؟ از تحلیل با اسکرین‌شات استفاده کن.',
   };
   let me;
   const redrawToc = window.vfToc($('pn-main'), $('toc'), {"status": "i-refresh", "conns-card": "i-link", "coverage-card": "i-check", "page-card": "i-pen", "ai-card": "i-spark", "tg-card": "i-send", "goals-card": "i-target", "voice-card": "i-chat", "kit-card": "i-globe", "bio-card": "i-link", "agency-card": "i-users", "experiments-card": "i-flask", "topics-settings": "i-bulb", "ai-connect": "i-external", "pages-card": "i-grid", "team-card": "i-users", "billing-card": "i-bookmark", "password-card": "i-shield", "delete-card": "i-x"});
