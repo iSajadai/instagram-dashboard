@@ -1,6 +1,6 @@
 """SQLite storage: users, sessions and panel settings. Keys and tokens a user enters (Metricool,
 Buffer, Instagram, AI) are encrypted with a server key before they're written."""
-import base64, hashlib, hmac, json, os, secrets, sqlite3, threading, time
+import base64, hashlib, hmac, json, os, re, secrets, sqlite3, threading, time
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -61,6 +61,14 @@ CREATE TABLE IF NOT EXISTS memberships (  -- who else works on a page, and as wh
   created_at REAL NOT NULL,
   PRIMARY KEY (page_id, user_id)
 );
+CREATE TABLE IF NOT EXISTS otps (         -- phone sign-in one-time codes (register / forget)
+  phone TEXT NOT NULL,
+  purpose TEXT NOT NULL,                  -- register or forget
+  code_hash TEXT NOT NULL,                -- sha256 of the numeric code
+  expires REAL NOT NULL,
+  tries INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (phone, purpose)
+);
 """
 # Columns added after the first release; an older database gets them on start.
 #   users.kind      'person' (someone who signs in; also their own first page) or 'page' (an extra page, no sign-in)
@@ -69,7 +77,8 @@ CREATE TABLE IF NOT EXISTS memberships (  -- who else works on a page, and as wh
 MIGRATIONS = [("users", "kind", "TEXT NOT NULL DEFAULT 'person'"), ("users", "owner_id", "INTEGER"), ("sessions", "acting_id", "INTEGER"),
               ("users", "email", "TEXT"), ("users", "email_verified", "INTEGER NOT NULL DEFAULT 0"),
               ("users", "state", "TEXT NOT NULL DEFAULT 'active'"),   # active | waitlist (signed up while the list was on)
-              ("users", "google_sub", "TEXT")]
+              ("users", "google_sub", "TEXT"),
+              ("users", "phone", "TEXT"), ("users", "phone_verified", "INTEGER NOT NULL DEFAULT 0")]
 ROLES = ("owner", "editor", "viewer")
 
 
@@ -88,6 +97,7 @@ def db():
                 if col not in {r["name"] for r in _db.execute(f"PRAGMA table_info({table})")}:
                     _db.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
             _db.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email COLLATE NOCASE) WHERE email IS NOT NULL")
+            _db.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_phone ON users(phone) WHERE phone IS NOT NULL")
         return _db
 
 
@@ -179,9 +189,14 @@ def find_email(email):
     return q1("SELECT * FROM users WHERE email = ? COLLATE NOCASE AND kind = 'person'", (email or "").strip())
 
 
+def find_phone(phone):
+    """A person by their mobile number (already normalized to 09xxxxxxxxx)."""
+    return q1("SELECT * FROM users WHERE phone = ? AND kind = 'person'", (phone or "").strip())
+
+
 def set_user(user_id, **cols):
-    """Update a few columns of a user row (email, email_verified, state, google_sub, pw)."""
-    allowed = {"email", "email_verified", "state", "google_sub", "pw"}
+    """Update a few columns of a user row (email, email_verified, state, google_sub, pw, phone)."""
+    allowed = {"email", "email_verified", "state", "google_sub", "pw", "phone", "phone_verified"}
     cols = {k: v for k, v in cols.items() if k in allowed}
     if cols:
         q(f"UPDATE users SET {', '.join(k + ' = ?' for k in cols)} WHERE id = ?", *cols.values(), user_id)
@@ -202,6 +217,50 @@ def use_token(raw, purpose):
         return None
     q("DELETE FROM tokens WHERE hash = ?", h)
     return get_user(row["user_id"]) if row["expires"] > time.time() else None
+
+
+# ---------- phone one-time codes (OTP) ----------
+
+_DIGIT_MAP = {ord(a): str(i) for i, a in enumerate("۰۱۲۳۴۵۶۷۸۹")}
+_DIGIT_MAP.update({ord(a): str(i) for i, a in enumerate("٠١٢٣٤٥٦٧٨٩")})
+
+
+def normalize_phone(raw):
+    """Any Iranian mobile the user might type → 09xxxxxxxxx, or None if it isn't one."""
+    s = str(raw or "").translate(_DIGIT_MAP)
+    s = re.sub(r"[\s\-()]+", "", s)
+    if s.startswith("+"):
+        s = s[1:]
+    if s.startswith("0098"):
+        s = s[4:]
+    elif s.startswith("98") and len(s) == 12:
+        s = s[2:]
+    if len(s) == 10 and s.startswith("9"):
+        s = "0" + s
+    return s if re.fullmatch(r"09\d{9}", s) else None
+
+
+def put_otp(phone, purpose, code, minutes=3):
+    q("INSERT OR REPLACE INTO otps (phone, purpose, code_hash, expires, tries) VALUES (?, ?, ?, ?, 0)",
+      phone, purpose, hashlib.sha256(code.encode()).hexdigest(), time.time() + minutes * 60)
+
+
+def check_otp(phone, purpose, code, max_tries=5):
+    """Verify a code. Returns 'ok' (and consumes it), or 'none' / 'expired' / 'locked' / 'wrong'."""
+    row = q1("SELECT * FROM otps WHERE phone = ? AND purpose = ?", phone, purpose)
+    if not row:
+        return "none"
+    if row["expires"] < time.time():
+        q("DELETE FROM otps WHERE phone = ? AND purpose = ?", phone, purpose)
+        return "expired"
+    if row["tries"] >= max_tries:
+        q("DELETE FROM otps WHERE phone = ? AND purpose = ?", phone, purpose)
+        return "locked"
+    if hashlib.sha256(str(code or "").encode()).hexdigest() != row["code_hash"]:
+        q("UPDATE otps SET tries = tries + 1 WHERE phone = ? AND purpose = ?", phone, purpose)
+        return "wrong"
+    q("DELETE FROM otps WHERE phone = ? AND purpose = ?", phone, purpose)
+    return "ok"
 
 
 def person_id(user):

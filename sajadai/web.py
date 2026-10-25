@@ -510,8 +510,9 @@ def state(request: Request):
     u = current_user(request)
     from . import accounts
     m = accounts.mode()
+    from . import sms
     return {"setup_needed": store.user_count() == 0, "signup": m != "closed", "signup_mode": m, "google": bool(accounts.google_cfg()),
-            "smtp": accounts.smtp_ready(), "user": u["username"] if u else None}
+            "smtp": accounts.smtp_ready(), "sms": sms.enabled(), "user": u["username"] if u else None}
 
 
 @api.post("/api/setup", include_in_schema=False, dependencies=[Depends(same_site)])

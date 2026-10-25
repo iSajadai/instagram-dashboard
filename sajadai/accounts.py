@@ -10,7 +10,7 @@ from collections import defaultdict, deque
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from . import config, pipeline, store
+from . import config, pipeline, sms, store
 
 router = APIRouter()
 EMAIL = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,190}\.[A-Za-z]{2,}$")
@@ -217,6 +217,164 @@ async def reset(request: Request):
         raise HTTPException(400, "لینک بازیابی منقضی یا استفاده‌شده‌ست؛ دوباره درخواست بده.")
     store.set_user(u["id"], pw=store.hash_pw(pw), email_verified=1)
     store.q("DELETE FROM sessions WHERE user_id = ?", u["id"])  # every old sign-in ends
+    if u["state"] == "waitlist":
+        return {"ok": True, "message": "رمز عوض شد. حسابت هنوز تو صف انتظاره."}
+    return login_response(u["id"], {"ok": True, "message": "رمز عوض شد ✓"})
+
+
+# ---------- phone sign-in (mobile number + one-time SMS code, Kavenegar) ----------
+# New number: send a «register» code → verify it and set a password → account created.
+# Known number: password sign-in, with «forgot» (an SMS code, at most twice a day) to reset it.
+
+OTP_PHONE = Limiter(3, 600)       # at most 3 codes per number per 10 minutes
+OTP_IP = Limiter(20, 3600)        # at most 20 codes per IP per hour
+FORGET_DAY = Limiter(2, 86400)    # at most 2 «forgot» requests per number per day
+
+
+def gen_code():
+    return f"{secrets.randbelow(100000):05d}"
+
+
+def otp_error(state):
+    return {"none": "اول کد رو درخواست بده.", "expired": "کد منقضی شده؛ دوباره بگیر.",
+            "locked": "دفعات زیاد شد؛ یه کد تازه بگیر.", "wrong": "کد اشتباهه."}.get(state, "کد درست نیست.")
+
+
+def need_phone(b):
+    phone = store.normalize_phone(b.get("phone"))
+    if not phone:
+        raise HTTPException(400, "شمارهٔ موبایل درست نیست (مثل ۰۹۱۲۳۴۵۶۷۸۹).")
+    return phone
+
+
+def create_account_phone(phone, password):
+    from .web import new_user
+    uid = new_user(phone, password)
+    store.set_user(uid, phone=phone, phone_verified=1, state="waitlist" if mode() == "waitlist" else "active")
+    return store.get_user(uid)
+
+
+@router.post("/api/phone/start", include_in_schema=False, dependencies=[Depends(same_site)])
+async def phone_start(request: Request):
+    """Does this number already have an account? If not, send a registration code."""
+    if not sms.enabled():
+        raise HTTPException(503, "ورود با موبایل هنوز فعال نشده.")
+    b = await body(request)
+    phone = need_phone(b)
+    if store.find_phone(phone):
+        return {"exists": True}                        # the page shows the password box + «forgot»
+    if mode() == "closed":
+        raise HTTPException(403, "ثبت‌نام فعلاً بسته‌ست.")
+    OTP_IP.hit("ip:" + ip(request))
+    OTP_PHONE.hit("otp:" + phone)
+    code = gen_code()
+    store.put_otp(phone, "register", code)
+    try:
+        sms.send_code(phone, code, config.SMS_REGISTER_TEMPLATE)
+    except sms.SMSError as e:
+        raise HTTPException(502, str(e))
+    return {"exists": False, "sent": True, "message": "کد تأیید برات پیامک شد."}
+
+
+@router.post("/api/phone/resend", include_in_schema=False, dependencies=[Depends(same_site)])
+async def phone_resend(request: Request):
+    if not sms.enabled():
+        raise HTTPException(503, "ورود با موبایل هنوز فعال نشده.")
+    b = await body(request)
+    phone = need_phone(b)
+    if store.find_phone(phone):
+        raise HTTPException(400, "این شماره قبلاً ثبت شده؛ وارد شو.")
+    OTP_IP.hit("ip:" + ip(request))
+    OTP_PHONE.hit("otp:" + phone)
+    code = gen_code()
+    store.put_otp(phone, "register", code)
+    try:
+        sms.send_code(phone, code, config.SMS_REGISTER_TEMPLATE)
+    except sms.SMSError as e:
+        raise HTTPException(502, str(e))
+    return {"ok": True, "message": "کد تازه فرستاده شد."}
+
+
+@router.post("/api/phone/register", include_in_schema=False, dependencies=[Depends(same_site)])
+async def phone_register(request: Request):
+    """Verify the registration code, then set the password and confirm it → the account is created."""
+    b = await body(request)
+    phone = need_phone(b)
+    if store.find_phone(phone):
+        raise HTTPException(400, "این شماره قبلاً ثبت شده؛ وارد شو.")
+    if mode() == "closed":
+        raise HTTPException(403, "ثبت‌نام فعلاً بسته‌ست.")
+    if b.get("privacy") is not True:
+        raise HTTPException(400, "برای ثبت‌نام، حریم خصوصی رو بخون و تیکش رو بزن.")
+    pw, confirm = str(b.get("password") or ""), str(b.get("confirm") or "")
+    if len(pw) < 8:
+        raise HTTPException(400, "رمز باید دست‌کم ۸ حرف باشه.")
+    if pw != confirm:
+        raise HTTPException(400, "رمز و تکرارش یکی نیستن.")
+    st = store.check_otp(phone, "register", str(b.get("code") or ""))
+    if st != "ok":
+        raise HTTPException(400, otp_error(st))
+    u = create_account_phone(phone, pw)
+    if u["state"] == "waitlist":
+        return {"ok": True, "waitlist": True, "message": "ثبت‌نامت ثبت شد ✓ تو صف انتظاری؛ وقتی باز شد خبرت می‌کنیم."}
+    return login_response(u["id"], {"ok": True, "next": "/welcome"})
+
+
+@router.post("/api/phone/login", include_in_schema=False, dependencies=[Depends(same_site)])
+async def phone_login(request: Request):
+    b = await body(request)
+    phone = need_phone(b)
+    keys = ("ip:" + ip(request), "phone:" + phone)
+    LOGIN.check(*keys)
+    u = store.find_phone(phone)
+    if not u or not store.check_pw(str(b.get("password") or ""), u["pw"]):
+        LOGIN.add(*keys)
+        time.sleep(0.5)
+        raise HTTPException(401, "شماره یا رمز اشتباهه.")
+    why = login_block(u)
+    if why:
+        raise HTTPException(403, why)
+    LOGIN.hits.pop("phone:" + phone, None)
+    return login_response(u["id"], {"ok": True})
+
+
+@router.post("/api/phone/forgot", include_in_schema=False, dependencies=[Depends(same_site)])
+async def phone_forgot(request: Request):
+    """Send a reset code — at most twice a day per number."""
+    if not sms.enabled():
+        raise HTTPException(503, "ورود با موبایل هنوز فعال نشده.")
+    b = await body(request)
+    phone = need_phone(b)
+    OTP_IP.hit("ip:" + ip(request))
+    FORGET_DAY.hit("forget:" + phone)                  # 429 after 2 in a day
+    u = store.find_phone(phone)
+    if u:
+        code = gen_code()
+        store.put_otp(phone, "forget", code)
+        try:
+            sms.send_code(phone, code, config.SMS_FORGET_TEMPLATE)
+        except sms.SMSError as e:
+            raise HTTPException(502, str(e))
+    return {"ok": True, "message": "اگه این شماره ثبت شده، کد بازیابی رو پیامک کردیم."}
+
+
+@router.post("/api/phone/reset", include_in_schema=False, dependencies=[Depends(same_site)])
+async def phone_reset(request: Request):
+    b = await body(request)
+    phone = need_phone(b)
+    pw, confirm = str(b.get("password") or ""), str(b.get("confirm") or "")
+    if len(pw) < 8:
+        raise HTTPException(400, "رمز باید دست‌کم ۸ حرف باشه.")
+    if pw != confirm:
+        raise HTTPException(400, "رمز و تکرارش یکی نیستن.")
+    st = store.check_otp(phone, "forget", str(b.get("code") or ""))
+    if st != "ok":
+        raise HTTPException(400, otp_error(st))
+    u = store.find_phone(phone)
+    if not u:
+        raise HTTPException(400, "حسابی با این شماره نیست.")
+    store.set_user(u["id"], pw=store.hash_pw(pw), phone_verified=1)
+    store.q("DELETE FROM sessions WHERE user_id = ?", u["id"])   # every old sign-in ends
     if u["state"] == "waitlist":
         return {"ok": True, "message": "رمز عوض شد. حسابت هنوز تو صف انتظاره."}
     return login_response(u["id"], {"ok": True, "message": "رمز عوض شد ✓"})

@@ -141,28 +141,41 @@ html .auth-form button.primary { width: 100%; padding: 0.85rem 1rem; font-size: 
           <button class="mode-tab" type="button" role="tab" data-mode="signup">ثبت‌نام</button>
         </div>
         <div>
-          <h2 id="title">خوش اومدی</h2>
-          <p class="lead" id="lead">برای دیدن داشبوردت وارد شو.</p>
+          <h2 id="title">ورود / ثبت‌نام</h2>
+          <p class="lead" id="lead">شمارهٔ موبایلت رو بنویس تا شروع کنیم.</p>
         </div>
-        <div class="field" id="f-user">
-          <label for="username" id="user-label">ایمیل یا نام کاربری</label>
-          <input id="username" dir="ltr" autocomplete="username" required maxlength="190" placeholder="you@example.com">
+        <div class="field" id="f-phone">
+          <label for="phone">شمارهٔ موبایل</label>
+          <input id="phone" type="tel" dir="ltr" inputmode="numeric" autocomplete="username" maxlength="14" placeholder="09123456789">
+        </div>
+        <div class="field" id="f-code" hidden>
+          <label for="code">کد تأیید پیامک‌شده</label>
+          <input id="code" type="text" dir="ltr" inputmode="numeric" autocomplete="one-time-code" maxlength="5" placeholder="۵ رقم">
+        </div>
+        <div class="field" id="f-user" hidden>
+          <label for="username" id="user-label">نام کاربری</label>
+          <input id="username" dir="ltr" autocomplete="username" maxlength="190" placeholder="مثلاً sajad">
         </div>
         <div class="field" id="f-pass">
-          <label for="password">رمز عبور</label>
+          <label for="password" id="pass-label">رمز عبور</label>
           <div class="password-field">
-            <input id="password" type="password" dir="ltr" autocomplete="current-password" required minlength="8" placeholder="••••••••">
+            <input id="password" type="password" dir="ltr" autocomplete="current-password" minlength="8" placeholder="••••••••">
             <button class="password-toggle" id="eye" type="button" aria-label="نمایش رمز" aria-pressed="false"><svg aria-hidden="true"><use href="#i-eye"></use></svg>
             </button>
           </div>
         </div>
+        <div class="field" id="f-confirm" hidden>
+          <label for="confirm">تکرار رمز عبور</label>
+          <input id="confirm" type="password" dir="ltr" autocomplete="new-password" minlength="8" placeholder="••••••••">
+        </div>
         <label class="auth-check" id="f-privacy" hidden><input type="checkbox" id="privacy"> <span><a href="/privacy" target="_blank">حریم خصوصی</a> رو خوندم و قبول دارم.</span></label>
-        <button class="primary" id="go" type="submit">ورود</button>
+        <button class="primary" id="go" type="submit">ادامه</button>
         <a class="auth-google" id="google" href="/auth/google" hidden>ورود با گوگل</a>
         <p class="pn-msg" id="msg" role="status"></p>
-        <p class="auth-foot" id="foot"><button type="button" class="auth-link" id="to-forgot">رمزت رو فراموش کردی؟</button> · <button type="button" class="auth-link" id="resend">ایمیل تأیید نرسید؟</button></p>
-        <p class="auth-foot" id="back" hidden><button type="button" class="auth-link" id="to-login">برگشت به ورود</button></p>
-        <p class="auth-foot"><a href="/contact">تماس با ما</a> · <a href="/privacy">حریم خصوصی</a></p>
+        <p class="auth-foot" id="foot" hidden><button type="button" class="auth-link" id="to-forgot">رمزت رو فراموش کردی؟</button></p>
+        <p class="auth-foot" id="foot-resend" hidden><button type="button" class="auth-link" id="resend">کد نرسید؟ دوباره بفرست</button></p>
+        <p class="auth-foot" id="back" hidden><button type="button" class="auth-link" id="to-phone">برگشت</button></p>
+        <p class="auth-foot"><a href="/contact">تماس با ما</a> · <a href="/privacy">حریم خصوصی</a> · <button type="button" class="auth-link" id="to-admin">ورود مدیر</button></p>
       </form>
     </section>
   </div>
@@ -173,42 +186,52 @@ html .auth-form button.primary { width: 100%; padding: 0.85rem 1rem; font-size: 
 (async function () {
   const $ = (id) => document.getElementById(id);
   const s = await pn.api('GET', '/api/state');
-  const resetToken = location.pathname === '/reset' ? new URLSearchParams(location.search).get('token') : null;
-  if (s.user && !s.setup_needed && !resetToken) { location.href = '/'; return; }
-  let mode = s.setup_needed ? 'setup' : resetToken ? 'reset' : 'login';
+  if (s.user && !s.setup_needed) { location.href = '/'; return; }
+  // States: phone → (existing) password / (new) code ; forgot → reset ; plus setup & admin fallback.
+  let mode = s.setup_needed ? 'setup' : (s.sms ? 'phone' : 'admin');
   const TEXT = {
-    setup: ['ساختن حساب ادمین', 'اولین بار است که پنل باز می‌شه. حسابی که الان می‌سازی ادمین پنله: کاربرها و کلیدهای مشترک رو مدیریت می‌کنه.', 'ساختن و ورود'],
-    login: ['خوش اومدی', 'برای دیدن داشبوردت وارد شو.', 'ورود'],
-    signup: ['حساب رایگان بساز', s.signup_mode === 'waitlist' ? 'ثبت‌نام‌ها فعلاً تو صف انتظار می‌رن و به‌زودی باز می‌شن.' : 'با ایمیل ثبت‌نام کن؛ کمتر از ۲ دقیقه بعد داده‌های پیجت رو می‌بینی.', s.signup_mode === 'waitlist' ? 'پیوستن به صف' : 'ثبت‌نام'],
-    forgot: ['بازیابی رمز', 'ایمیل حسابت رو بنویس؛ لینک گذاشتن رمز تازه برات میاد.', 'فرستادن لینک'],
-    reset: ['رمز تازه', 'رمز تازه‌ات رو بنویس (دست‌کم ۸ حرف).', 'ذخیرهٔ رمز'],
+    phone:    ['ورود / ثبت‌نام', 'شمارهٔ موبایلت رو بنویس تا شروع کنیم.', 'ادامه'],
+    code:     ['ساختن حساب', 'کدی که پیامک شد رو بزن و یه رمز عبور بساز.', 'ساختن حساب و ورود'],
+    password: ['خوش اومدی', 'رمز عبورت رو بزن.', 'ورود'],
+    reset:    ['رمز تازه', 'کد پیامک‌شده و رمز تازه‌ات رو بنویس.', 'ذخیرهٔ رمز'],
+    setup:    ['ساختن حساب ادمین', 'اولین بار است که پنل باز می‌شه. این حساب، ادمین پنله.', 'ساختن و ورود'],
+    admin:    ['ورود مدیر', 'با نام کاربری و رمز وارد شو.', 'ورود'],
+  };
+  const vis = {
+    phone:    { phone: 1 },
+    code:     { phone: 'ro', code: 1, pass: 1, confirm: 1, privacy: 1, resend: 1, back: 1 },
+    password: { phone: 'ro', pass: 1, forgot: 1, back: 1 },
+    reset:    { phone: 'ro', code: 1, pass: 1, confirm: 1, resend: 1, back: 1 },
+    setup:    { user: 1, pass: 1 },
+    admin:    { user: 1, pass: 1, back: 1 },
   };
   const show = () => {
-    const [title, lead, go] = TEXT[mode];
+    const [title, lead, go] = TEXT[mode]; const v = vis[mode];
     $('title').textContent = title; $('lead').textContent = lead; $('go').textContent = go;
-    $('password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
-    $('tabs').hidden = !['login', 'signup'].includes(mode) || !s.signup;
-    $('tabs').dataset.mode = mode === 'signup' ? 'signup' : 'login';
-    $('f-user').hidden = mode === 'reset';
-    $('f-pass').hidden = mode === 'forgot';
-    $('f-privacy').hidden = mode !== 'signup';
-    $('user-label').textContent = mode === 'login' ? 'ایمیل یا نام کاربری' : mode === 'setup' ? 'نام کاربری' : 'ایمیل';
-    $('username').placeholder = mode === 'setup' ? 'مثلاً sajad' : 'you@example.com';
-    $('username').type = mode === 'signup' || mode === 'forgot' ? 'email' : 'text';
-    $('google').hidden = !s.google || !['login', 'signup'].includes(mode);
-    $('foot').hidden = mode !== 'login';
-    $('back').hidden = !['forgot', 'reset'].includes(mode);
-    document.querySelectorAll('.mode-tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === mode)));
+    $('f-phone').hidden = !v.phone; $('f-code').hidden = !v.code; $('f-user').hidden = !v.user;
+    $('f-pass').hidden = !v.pass; $('f-confirm').hidden = !v.confirm; $('f-privacy').hidden = !v.privacy;
+    $('foot').hidden = !v.forgot; $('foot-resend').hidden = !v.resend; $('back').hidden = !v.back;
+    $('phone').readOnly = v.phone === 'ro';
+    $('pass-label').textContent = (mode === 'code' || mode === 'reset') ? 'رمز عبور تازه (برای ورودهای بعدی)' : 'رمز عبور';
+    $('password').autocomplete = (mode === 'password' || mode === 'admin') ? 'current-password' : 'new-password';
+    $('to-admin').style.display = (mode === 'phone') ? '' : 'none';
+    const focus = v.code ? 'code' : v.user ? 'username' : v.pass && v.phone === 'ro' ? 'password' : 'phone';
+    setTimeout(() => { const el = $(focus === 'code' ? 'code' : focus); if (el && !el.hidden) el.focus(); }, 30);
   };
-  show();
   const go = (m) => { mode = m; pn.say($('msg'), ''); show(); };
-  document.querySelectorAll('.mode-tab').forEach((b) => b.addEventListener('click', () => go(b.dataset.mode)));
-  $('to-forgot').addEventListener('click', () => go('forgot'));
-  $('to-login').addEventListener('click', () => { history.replaceState(null, '', '/login'); go('login'); });
+  show();
+
+  $('to-phone').addEventListener('click', () => go('phone'));
+  $('to-admin').addEventListener('click', () => go('admin'));
+  $('to-forgot').addEventListener('click', async () => {
+    const phone = $('phone').value.trim();
+    const r = await pn.run($('to-forgot'), $('msg'), () => pn.api('POST', '/api/phone/forgot', { phone }));
+    if (r && r.ok) { go('reset'); pn.say($('msg'), r.message || 'کد بازیابی پیامک شد.', true); }
+  });
   $('resend').addEventListener('click', () => {
-    const email = $('username').value.trim();
-    if (!email.includes('@')) { pn.say($('msg'), 'اول ایمیلت رو تو کادر بالا بنویس', false); $('username').focus(); return; }
-    pn.run($('resend'), $('msg'), () => pn.api('POST', '/api/verify/resend', { email }));
+    const phone = $('phone').value.trim();
+    const url = mode === 'reset' ? '/api/phone/forgot' : '/api/phone/resend';
+    pn.run($('resend'), $('msg'), () => pn.api('POST', url, { phone }));
   });
   $('eye').addEventListener('click', () => {
     const on = $('password').type === 'password';
@@ -217,19 +240,34 @@ html .auth-form button.primary { width: 100%; padding: 0.85rem 1rem; font-size: 
     $('eye').setAttribute('aria-label', on ? 'پنهان کردن رمز' : 'نمایش رمز');
     $('eye').querySelector('use').setAttribute('href', on ? '#i-eye-off' : '#i-eye');
   });
+
   $('form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const user = $('username').value.trim(), password = $('password').value;
-    const call = {
-      setup: () => pn.api('POST', '/api/setup', { username: user, password }),
-      login: () => pn.api('POST', '/api/login', { username: user, password }),
-      signup: () => pn.api('POST', '/api/signup', { email: user, password, privacy: $('privacy').checked }),
-      forgot: () => pn.api('POST', '/api/password/forgot', { email: user }),
-      reset: () => pn.api('POST', '/api/password/reset', { token: resetToken, password }),
-    }[mode];
+    const phone = $('phone').value.trim(), code = $('code').value.trim();
+    const user = $('username').value.trim(), password = $('password').value, confirm = $('confirm').value;
+    let call;
+    if (mode === 'phone') {
+      call = async () => {
+        const r = await pn.api('POST', '/api/phone/start', { phone });
+        go(r.exists ? 'password' : 'code');
+        if (!r.exists) pn.say($('msg'), r.message || 'کد تأیید پیامک شد.', true);
+        return { handled: true };
+      };
+    } else if (mode === 'code') {
+      call = () => pn.api('POST', '/api/phone/register', { phone, code, password, confirm, privacy: $('privacy').checked });
+    } else if (mode === 'password') {
+      call = () => pn.api('POST', '/api/phone/login', { phone, password });
+    } else if (mode === 'reset') {
+      call = () => pn.api('POST', '/api/phone/reset', { phone, code, password, confirm });
+    } else if (mode === 'setup') {
+      call = () => pn.api('POST', '/api/setup', { username: user, password });
+    } else { // admin
+      call = () => pn.api('POST', '/api/login', { username: user, password });
+    }
     const r = await pn.run($('go'), $('msg'), call);
+    if (r && r.handled) return;
     if (r && r.ok) {
-      if (mode === 'forgot' || r.verify || r.waitlist) return;  // the message says what's next
+      if (r.waitlist) return;             // the message says what's next
       location.href = r.next || (mode === 'setup' ? '/welcome' : '/');
       return;
     }

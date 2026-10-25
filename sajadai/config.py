@@ -20,6 +20,12 @@ SCHEDULER = os.environ.get("SAJADAI_SCHEDULER", "1") == "1"
 REFRESH_HOURS = 6
 SESSION_DAYS = 30
 
+# Kavenegar SMS: phone sign-in with a one-time code. The API key comes from the environment,
+# never the database or git. Templates are the Kavenegar "lookup" (verify) templates.
+KAVENEGAR_KEY = os.environ.get("KAVENEGAR_API_KEY", "").strip()
+SMS_REGISTER_TEMPLATE = os.environ.get("SAJADAI_SMS_REGISTER_TEMPLATE", "sajad-register").strip()
+SMS_FORGET_TEMPLATE = os.environ.get("SAJADAI_SMS_FORGET_TEMPLATE", "sajad-forget").strip()
+
 
 def user_dir(user_id: int) -> Path:
     return USERS_DIR / str(int(user_id))
