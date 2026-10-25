@@ -478,9 +478,14 @@ async def add_member(request: Request, user=Depends(need_owner)):
     role = b.get("role")
     if role not in ("editor", "viewer", "owner"):
         raise HTTPException(400, "نقش باید editor، viewer یا owner باشه")
-    who = store.find_user(str(b.get("username") or ""))
+    typed = str(b.get("username") or "")
+    who = store.find_user(typed)
+    if not who:                                  # most people sign in by phone now, so the name is their number
+        ph = store.normalize_phone(typed)
+        if ph:
+            who = store.find_phone(ph)
     if not who:
-        raise HTTPException(400, "کسی با این نام کاربری اینجا حساب نداره؛ اول باید ثبت‌نام کنه")
+        raise HTTPException(400, "کسی با این شماره/نام کاربری اینجا حساب نداره؛ اول باید ثبت‌نام کنه")
     if who["id"] == user["id"]:
         raise HTTPException(400, "این پیج خودشه")
     store.set_member(user["id"], who["id"], role)
