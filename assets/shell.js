@@ -61,9 +61,9 @@
     top: ['top', 'kpis'], goals: ['goals'], plan: ['plan'], reels: ['reels'], works: ['works'],
     growth: ['growth'], besttime: ['besttime'], experiments: ['experiments'], insights: ['insights', 'ideas'],
     competitors: ['competitors'], audience: ['audience'], checklist: ['checklist'],
-    assistant: ['assistant'], studio: ['studio'], board: ['board'], publish: ['publish'], comments: ['comments'], reel: ['reel'],  // reel takes the reel's shortcode: #/reel/DeuAledNcym
+    assistant: ['assistant'], studio: ['studio'], screenshot: ['screenshot'], board: ['board'], publish: ['publish'], comments: ['comments'], reel: ['reel'],  // reel takes the reel's shortcode: #/reel/DeuAledNcym
   };
-  const NO_RANGE = new Set(['assistant', 'studio', 'board', 'publish', 'comments', 'checklist', 'experiments', 'reel']);
+  const NO_RANGE = new Set(['assistant', 'studio', 'screenshot', 'board', 'publish', 'comments', 'checklist', 'experiments', 'reel']);
   const links = new Map([...document.querySelectorAll('.sidebar .nav-item[data-sec]')].map((a) => [a.dataset.sec, a]));
   const sections = Object.values(PAGES).flat().map((id) => document.getElementById(id)).filter(Boolean);
   // A page's sections leave the document when another page opens (not just hidden), and come back at

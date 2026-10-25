@@ -12,7 +12,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
-from . import agency, agents, ai, analysis, billing, bio, calendar_fa, config, critique, ig, tgbot, mcp_server, ops, pages, pipeline, publish, store
+from . import agency, agents, ai, analysis, billing, bio, calendar_fa, config, critique, ig, tgbot, mcp_server, ops, pages, pipeline, publish, screenshot, store
 from .fa import beats as fa_beats, caption as fa_caption, hooks as fa_hooks, human as fa_human, text as fa_text, viral as fa_viral
 AI = ai  # the module, for functions with a local named ai
 
@@ -861,10 +861,10 @@ def ig_media(name: str):
 @api.post("/api/me/ig/upload", include_in_schema=False, dependencies=[Depends(same_site)])
 async def ig_upload(request: Request, kind: str = "video", user=Depends(need_editor)):
     """The raw file in the body (no form encoding): a reel video (MP4/MOV, up to 100MB) or a JPEG cover."""
-    if kind not in ("video", "cover"):
+    if kind not in ("video", "cover", "shot"):
         raise HTTPException(400, "نوع فایل نامعتبره")
-    cap = ig.MAX_VIDEO if kind == "video" else 8 * 1024 * 1024
-    name = ig.new_media_name(".mp4" if kind == "video" else ".jpg")
+    cap = ig.MAX_VIDEO if kind == "video" else (12 * 1024 * 1024 if kind == "shot" else 8 * 1024 * 1024)
+    name = ig.new_media_name(".mp4" if kind == "video" else (".shot" if kind == "shot" else ".jpg"))
     path, size, head = ig.MEDIA_DIR / name, 0, b""
     try:
         with open(path, "wb") as f:
@@ -879,6 +879,8 @@ async def ig_upload(request: Request, kind: str = "video", user=Depends(need_edi
             raise HTTPException(400, "فایل ویدیوی MP4 یا MOV نیست")
         if kind == "cover" and not head.startswith(b"\xff\xd8"):
             raise HTTPException(400, "کاور باید JPEG باشه")
+        if kind == "shot" and not (head.startswith(b"\xff\xd8") or head.startswith(b"\x89PNG") or head[:4] == b"RIFF"):
+            raise HTTPException(400, "اسکرین‌شات باید عکس باشه (JPEG، PNG یا WebP)")
     except BaseException:
         path.unlink(missing_ok=True)
         raise
@@ -965,6 +967,34 @@ def ig_critique_status(job: str, user=Depends(need_editor)):
     if not s:
         raise HTTPException(404, "این نقد پیدا نشد؛ دوباره شروع کن")
     return s
+
+
+@api.post("/api/me/screenshot", include_in_schema=False, dependencies=[Depends(same_site)])
+async def screenshot_analyze(request: Request, user=Depends(need_editor)):
+    """Read uploaded Instagram Insights screenshots (uploaded first via /api/me/ig/upload?kind=shot):
+    a Persian analysis + suggestions, and the numbers fed into the dashboard. Zero setup, no Meta token."""
+    if not pipeline.ai_config(user):
+        raise HTTPException(400, "هوش مصنوعی وصل نیست؛ از «تنظیمات ← هوش مصنوعی» یه سرویس وصل کن.")
+    b = await body(request)
+    names = b.get("images")
+    if not isinstance(names, list) or not (1 <= len(names) <= 8):
+        raise HTTPException(400, "۱ تا ۸ اسکرین‌شات بفرست")
+    paths = [ig.media_path(str(n)) for n in names]
+    if any(p is None for p in paths):
+        raise HTTPException(400, "اسکرین‌شات پیدا نشد؛ دوباره آپلودش کن")
+    try:
+        jpegs = await run_in_threadpool(lambda: [screenshot.to_jpeg(p) for p in paths])
+        result = await run_in_threadpool(lambda: screenshot.run(user, jpegs))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    finally:
+        ig.drop_media(*[str(n) for n in names])  # the screenshots were only needed for this one read
+    return result
+
+
+@api.get("/api/me/screenshot/history", include_in_schema=False)
+def screenshot_history(user=Depends(need_user)):
+    return {"items": load_content(user, "screenshot.json", [])}
 
 
 @api.post("/api/me/comments/reply", include_in_schema=False, dependencies=[Depends(same_site)])

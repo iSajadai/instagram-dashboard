@@ -110,7 +110,7 @@ def new_media_name(ext):
 
 
 def media_path(name):
-    if not re.fullmatch(r"[0-9a-f]{32}\.(mp4|mov|jpg)", name or ""):
+    if not re.fullmatch(r"[0-9a-f]{32}\.(mp4|mov|jpg|shot)", name or ""):
         return None
     p = MEDIA_DIR / name
     return p if p.exists() else None
