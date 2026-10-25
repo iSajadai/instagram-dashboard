@@ -569,7 +569,10 @@
   <section class="sj-sec" id="board">
     <h2 class="sj-h2">بُرد تولید</h2>
     <p class="sj-note">هر ریل از ایده تا انتشار. کارت‌ها رو بین ستون‌ها بکش (روی گوشی با فلش‌ها جابه‌جا کن). وقتی ریل منتشر شد، کارت رو به ریلش وصل کن تا بازدیدش همین‌جا دیده بشه. از کارت هر ایده هم با «به بُرد تولید» کارت بساز.</p>
-    <div class="sj-seg" role="tablist" aria-label="نمای بُرد" id="board-view"><button type="button" role="tab" data-view="cols" aria-selected="true">ستون‌ها</button><button type="button" role="tab" data-view="cal" aria-selected="false">تقویم</button></div>
+    <div class="sj-row-btns" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <div class="sj-seg" role="tablist" aria-label="نمای بُرد" id="board-view"><button type="button" role="tab" data-view="cols" aria-selected="true">ستون‌ها</button><button type="button" role="tab" data-view="cal" aria-selected="false">تقویم</button></div>
+      <button type="button" class="sj-btn" id="plan-to-board" data-panel-only hidden><svg class="nav-icon" style="width:1em;height:1em;vertical-align:-0.15em"><use href="#i-calendar"></use></svg> برنامهٔ هفته رو بذار روی بُرد</button>
+    </div>
     <div class="sj-jcal" id="board-cal" hidden></div>
     <div class="sj-board" id="board-cols"><div class="vf-skel-group" aria-busy="true" aria-label="در حال بارگذاری"><span class="vf-skel vf-skel-line" style="width:40%"></span><span class="vf-skel vf-skel-block"></span><span class="vf-skel vf-skel-line" style="width:70%"></span></div></div>
     <p class="sj-small" id="board-msg" role="status"></p>

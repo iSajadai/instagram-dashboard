@@ -1133,6 +1133,45 @@ async def save_board(request: Request, user=Depends(need_editor)):
     return {"ok": True, "items": clean}
 
 
+# Persian weekday -> Python weekday() index (Mon=0 … Sun=6); the plan's week starts Saturday (Iran).
+_PLAN_WD = {"شنبه": 5, "یکشنبه": 6, "دوشنبه": 0, "سه‌شنبه": 1, "چهارشنبه": 2, "پنجشنبه": 3, "جمعه": 4}
+_KIND_FA = {"reel": "ریل", "carousel": "کاروسل", "stories": "استوری"}
+_TYPE_FA = {"proof": "اثبات", "teach": "آموزش", "opinion": "نظر", "story": "روایت", "offer": "پیشنهاد فروش"}
+
+
+@api.post("/api/me/plan/to-board", include_in_schema=False, dependencies=[Depends(same_site)])
+def plan_to_board(user=Depends(need_editor)):
+    """Turn the week plan (plan.json, made by the «برنامه‌ریز هفته» agent) into dated idea cards on the board.
+    One card per posting day (reel/carousel/stories), dated to that weekday in the coming week (Tehran)."""
+    plan = load_content(user, "plan.json", {})
+    days = plan.get("days") if isinstance(plan, dict) else None
+    if not days:
+        raise HTTPException(400, "اول از «استودیو ← برنامه‌ریز هفته» برنامهٔ این هفته رو بساز")
+    today = datetime.now(timezone(timedelta(hours=3.5))).date()  # Tehran
+    board = load_content(user, "board.json", [])
+    have = {(str(it.get("title") or "").strip(), it.get("due")) for it in board if isinstance(it, dict)}
+    added, now = 0, int(time.time())
+    for i, d in enumerate(days):
+        if not isinstance(d, dict) or d.get("kind") not in _KIND_FA:
+            continue
+        wd = _PLAN_WD.get(d.get("day"))
+        due = (today + timedelta(days=(wd - today.weekday()) % 7)).isoformat() if wd is not None else None
+        title = str(d.get("angle") or d.get("hook") or d.get("day") or "ایدهٔ تازه").strip()[:200]
+        if (title, due) in have:
+            continue
+        note = " · ".join(x for x in [
+            f"روز {d.get('day')}" if d.get("day") else "", f"ساعت {d.get('time')}" if d.get("time") else "",
+            _KIND_FA.get(d.get("kind"), ""), _TYPE_FA.get(d.get("type"), ""),
+            f"فرمول: {d.get('formula')}" if d.get("formula") else ""] if x)
+        board.append({"id": f"p{now}{i}", "title": title, "hook": str(d.get("hook") or "")[:500], "notes": note[:3000],
+                      "stage": "idea", "reel": "", "due": due, "created": now, "moved": now, "buffer": None})
+        have.add((title, due)); added += 1
+        if len(board) >= 300:
+            break
+    save_content(user, "board.json", board, reshape=False)
+    return {"ok": True, "added": added, "items": board}
+
+
 def clean_sent(v):
     """What a card was sent to Buffer as ({kind, id, at, due_at}), kept as the server wrote it."""
     if not isinstance(v, dict) or v.get("kind") not in ("idea", "post", "draft"):

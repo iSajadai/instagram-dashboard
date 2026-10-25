@@ -309,5 +309,19 @@
       return save();
     },
   };
+  // «برنامهٔ هفته رو بذار روی بُرد» — turn the week plan (studio planner) into dated idea cards
+  const planBtn = $('plan-to-board');
+  if (planBtn) planBtn.addEventListener('click', async () => {
+    planBtn.disabled = true; msg('در حال ساختن کارت‌ها…');
+    try {
+      const r = await api('POST', '/api/me/plan/to-board');
+      items = Array.isArray(r.items) ? r.items : items;
+      draw();
+      msg(r.added ? r.added + ' کارت از برنامهٔ هفته اضافه شد ✓' : 'کارتِ تازه‌ای نبود (همه از قبل روی بُردن)');
+      setTimeout(() => msg(''), 3500);
+    } catch (e) { msg(e.message, true); }
+    finally { planBtn.disabled = false; }
+  });
+
   window.addEventListener('sj:page', (e) => { if (e.detail.page === 'board') load(); });
 })();
