@@ -166,11 +166,12 @@
   const greet = () => { const h = new Date().getHours(); return h < 5 ? 'شب بخیر' : h < 12 ? 'صبح بخیر' : h < 17 ? 'روز بخیر' : 'عصر بخیر'; };
   fetch('/api/me', { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((me) => {
     if (!me) return;
-    const page = (me.prefs && me.prefs.page_name) || me.username;
-    baseTitle = 'داشبورد ' + page;
+    const pageName = (me.prefs && me.prefs.page_name) || '';  // a chosen page name only — never the phone/username
+    const title = 'داشبورد' + (pageName ? ' · ' + pageName : '');
+    baseTitle = title;
     setTitle();
-    document.getElementById('sj-brand').textContent = page;
-    document.getElementById('sj-topbar-title').textContent = 'داشبورد ' + page;
+    document.getElementById('sj-brand').textContent = pageName || 'داشبورد';
+    document.getElementById('sj-topbar-title').textContent = title;
     document.getElementById('sj-greeting').textContent = greet() + '، ' + me.username;
     document.querySelectorAll('[data-user-name]').forEach((el) => { el.textContent = me.username; });
     document.querySelectorAll('[data-user-initials]').forEach((el) => { el.textContent = me.username.slice(0, 2).toUpperCase(); });
