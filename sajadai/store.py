@@ -325,9 +325,9 @@ def remove_member(page_id, user_id):
 def members(page_id):
     """Everyone on a page: the person whose own page it is (owner), then everyone added to it."""
     page = get_user(page_id)
-    out = [] if not page or page["kind"] == "page" else [{"id": page["id"], "username": page["username"], "role": "owner", "self": True}]
-    out += [{"id": r["id"], "username": r["username"], "role": r["role"], "self": False} for r in
-            q("SELECT users.id, users.username, memberships.role FROM memberships JOIN users ON users.id = memberships.user_id "
+    out = [] if not page or page["kind"] == "page" else [{"id": page["id"], "username": display_name(page), "role": "owner", "self": True}]
+    out += [{"id": r["id"], "username": display_name(r), "role": r["role"], "self": False} for r in
+            q("SELECT users.*, memberships.role AS role FROM memberships JOIN users ON users.id = memberships.user_id "
               "WHERE memberships.page_id = ? ORDER BY memberships.created_at", page_id)]
     return out
 
@@ -341,10 +341,10 @@ def role_for(person_id, page_id):
 
 def pages_for(person):
     """The pages a person can open: their own first, then the ones they made or were added to."""
-    out = [{"id": person["id"], "name": prefs(person).get("page_name") or person["username"], "role": "owner", "own": True, "extra": False}]
+    out = [{"id": person["id"], "name": prefs(person).get("page_name") or display_name(person), "role": "owner", "own": True, "extra": False}]
     for r in q("SELECT users.*, memberships.role AS role FROM memberships JOIN users ON users.id = memberships.page_id "
                "WHERE memberships.user_id = ? ORDER BY users.id", person["id"]):
-        out.append({"id": r["id"], "name": prefs(r).get("page_name") or r["username"], "role": r["role"], "own": False,
+        out.append({"id": r["id"], "name": prefs(r).get("page_name") or display_name(r), "role": r["role"], "own": False,
                     "extra": r["kind"] == "page"})  # an extra page can be deleted by its owner; someone's own page can't
     return out
 
@@ -356,6 +356,23 @@ def set_password(user_id, pw):
 
 def prefs(user) -> dict:
     return json.loads(user["prefs"] or "{}")
+
+
+def hide_phone(un) -> str:
+    """A phone-number username is never shown raw; show «کاربر 2798» (its last 4 digits) instead."""
+    un = (un or "").strip()
+    return ("کاربر " + un[-4:]) if re.fullmatch(r"09\d{9}", un) else un
+
+
+def display_name(user) -> str:
+    """A human-facing name that never exposes a phone number: the chosen display name if set,
+    otherwise the username — but a phone-number username is hidden behind its last 4 digits."""
+    if not user:
+        return ""
+    name = (prefs(user).get("display_name") or "").strip()
+    if name:
+        return name
+    return hide_phone(user["username"] if "username" in user.keys() else "")
 
 
 def set_prefs(user_id, p: dict):

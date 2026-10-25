@@ -136,7 +136,8 @@ def check_new_login(username, password):
 
 
 def new_user(username, password, is_admin=False):
-    uid = store.create_user(username, password, is_admin, prefs={"page_name": username})
+    page_name = "" if re.fullmatch(r"09\d{9}", username or "") else username  # a phone sign-in: no number as the page name
+    uid = store.create_user(username, password, is_admin, prefs={"page_name": page_name})
     pipeline.ensure_user_dir(uid)
     return uid
 
@@ -550,8 +551,8 @@ def me(user=Depends(need_user)):
     base = pipeline.public_url()
     person = user["person"]
     return {
-        "username": person["username"], "is_admin": bool(user["is_admin"]), "role": user["role"],
-        "page": {"id": user["id"], "name": p.get("page_name") or user["username"], "own": user["id"] == person["id"]},
+        "username": store.display_name(person), "is_admin": bool(user["is_admin"]), "role": user["role"],
+        "page": {"id": user["id"], "name": p.get("page_name") or store.display_name(user), "own": user["id"] == person["id"]},
         "pages": store.pages_for(person),
         "prefs": {k: p.get(k, "") for k in ("page_name", "page_profile", "telegram_chat")},
         "kit": {"enabled": bool(p.get("kit_enabled")), "slug": p.get("kit_slug", ""), "bio": p.get("kit_bio", ""), "contact": p.get("kit_contact", ""),
@@ -1575,9 +1576,9 @@ def admin_state(admin=Depends(need_admin)):
                      "max_pages": max_pages()},
         "ops": {**(store.setting("ops", {}) or {}), "backups": ops.describe()},
         "billing": {**{k: v for k, v in billing.config().items() if k != "merchant"}, "merchant": mask(billing.config()["merchant"])},
-        "payments": [{k: r[k] for k in ("authority", "username", "plan_id", "amount", "status", "ref_id", "created_at")} for r in store.payments()],
+        "payments": [{**{k: r[k] for k in ("authority", "plan_id", "amount", "status", "ref_id", "created_at")}, "username": store.hide_phone(r["username"])} for r in store.payments()],
         "providers": {k: v["label"] for k, v in AI.PROVIDERS.items()},
-        "users": [{"id": u["id"], "username": u["username"], "is_admin": bool(u["is_admin"]), "created_at": u["created_at"],
+        "users": [{"id": u["id"], "username": store.display_name(u), "is_admin": bool(u["is_admin"]), "created_at": u["created_at"],
                    "kind": u["kind"], "owner_id": u["owner_id"], "page_name": store.prefs(u).get("page_name") or "",
                    "connections": sorted(store.user_secrets(u).get("connections", {}).keys()),
                    "status": {k: v for k, v in store.status(u).items() if not k.endswith("_log")}} for u in store.users()],
