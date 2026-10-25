@@ -213,9 +213,11 @@
     if (!o || o.hidden || o.done || me.role !== 'owner') { onboard.hidden = true; return; }
     const req = o.steps.filter((s) => !s.optional), done = req.filter((s) => s.done).length;
     onboard.innerHTML = `
-      <div class="sj-onboard-head"><h3>شروع کار با این پیج</h3><span class="sj-chip">${done} از ${req.length}</span>
+      <div class="sj-onboard-head"><h3>از اینجا شروع کن</h3><span class="sj-chip">${done} از ${req.length}</span>
         <button type="button" class="sj-linkbtn" id="onboard-hide">بعداً</button></div>
       <div class="sj-bar"><i style="width:${Math.round((done / req.length) * 100)}%;background:var(--accent)"></i></div>
+      <p class="sj-note" style="margin:6px 0 2px">ساده‌ترین راه برای شروع (بدون هیچ تنظیماتی): از آمار اینستاگرامت عکس بگیر و بذار اینجا.</p>
+      <a class="sj-btn sj-btn-primary" href="#/screenshot" style="margin:4px 0 10px;display:inline-flex">شروع با اسکرین‌شات ←</a>
       <ol>${o.steps.map((s) => `<li class="${s.done ? 'done' : ''}"><a href="${esc(s.href)}">${esc(s.label)}</a>${s.done ? ' ✓' : ''}</li>`).join('')}</ol>`;
     onboard.hidden = false;
     $('onboard-hide').addEventListener('click', () => { onboard.hidden = true; api('POST', '/api/me/onboarding', { hidden: true }).catch(() => {}); });

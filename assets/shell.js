@@ -109,6 +109,7 @@
       const on = sec === id;
       a.classList.toggle('is-active', on);
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+      if (on) { const adv = a.closest('details.nav-adv'); if (adv) adv.open = true; }  // open «پیشرفته» so the active item shows
     });
     const label = links.get(id) && links.get(id).querySelector('.sidebar-label');
     // pages without a sidebar item (a single reel) name themselves with data-title

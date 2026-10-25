@@ -478,3 +478,11 @@ html.sj-ro .nav-item[data-sec="studio"] { display: none !important; }
 .sj-ok { color: var(--good) !important; }
 .sj-out-row.pick { outline: 1.5px solid var(--accent); }
 @media (max-width: 640px) { .sj-checkrow { grid-template-columns: 6rem 1fr; } .sj-checkrow small { grid-column: 1 / -1; } }
+
+/* Sidebar «پیشرفته» collapsible group: keeps advanced pages reachable but out of a beginner's way */
+.nav-adv { margin: 0; }
+.nav-adv > summary { display: flex; align-items: center; gap: .35rem; list-style: none; user-select: none; }
+.nav-adv > summary::-webkit-details-marker { display: none; }
+.nav-adv > summary::after { content: "›"; margin-inline-start: auto; transition: transform .15s ease; opacity: .6; }
+.nav-adv[open] > summary::after { transform: rotate(90deg); }
+.nav-adv > summary:hover { color: var(--text); }

@@ -1776,8 +1776,8 @@ def onboarding(user, p, s):
         {"id": "profile", "label": "معرفی پیج برای هوش مصنوعی", "done": bool(p.get("page_profile")), "href": "/settings#page-card"},
         # each step is read from what's really there: a stored connection or data that arrived, a data.json with
         # reels or followers, goals saved for this page
-        {"id": "source", "label": "وصل کردن یه منبع داده (Instagram API، Metricool، Buffer یا روتین Claude)",
-         "done": bool(s.get("connections")) or has_data, "href": "/settings#conns-card"},
+        {"id": "source", "label": "آوردن داده — ساده‌ترین راه: تحلیل با اسکرین‌شات (یا وصل‌کردن اینستاگرام/متریکول)",
+         "done": bool(s.get("connections")) or has_data, "href": "/#/screenshot"},
         {"id": "data", "label": "گرفتن اولین داده", "done": has_data, "href": "/settings#status"},
         {"id": "goals", "label": "تعیین هدف‌ها", "done": bool(p.get("goals_set") or load_content(user, "goals.json", [])), "href": "/settings#goals-card"},
         {"id": "ai", "label": "کلید هوش مصنوعی (برای ایده‌ها و دستیار)", "done": pipeline.ai_config(user) is not None, "href": "/settings#ai-card"},
